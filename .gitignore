@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+
+# Turbo
+.turbo/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Testing
+coverage/
+.nyc_output/
+
+# TypeDoc generated
+docs/api/
+
+# Storybook
+storybook-static/
+
+# Misc
+*.tsbuildinfo
+.eslintcache
+.cache/
+
+# Claude Code personal notes
+CLAUDE.local.md

@@ -1,0 +1,13 @@
+{
+  "name": "@layers/docs",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Layers documentation site",
+  "scripts": {
+    "dev": "echo 'Docs app not yet configured'",
+    "build": "echo 'Docs app not yet configured'",
+    "lint": "echo 'Docs app not yet configured'"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

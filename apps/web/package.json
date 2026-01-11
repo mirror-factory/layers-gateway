@@ -1,0 +1,13 @@
+{
+  "name": "@layers/web",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Main Layers web application (Next.js)",
+  "scripts": {
+    "dev": "echo 'Next.js app not yet configured - run pnpm create next-app . --typescript'",
+    "build": "echo 'Next.js app not yet configured'",
+    "lint": "echo 'Next.js app not yet configured'"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
