@@ -1,0 +1,94 @@
+---
+title: FLUX Schnell
+description: Ultra-fast image generation
+---
+
+# FLUX Schnell
+
+"Schnell" means "fast" in German - optimized for maximum speed.
+
+## Specifications
+
+| Property | Value |
+|----------|-------|
+| **Model ID** | `bfl/flux-schnell` |
+| **Pricing** | Variable |
+| **Type** | Image-only (generateImage) |
+
+## Quick Start
+
+```typescript
+import { experimental_generateImage as generateImage } from 'ai';
+
+const result = await generateImage({
+  model: 'bfl/flux-schnell',
+  prompt: 'Quick concept art for a mobile game',
+  aspectRatio: '1:1',
+});
+
+const image = result.images[0];
+console.log(image.base64);
+```
+
+## Features
+
+### Maximum Speed
+
+Fastest generation in the FLUX family:
+
+```typescript
+// Batch generate with minimal latency
+const concepts = await Promise.all(
+  Array.from({ length: 10 }, (_, i) =>
+    generateImage({
+      model: 'bfl/flux-schnell',
+      prompt: `Game character concept ${i + 1}`,
+      aspectRatio: '1:1',
+    })
+  )
+);
+```
+
+### Real-Time Applications
+
+Suitable for interactive use cases:
+
+```typescript
+// Respond to user input quickly
+async function generatePreview(userPrompt: string) {
+  const start = Date.now();
+
+  const result = await generateImage({
+    model: 'bfl/flux-schnell',
+    prompt: userPrompt,
+    aspectRatio: '1:1',
+  });
+
+  console.log(`Generated in ${Date.now() - start}ms`);
+  return result.images[0];
+}
+```
+
+## Best Use Cases
+
+- Real-time previews
+- Interactive applications
+- Rapid prototyping
+- Batch generation
+- Time-sensitive workflows
+
+## Trade-offs
+
+- Lower quality than Pro models
+- Best for drafts and previews
+- Consider FLUX 2 Klein for production with speed needs
+
+## Comparison
+
+| Model | Speed | Quality |
+|-------|-------|---------|
+| **FLUX Schnell** | Fastest | Lower |
+| FLUX 2 Klein 4B | Fast | Good |
+| FLUX 2 Pro | Medium | Highest |
+
+Choose FLUX Schnell when speed is the primary concern.
