@@ -1,0 +1,19 @@
+// tsup.config.ts
+import { defineConfig } from "tsup";
+var tsup_config_default = defineConfig({
+  entry: {
+    index: "src/index.ts",
+    "credits/index": "src/credits/index.ts",
+    "users/index": "src/users/index.ts",
+    "auth/index": "src/auth/index.ts"
+  },
+  format: ["cjs", "esm"],
+  dts: true,
+  splitting: false,
+  sourcemap: true,
+  clean: true
+});
+export {
+  tsup_config_default as default
+};
+//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsidHN1cC5jb25maWcudHMiXSwKICAic291cmNlc0NvbnRlbnQiOiBbImNvbnN0IF9faW5qZWN0ZWRfZmlsZW5hbWVfXyA9IFwiL2hvbWUvZGV2L3JlcG9zL2xheWVycy1kZXYvcGFja2FnZXMvQGxheWVycy9jb3JlL3RzdXAuY29uZmlnLnRzXCI7Y29uc3QgX19pbmplY3RlZF9kaXJuYW1lX18gPSBcIi9ob21lL2Rldi9yZXBvcy9sYXllcnMtZGV2L3BhY2thZ2VzL0BsYXllcnMvY29yZVwiO2NvbnN0IF9faW5qZWN0ZWRfaW1wb3J0X21ldGFfdXJsX18gPSBcImZpbGU6Ly8vaG9tZS9kZXYvcmVwb3MvbGF5ZXJzLWRldi9wYWNrYWdlcy9AbGF5ZXJzL2NvcmUvdHN1cC5jb25maWcudHNcIjtpbXBvcnQgeyBkZWZpbmVDb25maWcgfSBmcm9tICd0c3VwJztcblxuZXhwb3J0IGRlZmF1bHQgZGVmaW5lQ29uZmlnKHtcbiAgZW50cnk6IHtcbiAgICBpbmRleDogJ3NyYy9pbmRleC50cycsXG4gICAgJ2NyZWRpdHMvaW5kZXgnOiAnc3JjL2NyZWRpdHMvaW5kZXgudHMnLFxuICAgICd1c2Vycy9pbmRleCc6ICdzcmMvdXNlcnMvaW5kZXgudHMnLFxuICAgICdhdXRoL2luZGV4JzogJ3NyYy9hdXRoL2luZGV4LnRzJyxcbiAgfSxcbiAgZm9ybWF0OiBbJ2NqcycsICdlc20nXSxcbiAgZHRzOiB0cnVlLFxuICBzcGxpdHRpbmc6IGZhbHNlLFxuICBzb3VyY2VtYXA6IHRydWUsXG4gIGNsZWFuOiB0cnVlLFxufSk7XG4iXSwKICAibWFwcGluZ3MiOiAiO0FBQThSLFNBQVMsb0JBQW9CO0FBRTNULElBQU8sc0JBQVEsYUFBYTtBQUFBLEVBQzFCLE9BQU87QUFBQSxJQUNMLE9BQU87QUFBQSxJQUNQLGlCQUFpQjtBQUFBLElBQ2pCLGVBQWU7QUFBQSxJQUNmLGNBQWM7QUFBQSxFQUNoQjtBQUFBLEVBQ0EsUUFBUSxDQUFDLE9BQU8sS0FBSztBQUFBLEVBQ3JCLEtBQUs7QUFBQSxFQUNMLFdBQVc7QUFBQSxFQUNYLFdBQVc7QUFBQSxFQUNYLE9BQU87QUFDVCxDQUFDOyIsCiAgIm5hbWVzIjogW10KfQo=

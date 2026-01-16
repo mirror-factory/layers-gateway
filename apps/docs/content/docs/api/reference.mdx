@@ -95,8 +95,8 @@ interface Message {
 
 ### Example Request
 
-<Tabs items={['cURL', 'TypeScript', 'Python']}>
-<Tab value="cURL">
+#### cURL
+
 ```bash
 curl -X POST https://preview.hustletogether.com/api/v1/chat \
   -H "Content-Type: application/json" \
@@ -110,8 +110,9 @@ curl -X POST https://preview.hustletogether.com/api/v1/chat \
     "max_tokens": 256
   }'
 ```
-</Tab>
-<Tab value="TypeScript">
+
+#### TypeScript
+
 ```typescript
 const response = await fetch('https://preview.hustletogether.com/api/v1/chat', {
   method: 'POST',
@@ -133,8 +134,9 @@ const data = await response.json();
 console.log(data.choices[0].message.content);
 // "The capital of France is Paris."
 ```
-</Tab>
-<Tab value="Python">
+
+#### Python
+
 ```python
 import requests
 import os
@@ -159,8 +161,6 @@ data = response.json()
 print(data['choices'][0]['message']['content'])
 # "The capital of France is Paris."
 ```
-</Tab>
-</Tabs>
 
 ---
 
