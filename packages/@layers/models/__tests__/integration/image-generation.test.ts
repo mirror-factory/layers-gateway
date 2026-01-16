@@ -106,17 +106,18 @@ describeWithApi('Multimodal Image Generation (generateText)', () => {
 
 describeWithApi('Image-Only Models (generateImage)', () => {
   describe('BFL Flux Models', () => {
-    // Note: flux-pro-1.1 can be intermittent, use ultra variant for reliability
-    const fluxModels = [
-      { id: 'bfl/flux-pro-1.1-ultra', name: 'FLUX 1.1 Pro Ultra' },
-      { id: 'bfl/flux-kontext-pro', name: 'FLUX Kontext Pro' },
-      { id: 'bfl/flux-kontext-max', name: 'FLUX Kontext Max' },
+    // Flux 2.x models (newest generation)
+    const flux2Models = [
+      { id: 'bfl/flux-2-pro', name: 'FLUX 2 Pro', price: '$0.03/MP' },
+      { id: 'bfl/flux-2-flex', name: 'FLUX 2 Flex', price: '$0.06/MP' },
+      { id: 'bfl/flux-2-klein-4b', name: 'FLUX 2 Klein 4B', price: '$0.014/MP' },
+      { id: 'bfl/flux-2-klein-9b', name: 'FLUX 2 Klein 9B', price: '$0.015/MP' },
     ];
 
-    for (const model of fluxModels) {
-      it(`should generate image with ${model.name}`, async () => {
+    for (const model of flux2Models) {
+      it(`should generate image with ${model.name} (${model.price})`, async () => {
         const result = await generateImage({
-          model: model.id, // Use string directly with gateway
+          model: model.id,
           prompt: TEST_PROMPT,
           aspectRatio: '1:1',
         });
@@ -126,38 +127,36 @@ describeWithApi('Image-Only Models (generateImage)', () => {
         expect(result.images).toBeDefined();
         expect(result.images.length).toBeGreaterThan(0);
 
-        // Check image data
         const image = result.images[0];
         expect(image.base64 || image.uint8Array).toBeDefined();
       }, 120000);
     }
 
-    // Standard FLUX 1.1 Pro - can be intermittent
-    it('should generate image with FLUX 1.1 Pro', async () => {
-      const result = await generateImage({
-        model: 'bfl/flux-pro-1.1',
-        prompt: TEST_PROMPT,
-        aspectRatio: '1:1',
-      });
+    // Flux 1.x and Kontext models
+    const flux1Models = [
+      { id: 'bfl/flux-pro-1.1', name: 'FLUX 1.1 Pro', price: '$0.04/img' },
+      { id: 'bfl/flux-pro-1.1-ultra', name: 'FLUX 1.1 Pro Ultra', price: '$0.06/img' },
+      { id: 'bfl/flux-kontext-pro', name: 'FLUX Kontext Pro', price: '$0.04/img' },
+      { id: 'bfl/flux-kontext-max', name: 'FLUX Kontext Max', price: '$0.08/img' },
+    ];
 
-      console.log(`FLUX 1.1 Pro: Generated ${result.images.length} image(s)`);
-      expect(result.images.length).toBeGreaterThan(0);
-    }, 120000);
+    for (const model of flux1Models) {
+      it(`should generate image with ${model.name} (${model.price})`, async () => {
+        const result = await generateImage({
+          model: model.id,
+          prompt: TEST_PROMPT,
+          aspectRatio: '1:1',
+        });
 
-    // Inpainting model - requires source image + mask for full functionality
-    // This test verifies API connectivity with basic generation
-    it.skip('should support FLUX Pro Fill (inpainting) - requires source image', async () => {
-      // Note: Full inpainting requires image + mask parameters
-      // Skip for now - documented as available
-      const result = await generateImage({
-        model: 'bfl/flux-pro-1.0-fill',
-        prompt: 'A red apple on a wooden table',
-        aspectRatio: '1:1',
-      });
+        console.log(`${model.name}: Generated ${result.images.length} image(s)`);
 
-      console.log(`FLUX Pro Fill: Generated ${result.images.length} image(s)`);
-      expect(result.images.length).toBeGreaterThan(0);
-    }, 120000);
+        expect(result.images).toBeDefined();
+        expect(result.images.length).toBeGreaterThan(0);
+
+        const image = result.images[0];
+        expect(image.base64 || image.uint8Array).toBeDefined();
+      }, 120000);
+    }
   });
 
   describe('Google Imagen Models', () => {
@@ -228,22 +227,28 @@ describeWithApi('Image Generation Features', () => {
 // =============================================================================
 
 /**
- * Image Generation Pricing via AI Gateway (per image):
+ * Image Generation Pricing via AI Gateway (January 2026):
  *
- * BFL Flux Models:
- * - bfl/flux-pro-1.1: ~$0.04
- * - bfl/flux-pro-1.1-ultra: ~$0.06
- * - bfl/flux-kontext-pro: ~$0.04
- * - bfl/flux-kontext-max: ~$0.08
+ * BFL Flux 2.x Models (per megapixel):
+ * - bfl/flux-2-pro: $0.03/MP (67K context)
+ * - bfl/flux-2-flex: $0.06/MP
+ * - bfl/flux-2-klein-4b: $0.014/MP
+ * - bfl/flux-2-klein-9b: $0.015/MP
  *
- * Google Imagen Models:
- * - google/imagen-4.0-fast-generate-001: ~$0.02
- * - google/imagen-4.0-generate-001: ~$0.04
- * - google/imagen-4.0-ultra-generate-001: ~$0.08
+ * BFL Flux 1.x Models (per image):
+ * - bfl/flux-pro-1.1: $0.04/img
+ * - bfl/flux-pro-1.1-ultra: $0.06/img
+ * - bfl/flux-kontext-pro: $0.04/img
+ * - bfl/flux-kontext-max: $0.08/img
  *
- * Multimodal LLMs (charged per token, not per image):
- * - google/gemini-2.5-flash-image: Input $0.0003/1K, Output $0.0025/1K
- * - google/gemini-3-pro-image: Input $0.002/1K, Output $0.12/1K
+ * Google Imagen Models (per image):
+ * - google/imagen-4.0-fast-generate-001: $0.02/img
+ * - google/imagen-4.0-generate-001: $0.04/img (intermittent)
+ * - google/imagen-4.0-ultra-generate-001: $0.08/img
  *
- * Check https://ai-gateway.vercel.sh/v1/models for current pricing.
+ * Multimodal LLMs (per token):
+ * - google/gemini-2.5-flash-image: $0.30/$2.50 per 1M tokens
+ * - google/gemini-3-pro-image: $2.00/$120.00 per 1M tokens
+ *
+ * Check https://vercel.com/ai-gateway/models for current pricing.
  */
