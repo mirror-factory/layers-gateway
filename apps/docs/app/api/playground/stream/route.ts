@@ -1,7 +1,5 @@
 import { NextRequest } from 'next/server';
-
-// Vercel AI Gateway endpoint
-const GATEWAY_URL = 'https://gateway.vercel.ai/v1/chat/completions';
+import { streamText, createGateway } from 'ai';
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,92 +29,39 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Build messages array with optional system prompt
-    const chatMessages: Array<{ role: string; content: string }> = [];
+    // Create gateway instance (SDK handles the correct URL internally)
+    const gateway = createGateway({ apiKey });
 
-    if (messages) {
-      chatMessages.push(...messages);
-    } else {
-      if (systemPrompt) {
-        chatMessages.push({ role: 'system', content: systemPrompt });
-      }
-      chatMessages.push({ role: 'user', content: prompt });
-    }
+    // Build messages for AI SDK format
+    const sdkMessages = messages
+      ? messages.map((m: { role: string; content: string }) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        }))
+      : prompt
+        ? [{ role: 'user' as const, content: prompt }]
+        : [];
 
-    // Make streaming request to Vercel AI Gateway
-    const response = await fetch(GATEWAY_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: chatMessages,
-        max_tokens: maxTokens,
-        stream: true,
-      }),
+    // Stream text using AI SDK
+    const result = streamText({
+      model: gateway(model),
+      system: systemPrompt,
+      messages: sdkMessages,
+      maxOutputTokens: maxTokens,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gateway error:', response.status, errorText);
-      return new Response(JSON.stringify({ error: `Gateway error: ${response.status}`, details: errorText }), {
-        status: response.status,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Parse SSE stream and extract text content
-    const reader = response.body?.getReader();
-    if (!reader) {
-      return new Response(JSON.stringify({ error: 'No response body' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
+    // Convert the async iterator to a ReadableStream of plain text
     const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
-
-    const stream = new ReadableStream({
+    const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
-        let buffer = '';
-
         try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-
-            // Process complete SSE events
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || ''; // Keep incomplete line in buffer
-
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = line.slice(6).trim();
-
-                // Skip [DONE] marker
-                if (data === '[DONE]') continue;
-
-                try {
-                  const parsed = JSON.parse(data);
-                  const content = parsed.choices?.[0]?.delta?.content;
-                  if (content) {
-                    controller.enqueue(encoder.encode(content));
-                  }
-                } catch {
-                  // Skip malformed JSON
-                }
-              }
-            }
+          for await (const chunk of result.textStream) {
+            controller.enqueue(encoder.encode(chunk));
           }
-        } catch (error) {
-          console.error('Stream processing error:', error);
-        } finally {
           controller.close();
+        } catch (err) {
+          console.error('Stream processing error:', err);
+          controller.error(err);
         }
       },
     });

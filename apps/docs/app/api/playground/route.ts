@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// Vercel AI Gateway endpoint
-const GATEWAY_URL = 'https://gateway.vercel.ai/v1/chat/completions';
+import { generateText, createGateway } from 'ai';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { model, prompt, messages, maxTokens = 1024 } = body;
+    const { model, prompt, messages, maxTokens = 1024, systemPrompt } = body;
 
     // Validate required fields
     if (!model) {
@@ -31,56 +29,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build messages array with optional system prompt
-    const { systemPrompt } = body;
-    const chatMessages = messages || [];
+    // Create gateway instance (SDK handles the correct URL internally)
+    const gateway = createGateway({ apiKey });
 
-    // Add system message if provided
-    if (systemPrompt && !messages) {
-      chatMessages.push({ role: 'system', content: systemPrompt });
-    }
+    // Build messages for AI SDK format
+    const sdkMessages = messages
+      ? messages.map((m: { role: string; content: string }) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        }))
+      : prompt
+        ? [{ role: 'user' as const, content: prompt }]
+        : [];
 
-    // Add user prompt if using simple prompt mode
-    if (prompt && !messages) {
-      chatMessages.push({ role: 'user', content: prompt });
-    }
-
-    // Make request to Vercel AI Gateway
-    const response = await fetch(GATEWAY_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: chatMessages,
-        max_tokens: maxTokens,
-      }),
+    // Generate text using AI SDK
+    const result = await generateText({
+      model: gateway(model),
+      system: systemPrompt,
+      messages: sdkMessages,
+      maxOutputTokens: maxTokens,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gateway error:', response.status, errorText);
-      return NextResponse.json(
-        { error: `Gateway error: ${response.status}`, details: errorText },
-        { status: response.status }
-      );
-    }
-
-    const data = await response.json();
-
-    // Extract the response text
-    const text = data.choices?.[0]?.message?.content || '';
-    const usage = data.usage || {};
+    // Extract usage (AI SDK may use different property names)
+    const usage = result.usage as {
+      promptTokens?: number;
+      completionTokens?: number;
+      prompt_tokens?: number;
+      completion_tokens?: number;
+    };
+    const inputTokens = usage?.promptTokens ?? usage?.prompt_tokens ?? 0;
+    const outputTokens = usage?.completionTokens ?? usage?.completion_tokens ?? 0;
 
     return NextResponse.json({
-      text,
-      model: data.model,
+      text: result.text,
+      model,
       usage: {
-        inputTokens: usage.prompt_tokens,
-        outputTokens: usage.completion_tokens,
-        totalTokens: usage.total_tokens,
+        inputTokens,
+        outputTokens,
+        totalTokens: inputTokens + outputTokens,
       },
     });
   } catch (error) {

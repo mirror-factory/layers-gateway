@@ -43,9 +43,9 @@ export async function POST(request: NextRequest) {
     // Get dimensions from aspect ratio
     const dimensions = ASPECT_RATIOS[aspectRatio] || ASPECT_RATIOS['1:1'];
 
-    // Create gateway provider
+    // Create gateway provider (correct URL: ai-gateway.vercel.sh)
     const gateway = createOpenAI({
-      baseURL: 'https://gateway.vercel.ai/v1',
+      baseURL: 'https://ai-gateway.vercel.sh/v1',
       apiKey,
     });
 
