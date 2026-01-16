@@ -6,9 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn, formatNumber, formatCredits } from '@/lib/utils';
-import { User, Bot, AlertCircle, Loader2, ImageIcon, Wrench, Code, Brain, ChevronDown } from 'lucide-react';
+import { User, Bot, AlertCircle, Loader2, ImageIcon, Wrench, Code, Brain, ChevronDown, Globe, ExternalLink } from 'lucide-react';
 import type { Message } from '@/hooks/use-layers-chat';
-import type { TextContent, ToolCall } from '@/lib/layers-client';
+import type { TextContent, ToolCall, GeneratedImage, WebSearchCitation } from '@/lib/layers-client';
 
 interface ResponseDisplayProps {
   messages: Message[];
@@ -64,6 +64,113 @@ function ThinkingDisplay({ thinking }: { thinking: string }) {
         <div className="mt-3 rounded bg-background p-3 text-xs overflow-x-auto max-h-[300px] overflow-y-auto">
           <pre className="text-muted-foreground whitespace-pre-wrap font-mono">{thinking}</pre>
         </div>
+      )}
+    </div>
+  );
+}
+
+// Component to display generated images
+function GeneratedImagesDisplay({ images }: { images: GeneratedImage[] }) {
+  if (!images || images.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <ImageIcon className="h-4 w-4 text-primary" />
+        <span className="font-medium text-sm">Generated Image{images.length > 1 ? 's' : ''}</span>
+        <Badge variant="secondary" className="text-[10px]">
+          {images.length}
+        </Badge>
+      </div>
+      <div className="grid gap-3 grid-cols-1">
+        {images.map((img, index) => {
+          const imageSrc = img.url || (img.b64_json ? `data:image/png;base64,${img.b64_json}` : '');
+          if (!imageSrc) return null;
+
+          return (
+            <div key={index} className="space-y-2">
+              <div className="rounded-lg overflow-hidden border border-border bg-muted/50">
+                <img
+                  src={imageSrc}
+                  alt={img.revised_prompt || `Generated image ${index + 1}`}
+                  className="w-full max-h-[500px] object-contain"
+                />
+              </div>
+              {img.revised_prompt && (
+                <p className="text-xs text-muted-foreground italic px-1">
+                  Prompt: {img.revised_prompt}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Component to display web search citations
+function WebSearchCitationsDisplay({ citations }: { citations: WebSearchCitation[] }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (!citations || citations.length === 0) return null;
+
+  // Show up to 3 citations by default, rest in expanded view
+  const visibleCitations = isExpanded ? citations : citations.slice(0, 3);
+  const hiddenCount = citations.length - 3;
+
+  return (
+    <div className="rounded-lg border border-blue-500/30 bg-blue-500/5 p-3 text-sm">
+      <div className="flex items-center gap-2 mb-2">
+        <Globe className="h-4 w-4 text-blue-500" />
+        <span className="font-medium text-blue-600 dark:text-blue-400">Web Sources</span>
+        <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-600 dark:text-blue-400">
+          {citations.length} source{citations.length !== 1 ? 's' : ''}
+        </Badge>
+      </div>
+      <div className="space-y-2">
+        {visibleCitations.map((citation, index) => (
+          <a
+            key={index}
+            href={citation.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-start gap-2 p-2 rounded bg-background hover:bg-muted/50 transition-colors group"
+          >
+            <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+              {index + 1}
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-medium text-foreground truncate">
+                  {citation.title || new URL(citation.url).hostname}
+                </span>
+                <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              {citation.snippet && (
+                <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
+                  {citation.snippet}
+                </p>
+              )}
+            </div>
+          </a>
+        ))}
+      </div>
+      {hiddenCount > 0 && !isExpanded && (
+        <button
+          onClick={() => setIsExpanded(true)}
+          className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+        >
+          Show {hiddenCount} more source{hiddenCount !== 1 ? 's' : ''}
+        </button>
+      )}
+      {isExpanded && citations.length > 3 && (
+        <button
+          onClick={() => setIsExpanded(false)}
+          className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+        >
+          Show less
+        </button>
       )}
     </div>
   );
@@ -172,6 +279,20 @@ function MessageBubble({ message }: { message: Message }) {
         {!isUser && message.thinking && (
           <div className="mt-2 w-full max-w-md">
             <ThinkingDisplay thinking={message.thinking} />
+          </div>
+        )}
+
+        {/* Generated images display */}
+        {!isUser && message.generatedImages && message.generatedImages.length > 0 && (
+          <div className="mt-2 w-full max-w-lg">
+            <GeneratedImagesDisplay images={message.generatedImages} />
+          </div>
+        )}
+
+        {/* Web search citations display */}
+        {!isUser && message.citations && message.citations.length > 0 && (
+          <div className="mt-2 w-full max-w-md">
+            <WebSearchCitationsDisplay citations={message.citations} />
           </div>
         )}
 

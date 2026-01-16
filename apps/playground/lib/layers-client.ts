@@ -123,6 +123,25 @@ export interface ImageGenerationResponse {
   data: GeneratedImage[];
 }
 
+/**
+ * Web search citation/source
+ */
+export interface WebSearchCitation {
+  url: string;
+  title?: string;
+  snippet?: string;
+  position?: number;
+}
+
+/**
+ * Web search results (from Perplexity)
+ */
+export interface WebSearchResults {
+  citations?: WebSearchCitation[];
+  sources?: WebSearchCitation[];
+  related_questions?: string[];
+}
+
 export interface ChatUsage {
   prompt_tokens: number;
   completion_tokens: number;

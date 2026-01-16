@@ -48,9 +48,21 @@ export default function PlaygroundPage() {
     [currentModel]
   );
 
-  // Check if current model supports vision (image input)
+  // Check if current model supports various input types
   const supportsVision = useMemo(() => {
     return modelCapabilities.includes('vision');
+  }, [modelCapabilities]);
+
+  const supportsPdf = useMemo(() => {
+    return modelCapabilities.includes('pdf');
+  }, [modelCapabilities]);
+
+  const supportsAudio = useMemo(() => {
+    return modelCapabilities.includes('audio-in');
+  }, [modelCapabilities]);
+
+  const supportsVideo = useMemo(() => {
+    return modelCapabilities.includes('video-in');
   }, [modelCapabilities]);
 
   // Check if model has any advanced capabilities
@@ -159,6 +171,9 @@ export default function PlaygroundPage() {
                   isLoading={isLoading}
                   hasMessages={messages.length > 0}
                   supportsVision={supportsVision}
+                  supportsPdf={supportsPdf}
+                  supportsAudio={supportsAudio}
+                  supportsVideo={supportsVideo}
                 />
               </CardContent>
 
