@@ -2,7 +2,7 @@
 
 > Central registry tracking all documentation across the Layers ecosystem
 
-**Last Updated**: 2026-01-11
+**Last Updated**: 2026-01-14
 **Registry Version**: 1.0
 
 ---
@@ -45,6 +45,14 @@ Every document in the Layers ecosystem is tracked here with:
 | `SETUP-001` | [Getting Started](../setup/getting-started.md) | `draft` | Alfonso | 2026-01-11 | Development environment setup |
 | `SETUP-002` | [Environment Variables](../setup/env-variables.md) | `planned` | — | — | Required environment configuration |
 | `SETUP-003` | [Database Setup](../setup/database.md) | `planned` | — | — | Supabase configuration |
+
+### AI Gateway Testing
+
+| ID | Document | Status | Owner | Updated | Description |
+|----|----------|--------|-------|---------|-------------|
+| `TEST-001` | [Gateway Test Registry](../../REGISTRY.md) | `active` | Claude | 2026-01-14 | RALPH-style test registry for AI Gateway |
+| `TEST-002` | [Hand-off Document](../HANDOFF-vercel-ai-gateway-testing.md) | `active` | Claude | 2026-01-14 | Complete hand-off for gateway testing work |
+| `TEST-003` | test-providers-fixed.ts | `active` | Claude | 2026-01-14 | 40 working models, 134 tests |
 
 ### API Documentation
 
@@ -123,6 +131,7 @@ Based on Technology Stack document, these decisions need formal MFDRs:
 
 | Date | Document | Change | Author |
 |------|----------|--------|--------|
+| 2026-01-14 | TEST-001, TEST-002, TEST-003 | Added AI Gateway testing documentation | Claude |
 | 2026-01-11 | Registry | Created documentation registry | Claude |
 | 2026-01-11 | MFDR-002, MFDR-003 | Added hypothesis sections, competitor analysis | Claude |
 | 2026-01-11 | All MFDRs | Fixed numbering, renamed files | Claude |
@@ -140,6 +149,7 @@ Based on Technology Stack document, these decisions need formal MFDRs:
 |----------|-------|--------|-------|---------|
 | Architecture | 3 | 0 | 1 | 2 |
 | Setup Guides | 3 | 0 | 1 | 2 |
+| AI Gateway Testing | 3 | 3 | 0 | 0 |
 | API Docs | 2 | 0 | 0 | 2 |
 | Components | 2 | 0 | 0 | 2 |
 | Foundation | 2 | 2 | 0 | 0 |
@@ -147,7 +157,7 @@ Based on Technology Stack document, these decisions need formal MFDRs:
 | Specs | 2 | 2 | 0 | 0 |
 | Templates | 2 | 2 | 0 | 0 |
 | Skills | 3 | 3 | 0 | 0 |
-| **Total** | **22** | **12** | **2** | **8** |
+| **Total** | **25** | **15** | **2** | **8** |
 
 ---
 

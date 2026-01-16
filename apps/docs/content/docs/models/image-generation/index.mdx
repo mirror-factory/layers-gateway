@@ -1,0 +1,107 @@
+---
+title: Image Generation
+description: 9 image generation models via Vercel AI Gateway
+---
+
+# Image Generation
+
+9 models for image generation via Vercel AI Gateway.
+
+## Model Types
+
+1. **Image-only models** - Use `experimental_generateImage()`
+2. **Multimodal LLMs** - Use `generateText()`, images in `result.files`
+
+## Quick Reference
+
+| Model | Provider | Price |
+|-------|----------|-------|
+| bfl/flux-pro-1.1 | BFL | $0.04 |
+| bfl/flux-pro-1.1-ultra | BFL | $0.06 |
+| bfl/flux-kontext-pro | BFL | $0.04 |
+| bfl/flux-kontext-max | BFL | $0.08 |
+| bfl/flux-pro-1.0-fill | BFL | $0.05 |
+| google/imagen-4.0-fast-generate-001 | Google | $0.02 |
+| google/imagen-4.0-ultra-generate-001 | Google | $0.08 |
+| google/gemini-2.5-flash-image | Google | Per token |
+| google/gemini-3-pro-image | Google | Per token |
+
+## BFL Flux Models
+
+High-quality image generation with style control.
+
+### Basic Generation
+
+```typescript
+import { experimental_generateImage as generateImage } from 'ai';
+
+const result = await generateImage({
+  model: 'bfl/flux-pro-1.1',
+  prompt: 'A serene mountain landscape at sunset',
+  aspectRatio: '16:9',
+});
+
+const image = result.images[0];
+console.log(image.base64);
+```
+
+### Aspect Ratios
+
+Supported: 1:1, 16:9, 9:16, 4:3, 3:4, 21:9
+
+## Google Imagen Models
+
+Fast, reliable image generation.
+
+```typescript
+const result = await generateImage({
+  model: 'google/imagen-4.0-fast-generate-001',
+  prompt: 'A futuristic city skyline',
+  aspectRatio: '1:1',
+});
+```
+
+## Gemini Multimodal
+
+Text and image generation in a single call.
+
+```typescript
+import { generateText, createGateway } from 'ai';
+
+const gateway = createGateway({
+  apiKey: process.env.AI_GATEWAY_API_KEY
+});
+
+const result = await generateText({
+  model: gateway('google/gemini-3-pro-image'),
+  prompt: 'Generate an image of a sunset over mountains',
+  providerOptions: {
+    google: {
+      responseModalities: ['TEXT', 'IMAGE'],
+    },
+  },
+});
+
+// Images returned in result.files
+if (result.files) {
+  for (const file of result.files) {
+    if (file.mediaType?.startsWith('image/')) {
+      console.log('Got image:', file.mediaType);
+    }
+  }
+}
+```
+
+## Test Status
+
+All models verified via Vercel AI Gateway:
+
+- flux-pro-1.1: Passing
+- flux-pro-1.1-ultra: Passing
+- flux-kontext-pro: Passing
+- flux-kontext-max: Passing
+- flux-pro-1.0-fill: Skipped (requires source image)
+- imagen-4.0-fast: Passing
+- imagen-4.0-ultra: Passing
+- gemini-2.5-flash-image: Passing
+- gemini-3-pro-image: Passing

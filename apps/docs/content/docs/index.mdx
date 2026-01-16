@@ -1,0 +1,79 @@
+---
+title: Layers Documentation
+description: Build human-AI coordination tools with the Layers platform
+---
+
+# Welcome to Layers
+
+Layers is a platform for building human-AI coordination tools. It provides:
+
+- **Unified Credit System** - Single balance across all AI operations
+- **Multi-Provider Support** - 23 language models + 11 image models across 5 providers
+- **Vercel AI Gateway** - Unified access to Anthropic, OpenAI, Google, Perplexity, Morph, and BFL
+
+## Quick Start
+
+```bash
+# Install the SDK
+bun add @layers/models @layers/credits
+
+# Or with npm
+npm install @layers/models @layers/credits
+```
+
+## Packages
+
+| Package | Description | Status |
+|---------|-------------|--------|
+| `@layers/models` | AI model registry with pricing data | 112 tests passing |
+| `@layers/credits` | Credit calculation and usage tracking | Implemented |
+| `@layers/ui` | React components for AI interfaces | Planned |
+
+## Supported Providers
+
+| Provider | Language Models | Image Models | Capabilities |
+|----------|-----------------|--------------|--------------|
+| **Anthropic** | Claude 4.5 (Haiku, Sonnet, Opus) | — | Text, Vision, Tools, Thinking |
+| **OpenAI** | GPT-4o, GPT-5, GPT-5.1 variants | — | Text, Vision, Tools, Codex |
+| **Google** | Gemini 2.5/3 Flash/Pro | Imagen 4 | Text, Vision, Multimodal |
+| **Perplexity** | Sonar, Sonar Pro, Reasoning Pro | — | Web Search, Reasoning |
+| **Morph** | V3 Fast, V3 Large | — | Fast text editing |
+| **BFL** | — | Flux Pro 1.1, Kontext Pro | Image generation |
+
+## Architecture
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Your App  │ ──▶ │   Vercel    │ ──▶ │ AI Provider │
+│             │     │  AI Gateway │     │             │
+└─────────────┘     └─────────────┘     └─────────────┘
+                          │
+                          ▼
+                    ┌─────────────┐
+                    │   @layers   │
+                    │   credits   │
+                    └─────────────┘
+```
+
+## Subscription Tiers
+
+| Tier | Price | Monthly Credits | Best For |
+|------|-------|-----------------|----------|
+| **Free** | $0 | 50 | Trying it out |
+| **Starter** | $20/mo | 500 | Individual creators |
+| **Pro** | $100/mo | 3,000 | Power users |
+| **Team** | $200/mo | 7,500 | Teams & agencies |
+
+## Guides
+
+- [Credit System](/docs/credits) - Pricing, tiers, and usage calculation
+- [Model Selection](/docs/models) - Choose the right model for your use case
+- [Test Results](/test-results.html) - Full capability matrix with all 23 models
+
+## API Reference
+
+> **Coming Soon:** Auto-generated TypeDoc documentation (see MFDR-008)
+
+For now, see source code:
+- [@layers/models source](https://github.com/mirror-factory/layers-dev/tree/main/packages/@layers/models)
+- [@layers/credits source](https://github.com/mirror-factory/layers-dev/tree/main/packages/@layers/credits)

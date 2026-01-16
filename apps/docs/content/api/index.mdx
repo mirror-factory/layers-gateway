@@ -1,0 +1,64 @@
+---
+title: API Reference
+description: Package documentation for Layers SDK
+---
+
+# API Reference
+
+Documentation for the `@layers/*` packages.
+
+## Packages
+
+### @layers/models
+
+AI model registry with pricing data for Vercel AI Gateway.
+
+**Status:** 112 tests passing (23 language models, 11 image models)
+
+**Exports:**
+- `MODEL_REGISTRY` - Complete model definitions with pricing
+- `getModel(id)` - Get model by ID
+- `getModelsByProvider(provider)` - Filter by provider
+- `getModelsByCapability(capability)` - Filter by capability
+
+[View Source](https://github.com/mirror-factory/layers-dev/tree/main/packages/@layers/models)
+
+### @layers/credits
+
+Credit calculation and usage tracking.
+
+**Status:** Implemented
+
+**Exports:**
+- `calculateCredits(modelId, inputTokens, outputTokens, margin?)` - Calculate credits
+- `getCostBreakdown(...)` - Full cost breakdown with profit
+- `estimateCredits(...)` - Pre-request estimation
+- `creditsToUsd(credits)` / `usdToCredits(usd)` - Conversions
+- `calculateBatchCredits(requests)` - Batch calculations
+
+[View Source](https://github.com/mirror-factory/layers-dev/tree/main/packages/@layers/credits)
+
+### @layers/ui
+
+React components for AI interfaces.
+
+**Status:** Planned (not yet implemented)
+
+## TypeDoc Auto-Generation
+
+> **Coming Soon:** Full TypeDoc-generated API reference is planned per [MFDR-008: Documentation Strategy](/docs/mfdr-008).
+
+When implemented, run:
+
+```bash
+# Generate API docs from TSDoc comments
+bun run docs:generate
+```
+
+## For Now
+
+See the source code directly:
+- [@layers/models](https://github.com/mirror-factory/layers-dev/tree/main/packages/@layers/models/src)
+- [@layers/credits](https://github.com/mirror-factory/layers-dev/tree/main/packages/@layers/credits/src)
+
+Or check the [Test Results Matrix](/test-results.html) for all model capabilities.

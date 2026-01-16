@@ -132,4 +132,51 @@ Before implementing, check these decision records in `mirror-factory/`:
 
 ---
 
+## Multi-Session Coordination (MANDATORY)
+
+When working in this repository, you may be one of several Claude sessions. **You MUST update shared state files when completing significant work.**
+
+### Before Starting Work
+
+1. Read `mirror-factory/CHECKPOINT.md` for current status
+2. Read `mirror-factory/sprints/CURRENT-SPRINT.md` or `SPRINT-001.md` for active tasks
+
+### After Completing Work (MANDATORY)
+
+When you finish a significant task (tests passing, feature complete, bug fixed), you MUST:
+
+1. **Update CHECKPOINT.md** in mirror-factory:
+   ```
+   /home/dev/repos/mirror-factory/CHECKPOINT.md
+   ```
+   - Add your results to "Latest Test Results" or appropriate section
+   - Add entry to "Update Log" with date, session type, and what you did
+
+2. **Update the Sprint File**:
+   ```
+   /home/dev/repos/mirror-factory/sprints/SPRINT-001.md
+   ```
+   - Mark tasks as ✅ Done
+   - Add entry to "Progress Log"
+
+3. **Format for Updates**:
+   ```markdown
+   ## Update Log
+   | Date | Session | Update |
+   |------|---------|--------|
+   | 2026-01-15 | VS Code | Completed X tests, fixed Y issues |
+   ```
+
+### Why This Matters
+
+Other Claude sessions (terminal, VS Code, etc.) can't communicate directly. The shared files ARE the communication channel. If you don't update them, your work is invisible to other sessions.
+
+### Session Types
+
+- **Terminal** - `ssh dev@...` then `claude`
+- **VS Code** - Claude extension in VS Code Server
+- **Subagent** - Spawned via Task tool (these report to parent automatically)
+
+---
+
 *Layers-Dev • Mirror Factory R&D • 2026*

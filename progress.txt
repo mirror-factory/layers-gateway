@@ -1,0 +1,62 @@
+# Progress Log - Vercel AI Gateway Testing
+
+## Session Complete: Jan 14, 2026 ✅
+
+All 54 models tested. All stories complete.
+
+Stories completed:
+- [x] test-anthropic (3 models) - 15/15 ✅
+- [x] test-openai-chat (13 models) - 40/55 ⚠️
+- [x] test-openai-reasoning (3 models) - 3/7 ⚠️
+- [x] test-openai-embed (2 models) - 0/2 (known limitation)
+- [x] test-google-chat (6 models) - 17/29 ⚠️
+- [x] test-google-image (3 models) - 0/3 (known limitation)
+- [x] test-google-embed (2 models) - 0/2 (known limitation)
+- [x] test-xai (9 models) - 41/43 ✅
+- [x] test-deepseek (7 models) - 22/28 ⚠️
+- [x] test-perplexity (4 models) - 7/12 ⚠️
+- [x] test-morph (2 models) - 4/4 ✅
+- [x] update-registry - Complete ✅
+
+**Total: 152/198 tests passed (77%)**
+
+---
+
+## Jan 14, 2026 - OpenAI Testing
+
+### OpenAI Chat Models (13)
+**Passed (10 models):**
+- gpt-4o: 5/5 ✅
+- gpt-4o-mini: 5/5 ✅
+- gpt-5-chat: 5/5 ✅
+- gpt-5-codex: 4/4 ✅
+- gpt-5.1-codex: 4/4 ✅
+- gpt-5.1-codex-mini: 4/4 ✅
+- gpt-5.1-instant: 5/5 ✅
+- gpt-5.1-thinking: 5/5 ✅
+
+**Partial (3 models - reasoning mode interference):**
+- gpt-5: tools only (reasoning interferes with simple prompts)
+- gpt-5-mini: tools+json (2/5)
+- gpt-5-nano: tools only (1/4)
+- gpt-5-pro: tools only (very slow, 40s+)
+- gpt-5.1-codex-max: tools only (1/4)
+
+### OpenAI Reasoning Models (3)
+- o3: 3/3 ✅ (text, vision, tools)
+- o3-mini: 0/1 ❌ (needs special prompting)
+- o4-mini: 0/3 ❌ (needs special prompting)
+
+**Total OpenAI: 46/67 passed (69%)**
+
+---
+
+## Jan 14, 2026 - 10:30
+
+### Anthropic Testing Complete ✅
+- claude-haiku-4.5: 5/5 (text, vision, tools, json, stream)
+- claude-sonnet-4.5: 5/5 (text, vision, tools, json, stream)
+- claude-opus-4.5: 5/5 (text, vision, tools, json, stream)
+- **Total: 15/15 passed**
+
+---

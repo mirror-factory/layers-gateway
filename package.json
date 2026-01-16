@@ -30,5 +30,15 @@
     "prettier": "^3.2.0",
     "turbo": "^2.0.0",
     "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.12",
+    "@ai-sdk/deepseek": "^2.0.5",
+    "@ai-sdk/google": "^3.0.7",
+    "@ai-sdk/openai": "^3.0.9",
+    "@ai-sdk/perplexity": "^3.0.5",
+    "@ai-sdk/xai": "^3.0.20",
+    "ai": "^6.0.31",
+    "zod": "^4.3.5"
   }
 }

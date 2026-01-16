@@ -1,0 +1,222 @@
+{
+  "project": "Credits System Implementation",
+  "description": "Implement unified credit tracking per MFDR-006: subscription + overage model with Vercel AI Gateway integration",
+  "success_criteria": "100% of credit operations work correctly with full audit trail",
+  "tech_stack": ["TypeScript", "Supabase", "Vercel AI SDK v6", "Zod v4"],
+  "related_mfdrs": ["MFDR-003", "MFDR-006", "MFDR-007"],
+  "mcp_servers": ["supabase", "context7"],
+  "stories": [
+    {
+      "id": "supabase-mcp-setup",
+      "title": "Configure Supabase MCP in Claude Code",
+      "description": "Add Supabase MCP server to enable database operations via natural language",
+      "phase": 0,
+      "research": ["Supabase MCP docs: https://supabase.com/docs/guides/getting-started/mcp"],
+      "passes": false,
+      "acceptance": [
+        "Supabase MCP added via: claude mcp add supabase --transport http https://mcp.supabase.com/mcp",
+        "OAuth login to Supabase completed",
+        "Can run list_projects to verify connection"
+      ]
+    },
+    {
+      "id": "supabase-project-setup",
+      "title": "Create or connect Supabase project",
+      "description": "Create a new Supabase project for Layers or connect to existing one",
+      "phase": 0,
+      "research": [],
+      "passes": false,
+      "acceptance": [
+        "Project created/connected (name: layers-dev or similar)",
+        "Project URL and anon key captured",
+        "Service role key secured for server-side operations",
+        ".env.local updated with NEXT_PUBLIC_SUPABASE_URL and keys"
+      ]
+    },
+    {
+      "id": "auth-providers-setup",
+      "title": "Enable authentication providers",
+      "description": "Configure Supabase Auth with email and OAuth providers",
+      "phase": 0,
+      "research": ["Supabase Auth docs", "OAuth provider setup"],
+      "passes": false,
+      "acceptance": [
+        "Email/password auth enabled",
+        "Google OAuth configured (optional for v1)",
+        "GitHub OAuth configured (optional for v1)",
+        "Email templates customized (optional)",
+        "Redirect URLs configured for localhost and production"
+      ]
+    },
+    {
+      "id": "base-schema-setup",
+      "title": "Create base user schema",
+      "description": "Create public.profiles table extending auth.users, plus RLS policies",
+      "phase": 0,
+      "research": ["Supabase user management patterns"],
+      "passes": false,
+      "acceptance": [
+        "public.profiles table created with user_id FK to auth.users",
+        "Trigger to auto-create profile on user signup",
+        "RLS enabled: users can only read/update own profile",
+        "Admin role check function created"
+      ]
+    },
+    {
+      "id": "credits-schema-setup",
+      "title": "Create Supabase credit ledger schema",
+      "description": "Create all tables: credit_balances, credit_transactions, credit_reservations, credit_rates, margin_config, margin_audit_log with indexes",
+      "phase": 1,
+      "research": ["MFDR-006 schema", "PostgreSQL constraints"],
+      "passes": false,
+      "acceptance": [
+        "All 6 credit tables created with proper types",
+        "Foreign keys reference auth.users(id)",
+        "Indexes on user_id, created_at for transactions",
+        "RLS policies: users see own data, admins see all",
+        "Trigger to create credit_balance row on user signup"
+      ]
+    },
+    {
+      "id": "credits-package",
+      "title": "Create @layers/credits package",
+      "description": "Core credit operations: getBalance, reserve, deduct, release, getHistory",
+      "phase": 1,
+      "research": ["Context7: Supabase client", "Turborepo internal packages"],
+      "passes": false,
+      "acceptance": [
+        "Package exports all core functions",
+        "TypeScript types for all operations",
+        "Unit tests for credit math",
+        "Supabase client properly initialized"
+      ]
+    },
+    {
+      "id": "rate-calculation",
+      "title": "Implement credit rate calculation with margins",
+      "description": "Calculate credits from token usage with configurable margins per MFDR-006 formula",
+      "phase": 1,
+      "research": ["VERCEL-AI-GATEWAY-PRICING.md for base costs"],
+      "passes": false,
+      "acceptance": [
+        "calculateCreditsWithMargin() function works",
+        "Supports global default + per-model overrides",
+        "Matches examples in MFDR-006",
+        "Formula: credits = (baseCost / 0.01) * (1 + marginPercent / 100)"
+      ]
+    },
+    {
+      "id": "seed-rates",
+      "title": "Seed credit_rates table with all working models",
+      "description": "Insert base costs for all working models from vercel-ai-testing results",
+      "phase": 1,
+      "research": ["MODEL-REGISTRY.md", "VERCEL-AI-GATEWAY-PRICING.md", "vercel-ai-testing results"],
+      "passes": false,
+      "acceptance": [
+        "All passing language models have rates",
+        "Input and output rates separate for text models",
+        "Default margin set to 60%"
+      ]
+    },
+    {
+      "id": "reserve-flow",
+      "title": "Implement reserve → deduct → release flow",
+      "description": "Pre-request reservation, post-request deduction, cleanup for errors",
+      "phase": 1,
+      "research": ["Context7: Vercel AI SDK onFinish callback"],
+      "passes": false,
+      "acceptance": [
+        "reserve() creates reservation record with expiry",
+        "deduct() settles reservation and updates balance",
+        "release() handles unused or error cases",
+        "Expired reservations auto-release (Supabase cron or pg_cron)"
+      ]
+    },
+    {
+      "id": "gateway-integration",
+      "title": "Integrate credits with AI gateway calls",
+      "description": "Wrap generateText/streamText with credit checks and tracking",
+      "phase": 1,
+      "research": ["Context7: Vercel AI SDK telemetry", "AI SDK onFinish usage"],
+      "passes": false,
+      "acceptance": [
+        "Balance check before AI call (reject if insufficient)",
+        "Reservation created before call",
+        "Actual usage captured from response.usage",
+        "Transaction logged with model, feature, tokens",
+        "Telemetry metadata includes userId and reservationId"
+      ]
+    },
+    {
+      "id": "balance-api",
+      "title": "Create balance and history API endpoints",
+      "description": "REST endpoints for dashboard: GET /credits/balance, GET /credits/history",
+      "phase": 1,
+      "research": ["Next.js API routes", "Supabase auth helpers"],
+      "passes": false,
+      "acceptance": [
+        "/api/credits/balance returns current balance object",
+        "/api/credits/history returns paginated transactions",
+        "Auth middleware validates session",
+        "Returns 401 for unauthenticated requests"
+      ]
+    },
+    {
+      "id": "insufficient-credits",
+      "title": "Handle insufficient credits gracefully",
+      "description": "Return clear error when balance too low, suggest upgrade/purchase",
+      "phase": 1,
+      "research": [],
+      "passes": false,
+      "acceptance": [
+        "CreditError class with code INSUFFICIENT_CREDITS",
+        "Error includes current balance and required credits",
+        "API returns 402 Payment Required status",
+        "Response includes upgrade URL"
+      ]
+    },
+    {
+      "id": "admin-margin-api",
+      "title": "Create admin API for margin configuration",
+      "description": "Endpoints for MFDR-007 dashboard to adjust margins",
+      "phase": 1,
+      "research": ["MFDR-007 admin dashboard spec"],
+      "passes": false,
+      "acceptance": [
+        "GET /admin/credits/margins returns current config",
+        "PUT /admin/credits/margins updates global margin",
+        "PUT /admin/credits/margins/:model updates per-model",
+        "All changes logged to margin_audit_log",
+        "Admin role check middleware"
+      ]
+    },
+    {
+      "id": "signup-credits-grant",
+      "title": "Grant initial credits on user signup",
+      "description": "When user creates account, automatically grant Free tier credits",
+      "phase": 1,
+      "research": ["Supabase database triggers"],
+      "passes": false,
+      "acceptance": [
+        "Database trigger on auth.users INSERT",
+        "Creates credit_balance row with plan_type='free', available=50",
+        "Logs transaction with type='grant', source='signup'"
+      ]
+    },
+    {
+      "id": "integration-tests",
+      "title": "Write integration tests for full credit flow",
+      "description": "Test complete flow: signup → check balance → reserve → AI call → deduct → verify",
+      "phase": 2,
+      "research": ["Supabase test helpers"],
+      "passes": false,
+      "acceptance": [
+        "Test user signup gets credits",
+        "Happy path: reserve → call → deduct",
+        "Insufficient balance returns 402",
+        "Error recovery releases reservation",
+        "Concurrent requests don't double-deduct"
+      ]
+    }
+  ]
+}

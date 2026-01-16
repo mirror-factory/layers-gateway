@@ -1,0 +1,87 @@
+---
+title: Morph Models
+description: Fast editing models - 2 models optimized for code transformations
+---
+
+# Morph Models
+
+Specialized models for fast code editing and applying diffs. **10,500 tokens/second**.
+
+## Models
+
+| Model | Context | Input $/1K | Output $/1K | Speed |
+|-------|---------|------------|-------------|-------|
+| [Morph V3 Fast](/docs/models/morph/morph-v3-fast) | 81K | $0.0008 | $0.0012 | Fast |
+| [Morph V3 Large](/docs/models/morph/morph-v3-large) | 81K | $0.0009 | $0.0019 | **10,500 tok/s** |
+
+## Quick Start
+
+```typescript
+import { generateText, createGateway } from 'ai';
+
+const gateway = createGateway({ apiKey: process.env.AI_GATEWAY_API_KEY });
+
+const { text } = await generateText({
+  model: gateway('morph/morph-v3-large'),
+  prompt: 'Refactor this function to use async/await:\n\n' + codeSnippet,
+});
+```
+
+## Best Use Cases
+
+### Apply Code Edits
+
+```typescript
+const { text } = await generateText({
+  model: gateway('morph/morph-v3-large'),
+  prompt: `Apply this diff to the code:
+
+Original:
+${originalCode}
+
+Diff:
+${diffContent}
+
+Return the complete updated code.`,
+});
+```
+
+### Streaming Code Output
+
+```typescript
+import { streamText } from 'ai';
+
+const { textStream } = streamText({
+  model: gateway('morph/morph-v3-large'),
+  prompt: 'Generate a React component for a todo list',
+});
+
+for await (const chunk of textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### Code Refactoring
+
+```typescript
+const { text } = await generateText({
+  model: gateway('morph/morph-v3-fast'),
+  prompt: `Convert this JavaScript to TypeScript:
+
+${jsCode}`,
+});
+```
+
+## Performance Notes
+
+- **10,500 tokens/second** - 10x faster than most alternatives
+- **98% accuracy** on code edits
+- **Best for**: Applying diffs, code refactoring, style transformation
+- **Not for**: General chat, reasoning, vision, tools
+
+## Model Comparison
+
+| Model | Speed | Quality | Cost |
+|-------|-------|---------|------|
+| V3 Fast | Fast | Good | $ |
+| V3 Large | **Fastest** | Better | $ |
