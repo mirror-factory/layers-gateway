@@ -359,3 +359,86 @@ export function estimateCost(
   const outputCost = (outputTokens / 1_000_000) * pricing.output;
   return inputCost + outputCost;
 }
+
+/**
+ * Embedding request
+ */
+export interface EmbeddingRequest {
+  model: string;
+  input: string | string[];
+  encoding_format?: 'float' | 'base64';
+  dimensions?: number;
+}
+
+/**
+ * Single embedding data
+ */
+export interface EmbeddingData {
+  object: 'embedding';
+  index: number;
+  embedding: number[];
+}
+
+/**
+ * Embedding usage
+ */
+export interface EmbeddingUsage {
+  prompt_tokens: number;
+  total_tokens: number;
+}
+
+/**
+ * Embedding response
+ */
+export interface EmbeddingResponse {
+  object: 'list';
+  data: EmbeddingData[];
+  model: string;
+  usage: EmbeddingUsage;
+}
+
+/**
+ * Create embeddings for text
+ */
+export async function createEmbeddings(request: EmbeddingRequest): Promise<EmbeddingResponse> {
+  const response = await fetch('/api/embeddings', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({
+      error: { message: 'Unknown error', code: 'unknown' }
+    }));
+    throw new Error(error.error?.message || 'Request failed');
+  }
+
+  return response.json();
+}
+
+/**
+ * Calculate cosine similarity between two vectors
+ */
+export function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) {
+    throw new Error('Vectors must have the same length');
+  }
+
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+
+  const magnitude = Math.sqrt(normA) * Math.sqrt(normB);
+  if (magnitude === 0) return 0;
+
+  return dotProduct / magnitude;
+}
