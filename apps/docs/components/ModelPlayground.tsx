@@ -2,19 +2,20 @@
 
 import { useState, useEffect } from 'react';
 
+type Provider = 'anthropic' | 'openai' | 'google' | 'perplexity' | 'morph';
+type ExportFormat = 'typescript' | 'curl' | 'python';
+type PlaygroundMode = 'chat' | 'image';
+
 interface ModelPlaygroundProps {
   /** Default AI provider */
-  defaultProvider?: 'anthropic' | 'openai' | 'google' | 'perplexity' | 'morph' | 'image';
+  defaultProvider?: Provider;
   /** Default model */
   defaultModel?: string;
   /** Show only specific provider */
   singleProvider?: boolean;
   /** Default mode */
-  defaultMode?: 'chat' | 'image';
+  defaultMode?: PlaygroundMode;
 }
-
-type ExportFormat = 'typescript' | 'curl' | 'python';
-type PlaygroundMode = 'chat' | 'image';
 
 interface ModelInfo {
   id: string;
@@ -94,7 +95,7 @@ export function ModelPlayground({
   defaultMode = 'chat'
 }: ModelPlaygroundProps) {
   const [mode, setMode] = useState<PlaygroundMode>(defaultMode);
-  const [provider, setProvider] = useState(defaultProvider);
+  const [provider, setProvider] = useState<Provider>(defaultProvider);
   const [model, setModel] = useState(defaultModel);
   const [imageModel, setImageModel] = useState(IMAGE_MODELS[0].id);
   const [prompt, setPrompt] = useState('');
@@ -403,7 +404,7 @@ print(data["choices"][0]["message"]["content"])`;
                 <select
                   value={provider}
                   onChange={(e) => {
-                    const p = e.target.value as keyof typeof MODEL_REGISTRY;
+                    const p = e.target.value as Provider;
                     setProvider(p);
                     setModel(MODEL_REGISTRY[p][0].id);
                   }}

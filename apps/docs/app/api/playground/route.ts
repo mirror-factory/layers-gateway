@@ -31,10 +31,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build messages array
-    const chatMessages = messages || [
-      { role: 'user', content: prompt }
-    ];
+    // Build messages array with optional system prompt
+    const { systemPrompt } = body;
+    const chatMessages = messages || [];
+
+    // Add system message if provided
+    if (systemPrompt && !messages) {
+      chatMessages.push({ role: 'system', content: systemPrompt });
+    }
+
+    // Add user prompt if using simple prompt mode
+    if (prompt && !messages) {
+      chatMessages.push({ role: 'user', content: prompt });
+    }
 
     // Make request to Vercel AI Gateway
     const response = await fetch(GATEWAY_URL, {
