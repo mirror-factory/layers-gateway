@@ -14,10 +14,7 @@ export function getStripe(): Stripe {
     throw new Error('STRIPE_SECRET_KEY is not configured');
   }
 
-  stripeClient = new Stripe(secretKey, {
-    apiVersion: '2025-01-27.acacia',
-    typescript: true,
-  });
+  stripeClient = new Stripe(secretKey);
 
   return stripeClient;
 }
