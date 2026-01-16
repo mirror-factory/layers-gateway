@@ -1,0 +1,137 @@
+---
+title: Claude 4.5 Haiku
+description: Fast, lightweight model for quick tasks
+---
+
+# Claude 4.5 Haiku
+
+The fastest Claude model, optimized for speed and efficiency while maintaining high quality.
+
+## Specifications
+
+| Property | Value |
+|----------|-------|
+| **Model ID** | `anthropic/claude-haiku-4.5` |
+| **Context Window** | 200K tokens |
+| **Input Price** | $0.001 / 1K tokens |
+| **Output Price** | $0.005 / 1K tokens |
+| **Capabilities** | text, vision, tools, json, stream |
+
+## Quick Start
+
+```typescript
+import { generateText, createGateway } from 'ai';
+
+const gateway = createGateway({
+  apiKey: process.env.AI_GATEWAY_API_KEY
+});
+
+const { text } = await generateText({
+  model: gateway('anthropic/claude-haiku-4.5'),
+  prompt: 'Explain how solar panels work',
+});
+
+console.log(text);
+```
+
+## Features
+
+### Vision (Image Input)
+
+Process images for analysis, description, or data extraction:
+
+```typescript
+const { text } = await generateText({
+  model: gateway('anthropic/claude-haiku-4.5'),
+  messages: [{
+    role: 'user',
+    content: [
+      { type: 'text', text: 'What is shown in this image?' },
+      { type: 'image', image: imageBuffer },
+    ],
+  }],
+});
+```
+
+### Tool Calling
+
+Execute custom functions based on prompts:
+
+```typescript
+import { jsonSchema } from 'ai';
+
+const { toolCalls } = await generateText({
+  model: gateway('anthropic/claude-haiku-4.5'),
+  prompt: 'What time is it in Tokyo?',
+  tools: {
+    getTime: {
+      description: 'Get current time in a timezone',
+      inputSchema: jsonSchema<{ timezone: string }>({
+        type: 'object',
+        properties: { timezone: { type: 'string' } },
+        required: ['timezone'],
+      }),
+      execute: async ({ timezone }) => new Date().toLocaleString('en-US', { timeZone: timezone }),
+    },
+  },
+});
+```
+
+### Structured Output
+
+Extract structured data from text:
+
+```typescript
+import { Output } from 'ai';
+import { z } from 'zod/v4';
+
+const { output } = await generateText({
+  model: gateway('anthropic/claude-haiku-4.5'),
+  prompt: 'Parse this email: From john@example.com, Subject: Meeting Tomorrow',
+  output: Output.object({
+    schema: z.object({
+      from: z.string(),
+      subject: z.string(),
+    }),
+  }),
+});
+```
+
+### Streaming
+
+```typescript
+import { streamText } from 'ai';
+
+const { textStream } = streamText({
+  model: gateway('anthropic/claude-haiku-4.5'),
+  prompt: 'List 10 programming languages',
+});
+
+for await (const chunk of textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Best Use Cases
+
+- Quick classification tasks
+- Simple Q&A
+- Data extraction
+- Format conversion
+- Rapid prototyping
+- High-volume, low-latency applications
+
+## Limitations
+
+- **No Extended Thinking**: Use Sonnet or Opus for complex reasoning
+- **Lower quality on complex tasks**: Better suited for straightforward prompts
+
+## Comparison
+
+| Model | Speed | Quality | Cost |
+|-------|-------|---------|------|
+| **Haiku** | Fastest | Good | $ |
+| Sonnet | Fast | Better | $$ |
+| Opus | Standard | Best | $$$ |
+
+Choose Haiku for speed-critical applications with straightforward prompts.
