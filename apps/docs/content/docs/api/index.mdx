@@ -1,0 +1,122 @@
+---
+title: API Overview
+description: Overview of the Layers API and SDK packages
+---
+
+# API Overview
+
+Layers provides two ways to integrate AI capabilities into your applications:
+
+## 1. Layers API (REST)
+
+A unified REST API that provides access to 23+ language models and 11 image generation models through a single endpoint.
+
+**Key Features:**
+- OpenAI-compatible request/response format
+- Single API key across all providers
+- Unified credit system for billing
+- Rate limiting by subscription tier
+- Usage logging and analytics
+
+**Quick Start:**
+```bash
+curl -X POST https://preview.hustletogether.com/api/v1/chat \
+  -H "Authorization: Bearer lyr_live_xxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "anthropic/claude-sonnet-4.5", "messages": [{"role": "user", "content": "Hello!"}]}'
+```
+
+[Full API Reference](/docs/api/reference)
+
+---
+
+## 2. SDK Packages (TypeScript)
+
+For direct integration with the Vercel AI SDK and more control over pricing/credits.
+
+### @layers/models
+
+AI model registry with pricing data for Vercel AI Gateway.
+
+```bash
+npm install @layers/models
+```
+
+```typescript
+import { getModel, getModelsByCapability } from '@layers/models';
+
+// Get a specific model
+const claude = getModel('anthropic/claude-sonnet-4.5');
+console.log(claude.pricing); // { input: 3.00, output: 15.00 }
+
+// Filter models by capability
+const visionModels = getModelsByCapability('vision');
+```
+
+**Status:** 112 tests passing (23 language models, 11 image models)
+
+### @layers/credits
+
+Credit calculation and usage tracking.
+
+```bash
+npm install @layers/credits
+```
+
+```typescript
+import { calculateCredits, getCostBreakdown } from '@layers/credits';
+
+// Calculate credits for a request
+const credits = calculateCredits('anthropic/claude-sonnet-4.5', 1000, 500);
+console.log(credits); // 2.88
+
+// Get full cost breakdown
+const breakdown = getCostBreakdown('anthropic/claude-sonnet-4.5', 1000, 500);
+console.log(breakdown.profit); // $0.0063
+```
+
+**Status:** Implemented
+
+### @layers/ui (Planned)
+
+React components for AI interfaces.
+
+**Status:** Not yet implemented
+
+---
+
+## Which Should I Use?
+
+| Use Case | Recommended |
+|----------|-------------|
+| Simple integration | Layers API |
+| Custom billing/credits | @layers/credits SDK |
+| Need model metadata | @layers/models SDK |
+| Vercel AI SDK project | Direct gateway + SDK |
+| Building a SaaS | Layers API + credits SDK |
+
+---
+
+## Documentation
+
+- [API Reference](/docs/api/reference) - Full REST API documentation
+- [Getting Started](/docs/getting-started) - Quick setup guide
+- [Authentication](/docs/authentication) - API key management
+- [Credit System](/docs/credits) - Pricing and billing
+- [Model Selection](/docs/models) - Choose the right model
+
+---
+
+## TypeDoc Auto-Generation
+
+> **Coming Soon:** Full TypeDoc-generated API reference is planned per MFDR-008.
+
+To generate API docs from TSDoc comments:
+
+```bash
+pnpm docs:generate
+```
+
+For now, see the source code directly:
+- [@layers/models source](https://github.com/mirror-factory/layers-dev/tree/main/packages/@layers/models/src)
+- [@layers/credits source](https://github.com/mirror-factory/layers-dev/tree/main/packages/@layers/credits/src)
