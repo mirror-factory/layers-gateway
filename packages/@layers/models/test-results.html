@@ -84,6 +84,7 @@
     }
     .provider-badge.partial { background: #9e6a03; }
     .provider-badge.fail { background: #da3633; }
+    .provider-badge.new { background: #8957e5; }
 
     .legend {
       display: flex;
@@ -138,6 +139,14 @@
       font-size: 0.7em;
       margin-left: 5px;
     }
+    .new-badge {
+      background: #8957e5;
+      color: white;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 0.7em;
+      margin-left: 5px;
+    }
     .tested-badge {
       background: #238636;
       color: white;
@@ -153,7 +162,7 @@
 
   <div class="summary">
     <div class="stat">
-      <div class="stat-value pass">109</div>
+      <div class="stat-value pass">117</div>
       <div class="stat-label">Tests Passed</div>
     </div>
     <div class="stat">
@@ -165,8 +174,8 @@
       <div class="stat-label">Registry Models</div>
     </div>
     <div class="stat">
-      <div class="stat-value">8</div>
-      <div class="stat-label">Image Models Tested</div>
+      <div class="stat-value">12</div>
+      <div class="stat-label">Image Models</div>
     </div>
     <div class="stat">
       <div class="stat-value">6</div>
@@ -184,7 +193,7 @@
 
   <div class="tabs">
     <div class="tab active" onclick="showTab('language')">Language Models (23)</div>
-    <div class="tab" onclick="showTab('image')">Image Generation (8)</div>
+    <div class="tab" onclick="showTab('image')">Image Generation (12)</div>
     <div class="tab" onclick="showTab('reasoning')">Reasoning Models (6)</div>
     <div class="tab" onclick="showTab('pricing')">Full Pricing</div>
   </div>
@@ -195,6 +204,7 @@
     <div class="legend-item"><span class="skip">○</span> Skipped</div>
     <div class="legend-item"><span class="na">—</span> Not supported</div>
     <div class="legend-item"><span class="img-badge">IMG</span> Can generate images</div>
+    <div class="legend-item"><span class="new-badge">NEW</span> Flux 2.x models</div>
   </div>
 
   <!-- LANGUAGE MODELS TAB -->
@@ -538,78 +548,112 @@
 
   <!-- IMAGE GENERATION TAB -->
   <div id="image" class="tab-content">
-    <h2>Image Generation Models <span class="tested-badge">ALL TESTED</span></h2>
+    <h2>Image Generation Models <span class="tested-badge">12 MODELS</span></h2>
     <p style="color: #8b949e; margin-bottom: 20px;">All image models tested via <code>experimental_generateImage()</code> with AI Gateway</p>
 
-    <h3>BFL Flux Models <span class="tested-badge">2/2 PASSING</span></h3>
+    <h3>BFL FLUX 2.x Models <span class="new-badge">NEW</span> <span class="tested-badge">4/4 TESTED</span></h3>
+    <p style="color: #8b949e; margin-bottom: 10px;">Next-generation Flux models with megapixel-based pricing</p>
     <table>
       <tr>
         <th>Model</th>
-        <th>Price/Image</th>
+        <th>Price</th>
+        <th>Context</th>
+        <th>Description</th>
+        <th>Status</th>
+      </tr>
+      <tr>
+        <td>bfl/flux-2-pro</td>
+        <td class="price-cell">$0.03/MP</td>
+        <td>67K</td>
+        <td>Flagship Flux 2 model</td>
+        <td class="check">✓ Tested</td>
+      </tr>
+      <tr>
+        <td>bfl/flux-2-flex</td>
+        <td class="price-cell">$0.06/MP</td>
+        <td>—</td>
+        <td>Flexible generation options</td>
+        <td class="check">✓ Tested</td>
+      </tr>
+      <tr>
+        <td>bfl/flux-2-klein-4b</td>
+        <td class="price-cell">$0.014/MP</td>
+        <td>—</td>
+        <td>Fast 4B parameter model</td>
+        <td class="check">✓ Tested</td>
+      </tr>
+      <tr>
+        <td>bfl/flux-2-klein-9b</td>
+        <td class="price-cell">$0.015/MP</td>
+        <td>—</td>
+        <td>Fast 9B parameter model</td>
+        <td class="check">✓ Tested</td>
+      </tr>
+    </table>
+
+    <h3>BFL FLUX 1.x Models <span class="tested-badge">4/4 TESTED</span></h3>
+    <table>
+      <tr>
+        <th>Model</th>
+        <th>Price</th>
         <th>Description</th>
         <th>Status</th>
       </tr>
       <tr>
         <td>bfl/flux-pro-1.1</td>
-        <td class="price-cell">$0.04</td>
+        <td class="price-cell">$0.04/img</td>
         <td>Standard quality generation</td>
         <td class="check">✓ Tested</td>
       </tr>
       <tr>
+        <td>bfl/flux-pro-1.1-ultra</td>
+        <td class="price-cell">$0.06/img</td>
+        <td>Highest quality Flux 1.x</td>
+        <td class="check">✓ Tested</td>
+      </tr>
+      <tr>
         <td>bfl/flux-kontext-pro</td>
-        <td class="price-cell">$0.04</td>
+        <td class="price-cell">$0.04/img</td>
         <td>Context-aware generation</td>
         <td class="check">✓ Tested</td>
       </tr>
       <tr>
-        <td>bfl/flux-pro-1.1-ultra</td>
-        <td class="price-cell">$0.06</td>
-        <td>Highest quality Flux</td>
-        <td class="na">— Available</td>
-      </tr>
-      <tr>
         <td>bfl/flux-kontext-max</td>
-        <td class="price-cell">$0.08</td>
+        <td class="price-cell">$0.08/img</td>
         <td>Maximum context-aware</td>
-        <td class="na">— Available</td>
-      </tr>
-      <tr>
-        <td>bfl/flux-pro-1.0-fill</td>
-        <td class="price-cell">$0.05</td>
-        <td>Inpainting/outpainting</td>
-        <td class="na">— Available</td>
+        <td class="check">✓ Tested</td>
       </tr>
     </table>
 
-    <h3>Google Imagen Models <span class="tested-badge">1/1 PASSING</span></h3>
+    <h3>Google Imagen Models <span class="tested-badge">2/2 TESTED</span></h3>
     <table>
       <tr>
         <th>Model</th>
-        <th>Price/Image</th>
+        <th>Price</th>
         <th>Description</th>
         <th>Status</th>
       </tr>
       <tr>
         <td>google/imagen-4.0-fast-generate-001</td>
-        <td class="price-cell">$0.02</td>
+        <td class="price-cell">$0.02/img</td>
         <td>Fast generation</td>
         <td class="check">✓ Tested</td>
       </tr>
       <tr>
+        <td>google/imagen-4.0-ultra-generate-001</td>
+        <td class="price-cell">$0.08/img</td>
+        <td>Highest quality Imagen</td>
+        <td class="check">✓ Tested</td>
+      </tr>
+      <tr>
         <td>google/imagen-4.0-generate-001</td>
-        <td class="price-cell">$0.04</td>
+        <td class="price-cell">$0.04/img</td>
         <td>Standard Imagen 4</td>
         <td class="skip">○ Skipped (intermittent)</td>
       </tr>
-      <tr>
-        <td>google/imagen-4.0-ultra-generate-001</td>
-        <td class="price-cell">$0.08</td>
-        <td>Highest quality Imagen</td>
-        <td class="na">— Available</td>
-      </tr>
     </table>
 
-    <h3>Gemini Multimodal (Text + Image) <span class="tested-badge">2/2 PASSING</span></h3>
+    <h3>Gemini Multimodal (Text + Image) <span class="tested-badge">2/2 TESTED</span></h3>
     <table>
       <tr>
         <th>Model</th>
@@ -665,7 +709,7 @@
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { images } = await generateImage({
-  model: 'bfl/flux-pro-1.1',  // Just pass string to gateway
+  model: 'bfl/flux-2-pro',  // Just pass string to gateway
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
 });
@@ -746,141 +790,6 @@ for (const file of result.files) {
       </tr>
     </table>
 
-    <h3>Anthropic Claude - Extended Thinking</h3>
-    <div class="notes" style="border-left-color: #8957e5; margin-top: 10px;">
-      <h3 style="color: #8957e5;">Code Example</h3>
-      <pre style="background: #0d1117; padding: 15px; border-radius: 6px; overflow-x: auto; color: #c9d1d9; font-size: 0.85em;">
-import { generateText } from 'ai';
-
-const result = await generateText({
-  model: gateway('anthropic/claude-sonnet-4.5'),
-  prompt: 'Think step by step: What is 15 + 27?',
-  maxOutputTokens: 500,
-  providerOptions: {
-    anthropic: {
-      thinking: { type: 'enabled', budgetTokens: 1024 }
-    }
-  }
-});
-
-// Reasoning is an ARRAY of thinking blocks
-console.log('Reasoning:', result.reasoning);
-// → [{ type: 'thinking', thinking: 'Let me add these...' }]
-
-// ReasoningText is the concatenated string
-console.log('Reasoning Text:', result.reasoningText);
-// → "Let me add these numbers step by step..."
-
-console.log('Final Answer:', result.text);
-// → "42"
-      </pre>
-      <h3 style="color: #8957e5; margin-top: 15px;">Sample Response Structure</h3>
-      <pre style="background: #0d1117; padding: 15px; border-radius: 6px; overflow-x: auto; color: #c9d1d9; font-size: 0.85em;">
-{
-  text: "The answer is 42.",
-  reasoning: [
-    { type: "thinking", thinking: "I need to add 15 and 27..." },
-    { type: "thinking", thinking: "15 + 27 = 42" }
-  ],
-  reasoningText: "I need to add 15 and 27...\n15 + 27 = 42"
-}
-      </pre>
-    </div>
-
-    <h3>OpenAI GPT-5.1 Thinking</h3>
-    <div class="notes" style="border-left-color: #3fb950; margin-top: 10px;">
-      <h3 style="color: #3fb950;">Code Example</h3>
-      <pre style="background: #0d1117; padding: 15px; border-radius: 6px; overflow-x: auto; color: #c9d1d9; font-size: 0.85em;">
-import { generateText } from 'ai';
-
-const result = await generateText({
-  model: gateway('openai/gpt-5.1-thinking'),
-  prompt: 'Think step by step: What is 15 + 27?',
-  maxOutputTokens: 500,
-});
-
-// OpenAI embeds reasoning directly in the text response
-console.log('Response:', result.text);
-// → "Let me think through this step by step:\n\n1. Start with 15\n2. Add 27\n3. 15 + 27 = 42\n\nThe answer is 42."
-
-// May also have reasoning object (varies by response)
-if (result.reasoning) {
-  console.log('Reasoning type:', typeof result.reasoning);
-  // Could be array or object - use JSON.stringify
-  console.log('Reasoning:', JSON.stringify(result.reasoning).substring(0, 300));
-}
-      </pre>
-      <h3 style="color: #3fb950; margin-top: 15px;">Sample Response Structure</h3>
-      <pre style="background: #0d1117; padding: 15px; border-radius: 6px; overflow-x: auto; color: #c9d1d9; font-size: 0.85em;">
-{
-  text: "Let me think through this step by step:\n\n1. Start with 15\n2. Add 27\n3. 15 + 27 = 42\n\nThe answer is 42.",
-  reasoning: [...] // May be present, format varies
-}
-      </pre>
-    </div>
-
-    <h3>Perplexity Sonar Reasoning Pro</h3>
-    <div class="notes" style="border-left-color: #58a6ff; margin-top: 10px;">
-      <h3 style="color: #58a6ff;">Code Example</h3>
-      <pre style="background: #0d1117; padding: 15px; border-radius: 6px; overflow-x: auto; color: #c9d1d9; font-size: 0.85em;">
-import { generateText } from 'ai';
-
-const result = await generateText({
-  model: gateway('perplexity/sonar-reasoning-pro'),
-  prompt: 'Think step by step: What is 15 + 27?',
-  maxOutputTokens: 500,
-});
-
-// Perplexity is a reasoning-ONLY model
-// All output includes step-by-step thinking in the text
-console.log('Response:', result.text);
-// → "To solve 15 + 27:\n\nStep 1: Break down the numbers...\nStep 2: Add the ones place...\n\nFinal answer: 42"
-      </pre>
-      <h3 style="color: #58a6ff; margin-top: 15px;">Sample Response Structure</h3>
-      <pre style="background: #0d1117; padding: 15px; border-radius: 6px; overflow-x: auto; color: #c9d1d9; font-size: 0.85em;">
-{
-  text: "To solve 15 + 27:\n\nStep 1: I'll break down the addition...\nStep 2: 15 + 20 = 35...\nStep 3: 35 + 7 = 42\n\nThe answer is **42**."
-  // No separate reasoning field - it's a reasoning-only model
-}
-      </pre>
-      <p style="color: #d29922; margin-top: 10px;">⚠️ This model has web search built-in. Best for research questions requiring real-time information + reasoning.</p>
-    </div>
-
-    <h3>Google Gemini Pro - Thinking Mode</h3>
-    <div class="notes" style="border-left-color: #f85149; margin-top: 10px;">
-      <h3 style="color: #f85149;">Code Example</h3>
-      <pre style="background: #0d1117; padding: 15px; border-radius: 6px; overflow-x: auto; color: #c9d1d9; font-size: 0.85em;">
-import { generateText } from 'ai';
-
-const result = await generateText({
-  model: gateway('google/gemini-2.5-pro'),
-  prompt: 'Think step by step: What is 15 + 27?',
-  maxOutputTokens: 500,
-  providerOptions: {
-    google: {
-      thinkingConfig: { thinkingBudget: 1024 }
-    }
-  }
-});
-
-// Google returns reasoning as an array
-console.log('Reasoning:', result.reasoning);
-// → [{ type: 'thinking', thinking: '...' }]
-
-console.log('Final Answer:', result.text);
-// → "42"
-      </pre>
-      <h3 style="color: #f85149; margin-top: 15px;">Sample Response Structure</h3>
-      <pre style="background: #0d1117; padding: 15px; border-radius: 6px; overflow-x: auto; color: #c9d1d9; font-size: 0.85em;">
-{
-  text: "The sum of 15 and 27 is 42.",
-  reasoning: [
-    { type: "thinking", thinking: "Adding 15 + 27..." }
-  ]
-}
-      </pre>
-    </div>
-
     <h3>Key Differences Summary</h3>
     <table style="margin-top: 20px;">
       <tr>
@@ -924,7 +833,7 @@ console.log('Final Answer:', result.text);
   <!-- PRICING TAB -->
   <div id="pricing" class="tab-content">
     <h2>Full Pricing Reference</h2>
-    <p style="color: #8b949e; margin-bottom: 20px;">All prices per million tokens ($/M) from Vercel AI Gateway as of January 15, 2026</p>
+    <p style="color: #8b949e; margin-bottom: 20px;">All prices from Vercel AI Gateway as of January 16, 2026</p>
 
     <h3>Budget Tier (< $1/M combined)</h3>
     <table>
@@ -967,15 +876,20 @@ console.log('Final Answer:', result.text);
 
     <h3>Image Generation Pricing</h3>
     <table>
-      <tr><th>Model</th><th>Price/Image</th><th>Provider</th><th>Tested</th></tr>
-      <tr><td>Imagen 4 Fast</td><td>$0.02</td><td>Google</td><td class="check">✓</td></tr>
-      <tr><td>Flux Pro 1.1</td><td>$0.04</td><td>BFL</td><td class="check">✓</td></tr>
-      <tr><td>Flux Kontext Pro</td><td>$0.04</td><td>BFL</td><td class="check">✓</td></tr>
-      <tr><td>Imagen 4</td><td>$0.04</td><td>Google</td><td class="skip">○</td></tr>
-      <tr><td>Flux Pro 1.0 Fill</td><td>$0.05</td><td>BFL</td><td class="na">—</td></tr>
-      <tr><td>Flux Pro 1.1 Ultra</td><td>$0.06</td><td>BFL</td><td class="na">—</td></tr>
-      <tr><td>Imagen 4 Ultra</td><td>$0.08</td><td>Google</td><td class="na">—</td></tr>
-      <tr><td>Flux Kontext Max</td><td>$0.08</td><td>BFL</td><td class="na">—</td></tr>
+      <tr><th>Model</th><th>Price</th><th>Provider</th><th>Tested</th></tr>
+      <tr style="background: #1a1f35;"><td colspan="4" style="color: #8957e5; font-weight: bold;">FLUX 2.x (per megapixel)</td></tr>
+      <tr><td>FLUX 2 Klein 4B</td><td>$0.014/MP</td><td>BFL</td><td class="check">✓</td></tr>
+      <tr><td>FLUX 2 Klein 9B</td><td>$0.015/MP</td><td>BFL</td><td class="check">✓</td></tr>
+      <tr><td>FLUX 2 Pro</td><td>$0.03/MP</td><td>BFL</td><td class="check">✓</td></tr>
+      <tr><td>FLUX 2 Flex</td><td>$0.06/MP</td><td>BFL</td><td class="check">✓</td></tr>
+      <tr style="background: #161b22;"><td colspan="4" style="color: #8b949e; font-weight: bold;">FLUX 1.x / Kontext (per image)</td></tr>
+      <tr><td>Imagen 4 Fast</td><td>$0.02/img</td><td>Google</td><td class="check">✓</td></tr>
+      <tr><td>FLUX 1.1 Pro</td><td>$0.04/img</td><td>BFL</td><td class="check">✓</td></tr>
+      <tr><td>FLUX Kontext Pro</td><td>$0.04/img</td><td>BFL</td><td class="check">✓</td></tr>
+      <tr><td>Imagen 4</td><td>$0.04/img</td><td>Google</td><td class="skip">○</td></tr>
+      <tr><td>FLUX 1.1 Pro Ultra</td><td>$0.06/img</td><td>BFL</td><td class="check">✓</td></tr>
+      <tr><td>Imagen 4 Ultra</td><td>$0.08/img</td><td>Google</td><td class="check">✓</td></tr>
+      <tr><td>FLUX Kontext Max</td><td>$0.08/img</td><td>BFL</td><td class="check">✓</td></tr>
     </table>
   </div>
 
@@ -983,15 +897,15 @@ console.log('Final Answer:', result.text);
     <h3 style="color: #238636;">Test Summary</h3>
     <ul>
       <li><strong>Language Models:</strong> 23 models in registry, all capabilities verified</li>
-      <li><strong>Image Generation:</strong> 8 models tested (BFL Flux + Google Imagen + Gemini multimodal)</li>
+      <li><strong>Image Generation:</strong> 12 models tested (8 BFL Flux + 2 Google Imagen + 2 Gemini multimodal)</li>
       <li><strong>Unit Tests:</strong> 73 tests (registry + helpers)</li>
-      <li><strong>Integration Tests:</strong> 36 tests (gateway + image generation)</li>
-      <li><strong>Total:</strong> 109 passed, 1 skipped (Imagen 4 standard - intermittent)</li>
+      <li><strong>Integration Tests:</strong> 44 tests (gateway + image generation)</li>
+      <li><strong>Total:</strong> 117 passed, 1 skipped (Imagen 4 standard - intermittent)</li>
     </ul>
   </div>
 
   <div class="timestamp">
-    Last tested: January 15, 2026 | Vercel AI Gateway | 23 language models + 8 image models tested across 5 providers
+    Last updated: January 16, 2026 | Vercel AI Gateway | 23 language models + 12 image models tested across 5 providers
   </div>
 
   <script>
