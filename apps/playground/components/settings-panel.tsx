@@ -27,7 +27,7 @@ export function SettingsPanel({ settings, onSettingsChange }: SettingsPanelProps
   );
 
   // Check if streaming is supported
-  const supportsStreaming = selectedModel?.capabilities.includes('streaming') ?? true;
+  const supportsStreaming = selectedModel?.capabilities.includes('stream') ?? true;
   const isReasoningModel = selectedModel?.reasoningOnly ?? false;
 
   // Auto-disable streaming for reasoning models

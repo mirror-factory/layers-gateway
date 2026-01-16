@@ -5,7 +5,7 @@ description: Choose the right AI model for your use case - capabilities, pricing
 
 # Model Selection Guide
 
-Layers supports 23 language models and 8 image generation models across 5 providers, all accessible through a unified interface via Vercel AI Gateway.
+Layers supports **23 language models across 5 providers**, all accessible through a unified interface via Vercel AI Gateway. Two Gemini models can also generate images.
 
 ## Quick Recommendations
 
@@ -17,8 +17,7 @@ Layers supports 23 language models and 8 image generation models across 5 provid
 | **Code generation** | GPT-5.1 Codex | Optimized for code |
 | **Fast editing** | Morph V3 Fast | 10,500 tokens/sec |
 | **Web research** | Perplexity Sonar Pro | Built-in web search |
-| **Image generation** | Flux Pro 1.1 | Best quality/$0.04 |
-| **Fast images** | Imagen 4 Fast | Cheapest at $0.02 |
+| **Image generation** | Gemini 2.5 Flash Image | Native multimodal output |
 
 ## Language Models by Provider
 
@@ -102,25 +101,14 @@ const result = await generateText({
 
 **Note:** Optimized for text editing/transformation, not general chat.
 
-## Image Generation Models
+## Image Generation
 
-### BFL Flux
+Two Gemini models support native image generation through the standard `generateText` API:
 
-| Model | Price/Image | Best For |
-|-------|-------------|----------|
-| Flux Pro 1.1 | $0.04 | Standard quality |
-| Flux Kontext Pro | $0.04 | Context-aware |
-| Flux Pro 1.1 Ultra | $0.06 | Highest quality |
-| Flux Kontext Max | $0.08 | Maximum context |
-| Flux Pro 1.0 Fill | $0.05 | Inpainting |
-
-### Google Imagen
-
-| Model | Price/Image | Best For |
-|-------|-------------|----------|
-| Imagen 4 Fast | $0.02 | Quick generation |
-| Imagen 4 | $0.04 | Standard quality |
-| Imagen 4 Ultra | $0.08 | Highest quality |
+| Model | Price | Notes |
+|-------|-------|-------|
+| Gemini 2.5 Flash Image | See language pricing | Returns images in `result.files[]` |
+| Gemini 3 Pro Image | Higher output cost ($120/M tokens) | High-quality generation |
 
 ### Gemini Multimodal
 

@@ -15,7 +15,7 @@ import { useLayersChat, type ChatSettings } from '@/hooks/use-layers-chat';
 import { ExternalLink, Github, Settings, Code, MessageSquare, Zap } from 'lucide-react';
 
 const DEFAULT_SETTINGS: ChatSettings = {
-  model: 'anthropic/claude-sonnet-4',
+  model: 'anthropic/claude-sonnet-4.5',
   maxTokens: 4096,
   temperature: 0.7,
   systemPrompt: '',

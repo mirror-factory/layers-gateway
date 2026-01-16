@@ -97,6 +97,9 @@ importers:
 
   apps/playground:
     dependencies:
+      '@layers/models':
+        specifier: workspace:*
+        version: link:../../packages/@layers/models
       '@radix-ui/react-dialog':
         specifier: ^1.1.4
         version: 1.1.15(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)

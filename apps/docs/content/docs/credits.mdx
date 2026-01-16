@@ -94,27 +94,14 @@ All prices are per **million tokens** from Vercel AI Gateway. See [full test res
 
 ## Image Generation Pricing
 
-Image models use **flat per-image pricing**:
-
-| Model | Provider | Price/Image | Credits/Image | Status |
-|-------|----------|-------------|---------------|--------|
-| Imagen 4 Fast | Google | $0.02 | 3.2 | Tested |
-| Flux Pro 1.1 | BFL | $0.04 | 6.4 | Tested |
-| Flux Kontext Pro | BFL | $0.04 | 6.4 | Tested |
-| Imagen 4 | Google | $0.04 | 6.4 | Available |
-| Flux Pro 1.0 Fill | BFL | $0.05 | 8.0 | Available |
-| Flux Pro 1.1 Ultra | BFL | $0.06 | 9.6 | Available |
-| Imagen 4 Ultra | Google | $0.08 | 12.8 | Available |
-| Flux Kontext Max | BFL | $0.08 | 12.8 | Available |
-
-**Multimodal (text + image):**
+Two Gemini models support native image generation through the standard API:
 
 | Model | Provider | Input $/M | Output $/M | Notes |
 |-------|----------|-----------|------------|-------|
-| Gemini 2.5 Flash Image | Google | $0.30 | $2.50 | Tested - 1.1MB images |
-| Gemini 3 Pro Image | Google | $2.00 | $120.00 | Tested |
+| Gemini 2.5 Flash Image | Google | $0.30 | $2.50 | Returns images in `result.files[]` |
+| Gemini 3 Pro Image | Google | $2.00 | $120.00 | High-quality generation, higher output cost |
 
-**Total: 11 image models** (8 dedicated + 2 multimodal + Gemini variants)
+**Note:** Standalone image generation models (Flux, Imagen) are documented but not currently available through the Layers API. Use Gemini multimodal models for image generation.
 
 ## Code Examples
 

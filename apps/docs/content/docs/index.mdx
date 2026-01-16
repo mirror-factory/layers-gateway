@@ -8,8 +8,8 @@ description: Build human-AI coordination tools with the Layers platform
 Layers is a platform for building human-AI coordination tools. It provides:
 
 - **Unified Credit System** - Single balance across all AI operations
-- **Multi-Provider Support** - 23 language models + 11 image models across 5 providers
-- **Vercel AI Gateway** - Unified access to Anthropic, OpenAI, Google, Perplexity, Morph, and BFL
+- **Multi-Provider Support** - 23 language models across 5 providers
+- **Vercel AI Gateway** - Unified access to Anthropic, OpenAI, Google, Perplexity, and Morph
 
 ## Quick Start
 
@@ -31,14 +31,13 @@ npm install @layers/models @layers/credits
 
 ## Supported Providers
 
-| Provider | Language Models | Image Models | Capabilities |
-|----------|-----------------|--------------|--------------|
-| **Anthropic** | Claude 4.5 (Haiku, Sonnet, Opus) | — | Text, Vision, Tools, Thinking |
-| **OpenAI** | GPT-4o, GPT-5, GPT-5.1 variants | — | Text, Vision, Tools, Codex |
-| **Google** | Gemini 2.5/3 Flash/Pro | Imagen 4 | Text, Vision, Multimodal |
-| **Perplexity** | Sonar, Sonar Pro, Reasoning Pro | — | Web Search, Reasoning |
-| **Morph** | V3 Fast, V3 Large | — | Fast text editing |
-| **BFL** | — | Flux Pro 1.1, Kontext Pro | Image generation |
+| Provider | Models | Capabilities |
+|----------|--------|--------------|
+| **Anthropic** | Claude 4.5 (Haiku, Sonnet, Opus) | Text, Vision, Tools, Thinking |
+| **OpenAI** | GPT-4o, GPT-5, GPT-5.1 variants | Text, Vision, Tools, Codex |
+| **Google** | Gemini 2.5/3 Flash/Pro/Image | Text, Vision, Multimodal, Image Gen |
+| **Perplexity** | Sonar, Sonar Pro, Reasoning Pro | Web Search, Reasoning |
+| **Morph** | V3 Fast, V3 Large | Fast text editing |
 
 ## Architecture
 

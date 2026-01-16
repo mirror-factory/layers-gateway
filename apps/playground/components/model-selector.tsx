@@ -45,21 +45,27 @@ interface ModelSelectorProps {
   disabled?: boolean;
 }
 
-const CAPABILITY_ICONS: Record<Capability, React.ReactNode> = {
+// Icons for capabilities (only for those we want to display)
+// Using Partial since we don't show icons for all capabilities
+const CAPABILITY_ICONS: Partial<Record<Capability, React.ReactNode>> = {
   text: null, // Don't show icon for text
   vision: <Eye className="h-3 w-3" />,
   tools: <Wrench className="h-3 w-3" />,
   json: <FileJson className="h-3 w-3" />,
-  streaming: <Zap className="h-3 w-3" />,
-  'extended-thinking': <Brain className="h-3 w-3" />,
-  'computer-use': <Monitor className="h-3 w-3" />,
+  stream: <Zap className="h-3 w-3" />,
+  thinking: <Brain className="h-3 w-3" />,
   pdf: <FileText className="h-3 w-3" />,
   'image-gen': <ImageIcon className="h-3 w-3" />,
+  cache: <Monitor className="h-3 w-3" />,
+  web: <Wrench className="h-3 w-3" />,
+  'audio-in': null,
+  'video-in': null,
+  embed: null,
 };
 
 function ModelOption({ model }: { model: ModelDefinition }) {
   const visibleCapabilities = model.capabilities.filter(
-    (c) => c !== 'text' && c !== 'streaming'
+    (c) => c !== 'text' && c !== 'stream'
   );
 
   return (
@@ -165,7 +171,7 @@ export function ModelInfo({ modelId }: { modelId: string }) {
   if (!model) return null;
 
   const visibleCapabilities = model.capabilities.filter(
-    (c) => c !== 'text' && c !== 'streaming'
+    (c) => c !== 'text' && c !== 'stream'
   );
 
   return (
