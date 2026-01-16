@@ -154,11 +154,89 @@
       border-radius: 3px;
       font-size: 0.7em;
     }
+
+    /* Light mode */
+    body.light {
+      background: #ffffff;
+      color: #24292f;
+    }
+    body.light h1 { color: #0969da; }
+    body.light h2 { color: #57606a; }
+    body.light h3 { color: #0969da; }
+    body.light .stat {
+      background: #f6f8fa;
+      border-color: #d0d7de;
+    }
+    body.light .stat-label { color: #57606a; }
+    body.light th {
+      background: #f6f8fa;
+      color: #57606a;
+    }
+    body.light th:first-child { background: #f6f8fa; }
+    body.light td:first-child { background: #ffffff; }
+    body.light th, body.light td { border-color: #d0d7de; }
+    body.light tr:hover { background: #f6f8fa; }
+    body.light .tab {
+      background: #f6f8fa;
+      border-color: #d0d7de;
+      color: #57606a;
+    }
+    body.light .notes {
+      background: #f6f8fa;
+    }
+    body.light .notes li { color: #57606a; }
+    body.light .price { color: #57606a; }
+    body.light .na { color: #8c959f; }
+    body.light .timestamp { color: #8c959f; }
+    body.light pre { background: #f6f8fa !important; color: #24292f !important; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 8px 16px;
+      background: #238636;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9em;
+      z-index: 100;
+    }
+    .theme-toggle:hover { background: #2ea043; }
+
+    .nav-links {
+      display: flex;
+      gap: 15px;
+      margin: 15px 0;
+    }
+    .nav-links a {
+      color: #58a6ff;
+      text-decoration: none;
+      padding: 6px 12px;
+      background: #161b22;
+      border-radius: 6px;
+      font-size: 0.9em;
+    }
+    .nav-links a:hover { background: #21262d; }
+    body.light .nav-links a {
+      background: #f6f8fa;
+      color: #0969da;
+    }
+    body.light .nav-links a:hover { background: #eaeef2; }
   </style>
 </head>
 <body>
+  <button class="theme-toggle" onclick="toggleTheme()">☀️ Light Mode</button>
+
   <h1>Layers AI Gateway - Model Capability Matrix</h1>
   <p>Comprehensive test results for all models via Vercel AI Gateway</p>
+
+  <div class="nav-links">
+    <a href="https://preview.hustletogether.com/docs">📚 Fumadocs Documentation</a>
+    <a href="https://preview.hustletogether.com/docs/models">🤖 Model Docs</a>
+    <a href="https://preview.hustletogether.com/docs/credits">💳 Credits System</a>
+  </div>
 
   <div class="summary">
     <div class="stat">
@@ -705,25 +783,37 @@
     <div class="notes" style="margin-top: 20px; border-left-color: #238636;">
       <h3 style="color: #238636;">How to Use Image Generation</h3>
       <pre style="background: #0d1117; padding: 15px; border-radius: 6px; overflow-x: auto; color: #c9d1d9;">
-// Image-only models (Flux, Imagen)
-import { experimental_generateImage as generateImage } from 'ai';
+import { experimental_generateImage as generateImage, generateText, createGateway } from 'ai';
 
-const { images } = await generateImage({
-  model: 'bfl/flux-2-pro',  // Just pass string to gateway
+const gateway = createGateway({ apiKey: process.env.AI_GATEWAY_API_KEY });
+
+// ===== BFL FLUX Models (Flux 2.x and 1.x) =====
+const fluxResult = await generateImage({
+  model: 'bfl/flux-2-pro',  // or flux-2-flex, flux-2-klein-4b, flux-2-klein-9b
   prompt: 'A futuristic cityscape at sunset',
-  aspectRatio: '16:9',
+  aspectRatio: '16:9',  // supports custom aspect ratios
 });
+console.log(`Generated ${fluxResult.images.length} image(s)`);
+// Access: fluxResult.images[0].base64 or .uint8Array
 
-// Multimodal models (Gemini Image)
-import { generateText } from 'ai';
-
-const result = await generateText({
-  model: gateway('google/gemini-2.5-flash-image'),
-  prompt: 'Generate an image of a red circle',
+// ===== Google Imagen Models =====
+const imagenResult = await generateImage({
+  model: 'google/imagen-4.0-fast-generate-001',  // or imagen-4.0-ultra-generate-001
+  prompt: 'A serene mountain landscape',
+  aspectRatio: '1:1',
+  n: 2,  // generate multiple images
 });
+console.log(`Generated ${imagenResult.images.length} image(s)`);
 
-// Images are in result.files[]
-for (const file of result.files) {
+// ===== Gemini Multimodal (Text + Image) =====
+// These models can generate BOTH text and images
+const geminiResult = await generateText({
+  model: gateway('google/gemini-2.5-flash-image'),  // or gemini-3-pro-image
+  prompt: 'Generate an image of a red circle and describe it',
+});
+console.log('Text:', geminiResult.text);
+// Images returned in result.files[]
+for (const file of geminiResult.files || []) {
   if (file.mediaType?.startsWith('image/')) {
     fs.writeFileSync('output.png', file.uint8Array);
   }
@@ -915,6 +1005,28 @@ for (const file of result.files) {
       document.getElementById(tabName).classList.add('active');
       event.target.classList.add('active');
     }
+
+    function toggleTheme() {
+      const body = document.body;
+      const btn = document.querySelector('.theme-toggle');
+      body.classList.toggle('light');
+      if (body.classList.contains('light')) {
+        btn.textContent = '🌙 Dark Mode';
+        localStorage.setItem('theme', 'light');
+      } else {
+        btn.textContent = '☀️ Light Mode';
+        localStorage.setItem('theme', 'dark');
+      }
+    }
+
+    // Load saved theme preference
+    (function() {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'light') {
+        document.body.classList.add('light');
+        document.querySelector('.theme-toggle').textContent = '🌙 Dark Mode';
+      }
+    })();
   </script>
 </body>
 </html>
