@@ -1,0 +1,107 @@
+---
+title: Gemini 2.5 Flash Lite
+description: Most affordable model with 1M context
+---
+
+# Gemini 2.5 Flash Lite
+
+The most cost-effective way to process long documents.
+
+## Specifications
+
+| Property | Value |
+|----------|-------|
+| **Model ID** | `google/gemini-2.5-flash-lite` |
+| **Context Window** | 1M tokens |
+| **Input Price** | $0.0001 / 1K tokens |
+| **Output Price** | $0.0004 / 1K tokens |
+| **Capabilities** | text, vision, json |
+
+## Quick Start
+
+```typescript
+import { generateText, createGateway } from 'ai';
+
+const gateway = createGateway({
+  apiKey: process.env.AI_GATEWAY_API_KEY
+});
+
+const { text } = await generateText({
+  model: gateway('google/gemini-2.5-flash-lite'),
+  prompt: 'Summarize this article in 3 sentences',
+});
+
+console.log(text);
+```
+
+## Features
+
+### 1M Token Context (Budget)
+
+Process extremely long documents at minimal cost:
+
+```typescript
+const { text } = await generateText({
+  model: gateway('google/gemini-2.5-flash-lite'),
+  messages: [
+    { role: 'user', content: massiveDataset },
+    { role: 'user', content: 'Extract key patterns from this data' },
+  ],
+});
+```
+
+### Vision (Image Input)
+
+```typescript
+const { text } = await generateText({
+  model: gateway('google/gemini-2.5-flash-lite'),
+  messages: [{
+    role: 'user',
+    content: [
+      { type: 'text', text: 'What objects are in this image?' },
+      { type: 'image', image: imageBuffer },
+    ],
+  }],
+});
+```
+
+### Structured Output
+
+```typescript
+import { Output } from 'ai';
+import { z } from 'zod/v4';
+
+const { output } = await generateText({
+  model: gateway('google/gemini-2.5-flash-lite'),
+  prompt: 'Parse this contact: John Smith, john@example.com',
+  output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      email: z.string(),
+    }),
+  }),
+});
+```
+
+## Best Use Cases
+
+- High-volume document processing
+- Simple classification
+- Data extraction
+- Preprocessing for other models
+- Budget-conscious applications
+
+## Limitations
+
+- No tool calling support
+- Lower quality on complex tasks
+
+## Comparison
+
+| Model | Context | Tools | Cost |
+|-------|---------|-------|------|
+| **2.5 Flash Lite** | 1M | No | $ |
+| 2.5 Flash | 1M | Yes | $ |
+| 2.5 Pro | 1M | Yes | $$ |
+
+Choose Gemini 2.5 Flash Lite for maximum cost efficiency.

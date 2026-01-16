@@ -1,0 +1,164 @@
+---
+title: Gemini 2.5 Pro
+description: Advanced reasoning model with thinking capabilities
+---
+
+# Gemini 2.5 Pro
+
+Google's most capable model with extended thinking for complex reasoning.
+
+## Specifications
+
+| Property | Value |
+|----------|-------|
+| **Model ID** | `google/gemini-2.5-pro` |
+| **Context Window** | 1M tokens |
+| **Input Price** | $0.0013 / 1K tokens |
+| **Output Price** | $0.01 / 1K tokens |
+| **Capabilities** | text, vision, tools, json, thinking |
+
+## Quick Start
+
+```typescript
+import { generateText, createGateway } from 'ai';
+
+const gateway = createGateway({
+  apiKey: process.env.AI_GATEWAY_API_KEY
+});
+
+const { text } = await generateText({
+  model: gateway('google/gemini-2.5-pro'),
+  prompt: 'Design a scalable microservices architecture for an e-commerce platform',
+});
+
+console.log(text);
+```
+
+## Features
+
+### Extended Thinking
+
+Enable step-by-step reasoning:
+
+```typescript
+const { text } = await generateText({
+  model: gateway('google/gemini-2.5-pro'),
+  prompt: 'Prove that the square root of 2 is irrational',
+  providerOptions: {
+    google: {
+      thinkingConfig: { thinkingBudget: 10000 },
+    },
+  },
+});
+```
+
+### 1M Token Context with Reasoning
+
+Analyze very long documents with deep reasoning:
+
+```typescript
+const { text } = await generateText({
+  model: gateway('google/gemini-2.5-pro'),
+  messages: [
+    { role: 'user', content: researchPaperCollection },
+    { role: 'user', content: 'Synthesize the key findings and identify contradictions' },
+  ],
+  providerOptions: {
+    google: {
+      thinkingConfig: { thinkingBudget: 20000 },
+    },
+  },
+});
+```
+
+### Vision Analysis
+
+```typescript
+const { text } = await generateText({
+  model: gateway('google/gemini-2.5-pro'),
+  messages: [{
+    role: 'user',
+    content: [
+      { type: 'text', text: 'Analyze this medical imaging scan' },
+      { type: 'image', image: scanImage },
+    ],
+  }],
+});
+```
+
+### Tool Calling
+
+```typescript
+import { jsonSchema } from 'ai';
+
+const { toolCalls } = await generateText({
+  model: gateway('google/gemini-2.5-pro'),
+  prompt: 'Research the top AI startups and analyze their market potential',
+  tools: {
+    searchWeb: {
+      description: 'Search the web',
+      inputSchema: jsonSchema<{ query: string }>({
+        type: 'object',
+        properties: { query: { type: 'string' } },
+        required: ['query'],
+      }),
+      execute: async ({ query }) => ({ results: ['Startup 1', 'Startup 2'] }),
+    },
+    analyzeMarket: {
+      description: 'Analyze market data',
+      inputSchema: jsonSchema<{ company: string }>({
+        type: 'object',
+        properties: { company: { type: 'string' } },
+        required: ['company'],
+      }),
+      execute: async ({ company }) => ({ valuation: '$1B', growth: '150%' }),
+    },
+  },
+});
+```
+
+### Structured Output
+
+```typescript
+import { Output } from 'ai';
+import { z } from 'zod/v4';
+
+const { output } = await generateText({
+  model: gateway('google/gemini-2.5-pro'),
+  prompt: 'Create a comprehensive project plan',
+  output: Output.object({
+    schema: z.object({
+      phases: z.array(z.object({
+        name: z.string(),
+        duration: z.string(),
+        dependencies: z.array(z.string()),
+        deliverables: z.array(z.string()),
+      })),
+      risks: z.array(z.object({
+        description: z.string(),
+        probability: z.enum(['high', 'medium', 'low']),
+        mitigation: z.string(),
+      })),
+    }),
+  }),
+});
+```
+
+## Best Use Cases
+
+- Complex reasoning tasks
+- Research synthesis
+- Strategic planning
+- Scientific analysis
+- Advanced code architecture
+- Long-document reasoning
+
+## Comparison
+
+| Model | Context | Thinking | Cost |
+|-------|---------|----------|------|
+| 2.5 Flash | 1M | No | $ |
+| 2.5 Flash Lite | 1M | No | $ |
+| **2.5 Pro** | 1M | Yes | $$ |
+
+Choose Gemini 2.5 Pro for complex reasoning with long context.
