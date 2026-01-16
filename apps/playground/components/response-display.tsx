@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn, formatNumber, formatCredits } from '@/lib/utils';
-import { User, Bot, AlertCircle, Loader2 } from 'lucide-react';
+import { User, Bot, AlertCircle, Loader2, ImageIcon } from 'lucide-react';
 import type { Message } from '@/hooks/use-layers-chat';
+import type { TextContent } from '@/lib/layers-client';
 
 interface ResponseDisplayProps {
   messages: Message[];
@@ -18,6 +19,14 @@ function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user';
   const isStreaming = message.isStreaming;
   const hasError = !!message.error;
+
+  // Extract text content from message (handles both string and multipart content)
+  const textContent = typeof message.content === 'string'
+    ? message.content
+    : message.content.find((c): c is TextContent => c.type === 'text')?.text || '';
+
+  // Get images from the message
+  const images = message.images || [];
 
   return (
     <div
@@ -47,6 +56,27 @@ function MessageBubble({ message }: { message: Message }) {
           isUser ? 'items-end' : 'items-start'
         )}
       >
+        {/* Images (if any) */}
+        {images.length > 0 && (
+          <div className={cn(
+            'flex flex-wrap gap-2 mb-1',
+            isUser ? 'justify-end' : 'justify-start'
+          )}>
+            {images.map((img) => (
+              <div
+                key={img.id}
+                className="rounded-lg overflow-hidden border border-border"
+              >
+                <img
+                  src={img.dataUrl}
+                  alt={img.name}
+                  className="max-h-40 max-w-[200px] object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
         <Card
           className={cn(
             'px-4 py-3',
@@ -64,7 +94,7 @@ function MessageBubble({ message }: { message: Message }) {
             </div>
           ) : (
             <div className="text-sm whitespace-pre-wrap">
-              {message.content}
+              {textContent || (images.length > 0 ? <span className="text-muted-foreground italic">(image only)</span> : '')}
               {isStreaming && (
                 <span className="inline-block w-2 h-4 ml-1 bg-current animate-blink" />
               )}

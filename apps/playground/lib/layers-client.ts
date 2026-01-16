@@ -5,9 +5,33 @@
  * Handles both streaming and non-streaming chat completions.
  */
 
+/**
+ * Image content for vision models
+ */
+export interface ImageContent {
+  type: 'image_url';
+  image_url: {
+    url: string; // base64 data URL or http URL
+    detail?: 'low' | 'high' | 'auto';
+  };
+}
+
+/**
+ * Text content
+ */
+export interface TextContent {
+  type: 'text';
+  text: string;
+}
+
+/**
+ * Multi-part content (text + images)
+ */
+export type MessageContent = string | (TextContent | ImageContent)[];
+
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  content: MessageContent;
 }
 
 export interface ChatRequest {

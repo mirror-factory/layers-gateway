@@ -3,9 +3,28 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'edge';
 
 // Types for the request/response
+
+// Image content for vision models
+interface ImageContent {
+  type: 'image_url';
+  image_url: {
+    url: string;
+    detail?: 'low' | 'high' | 'auto';
+  };
+}
+
+// Text content
+interface TextContent {
+  type: 'text';
+  text: string;
+}
+
+// Message content can be string or array of content parts (for vision)
+type MessageContent = string | (TextContent | ImageContent)[];
+
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  content: MessageContent;
 }
 
 interface ChatRequest {

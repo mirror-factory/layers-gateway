@@ -1,18 +1,19 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ModelSelector, ModelInfo } from '@/components/model-selector';
-import { PromptEditor } from '@/components/prompt-editor';
+import { PromptEditor, type AttachedImage } from '@/components/prompt-editor';
 import { ResponseDisplay, UsageSummary } from '@/components/response-display';
 import { SettingsPanel } from '@/components/settings-panel';
 import { CodeExport } from '@/components/code-export';
 import { useLayersChat, type ChatSettings } from '@/hooks/use-layers-chat';
 import { ExternalLink, Github, Settings, Code, MessageSquare, Zap } from 'lucide-react';
+import { getModelSafe } from '@layers/models';
 
 const DEFAULT_SETTINGS: ChatSettings = {
   model: 'anthropic/claude-sonnet-4.5',
@@ -37,6 +38,12 @@ export default function PlaygroundPage() {
     stopGeneration,
     regenerateLast,
   } = useLayersChat(settings);
+
+  // Check if current model supports vision (image input)
+  const supportsVision = useMemo(() => {
+    const model = getModelSafe(settings.model);
+    return model?.capabilities?.includes('vision') ?? false;
+  }, [settings.model]);
 
   const handleSettingsChange = useCallback((partial: Partial<ChatSettings>) => {
     setSettings((prev) => ({ ...prev, ...partial }));
@@ -132,6 +139,7 @@ export default function PlaygroundPage() {
                   onRegenerate={regenerateLast}
                   isLoading={isLoading}
                   hasMessages={messages.length > 0}
+                  supportsVision={supportsVision}
                 />
               </CardContent>
 

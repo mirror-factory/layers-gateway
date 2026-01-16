@@ -9,7 +9,11 @@ import {
   chatStream,
   chat,
   StreamChunk,
+  MessageContent,
+  ImageContent,
+  TextContent,
 } from '@/lib/layers-client';
+import type { AttachedImage } from '@/components/prompt-editor';
 
 export interface ChatSettings {
   model: string;
@@ -26,6 +30,7 @@ export interface Message extends ChatMessage {
   layers?: LayersMetadata;
   error?: string;
   timestamp: number;
+  images?: AttachedImage[]; // Original images for display in UI
 }
 
 export interface UseLayersChatReturn {
@@ -38,7 +43,7 @@ export interface UseLayersChatReturn {
     completionTokens: number;
     totalCredits: number;
   };
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, images?: AttachedImage[]) => Promise<void>;
   clearMessages: () => void;
   stopGeneration: () => void;
   regenerateLast: () => Promise<void>;
@@ -61,8 +66,44 @@ export function useLayersChat(settings: ChatSettings): UseLayersChatReturn {
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Convert attached images to API format
+  const buildImageContent = useCallback((images: AttachedImage[]): ImageContent[] => {
+    return images.map(img => ({
+      type: 'image_url' as const,
+      image_url: {
+        url: img.dataUrl,
+        detail: 'auto' as const,
+      },
+    }));
+  }, []);
+
+  // Build multi-part content (text + images)
+  const buildMultipartContent = useCallback(
+    (text: string, images?: AttachedImage[]): MessageContent => {
+      if (!images || images.length === 0) {
+        return text;
+      }
+
+      const content: (TextContent | ImageContent)[] = [];
+
+      // Add images first
+      content.push(...buildImageContent(images));
+
+      // Add text if present
+      if (text.trim()) {
+        content.push({
+          type: 'text',
+          text: text.trim(),
+        });
+      }
+
+      return content;
+    },
+    [buildImageContent]
+  );
+
   const buildMessagesPayload = useCallback(
-    (currentMessages: Message[], newContent?: string): ChatMessage[] => {
+    (currentMessages: Message[], newContent?: string, newImages?: AttachedImage[]): ChatMessage[] => {
       const payload: ChatMessage[] = [];
 
       // Add system prompt if set
@@ -76,29 +117,40 @@ export function useLayersChat(settings: ChatSettings): UseLayersChatReturn {
       // Add conversation history
       for (const msg of currentMessages) {
         if (msg.role !== 'system') {
-          payload.push({
-            role: msg.role,
-            content: msg.content,
-          });
+          // If message has images, rebuild multipart content
+          if (msg.images && msg.images.length > 0) {
+            const textContent = typeof msg.content === 'string'
+              ? msg.content
+              : msg.content.find((c): c is TextContent => c.type === 'text')?.text || '';
+            payload.push({
+              role: msg.role,
+              content: buildMultipartContent(textContent, msg.images),
+            });
+          } else {
+            payload.push({
+              role: msg.role,
+              content: msg.content,
+            });
+          }
         }
       }
 
       // Add new user message if provided
-      if (newContent) {
+      if (newContent || (newImages && newImages.length > 0)) {
         payload.push({
           role: 'user',
-          content: newContent,
+          content: buildMultipartContent(newContent || '', newImages),
         });
       }
 
       return payload;
     },
-    [settings.systemPrompt]
+    [settings.systemPrompt, buildMultipartContent]
   );
 
   const sendMessage = useCallback(
-    async (content: string) => {
-      if (!content.trim() || isLoading) return;
+    async (content: string, images?: AttachedImage[]) => {
+      if ((!content.trim() && (!images || images.length === 0)) || isLoading) return;
 
       setError(null);
       setIsLoading(true);
@@ -106,12 +158,16 @@ export function useLayersChat(settings: ChatSettings): UseLayersChatReturn {
       // Create new abort controller for this request
       abortControllerRef.current = new AbortController();
 
+      // Build user message content
+      const messageContent = buildMultipartContent(content.trim(), images);
+
       // Add user message
       const userMessage: Message = {
         id: generateId(),
         role: 'user',
-        content: content.trim(),
+        content: messageContent,
         timestamp: Date.now(),
+        images: images, // Store original images for UI display
       };
 
       // Add placeholder assistant message for streaming
@@ -126,7 +182,7 @@ export function useLayersChat(settings: ChatSettings): UseLayersChatReturn {
       setMessages((prev) => [...prev, userMessage, assistantMessage]);
 
       try {
-        const messagesPayload = buildMessagesPayload(messages, content);
+        const messagesPayload = buildMessagesPayload(messages, content, images);
 
         if (settings.stream) {
           // Streaming mode
@@ -254,7 +310,7 @@ export function useLayersChat(settings: ChatSettings): UseLayersChatReturn {
         abortControllerRef.current = null;
       }
     },
-    [messages, settings, isLoading, buildMessagesPayload]
+    [messages, settings, isLoading, buildMessagesPayload, buildMultipartContent]
   );
 
   const clearMessages = useCallback(() => {
@@ -291,11 +347,16 @@ export function useLayersChat(settings: ChatSettings): UseLayersChatReturn {
 
     const lastUserMessage = messages[lastUserIndex];
 
+    // Extract text content from the message
+    const textContent = typeof lastUserMessage.content === 'string'
+      ? lastUserMessage.content
+      : lastUserMessage.content.find((c): c is TextContent => c.type === 'text')?.text || '';
+
     // Remove all messages after (and including) the last user message
     setMessages((prev) => prev.slice(0, lastUserIndex));
 
-    // Resend the message
-    await sendMessage(lastUserMessage.content);
+    // Resend the message with images if they were attached
+    await sendMessage(textContent, lastUserMessage.images);
   }, [messages, sendMessage]);
 
   return {
