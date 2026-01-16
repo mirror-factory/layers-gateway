@@ -14,6 +14,7 @@ import {
   TextContent,
 } from '@/lib/layers-client';
 import type { AttachedImage } from '@/components/prompt-editor';
+import type { CapabilitySettings, ToolDefinition } from '@/components/capabilities-panel';
 
 export interface ChatSettings {
   model: string;
@@ -21,6 +22,18 @@ export interface ChatSettings {
   temperature: number;
   systemPrompt: string;
   stream: boolean;
+}
+
+// Convert our tool definitions to OpenAI format
+function convertToolsToOpenAIFormat(tools: ToolDefinition[]) {
+  return tools.map((tool) => ({
+    type: 'function' as const,
+    function: {
+      name: tool.name,
+      description: tool.description,
+      parameters: JSON.parse(tool.parameters || '{}'),
+    },
+  }));
 }
 
 export interface Message extends ChatMessage {
@@ -53,7 +66,10 @@ function generateId(): string {
   return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-export function useLayersChat(settings: ChatSettings): UseLayersChatReturn {
+export function useLayersChat(
+  settings: ChatSettings,
+  capabilitySettings?: CapabilitySettings
+): UseLayersChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -10,10 +10,11 @@ import { ModelSelector, ModelInfo } from '@/components/model-selector';
 import { PromptEditor, type AttachedImage } from '@/components/prompt-editor';
 import { ResponseDisplay, UsageSummary } from '@/components/response-display';
 import { SettingsPanel } from '@/components/settings-panel';
+import { CapabilitiesPanel, DEFAULT_CAPABILITY_SETTINGS, type CapabilitySettings } from '@/components/capabilities-panel';
 import { CodeExport } from '@/components/code-export';
 import { useLayersChat, type ChatSettings } from '@/hooks/use-layers-chat';
-import { ExternalLink, Github, Settings, Code, MessageSquare, Zap } from 'lucide-react';
-import { getModelSafe } from '@layers/models';
+import { ExternalLink, Github, Settings, Code, MessageSquare, Zap, Sparkles } from 'lucide-react';
+import { getModelSafe, type Capability } from '@layers/models';
 
 const DEFAULT_SETTINGS: ChatSettings = {
   model: 'anthropic/claude-sonnet-4.5',
@@ -25,7 +26,8 @@ const DEFAULT_SETTINGS: ChatSettings = {
 
 export default function PlaygroundPage() {
   const [settings, setSettings] = useState<ChatSettings>(DEFAULT_SETTINGS);
-  const [rightPanelTab, setRightPanelTab] = useState<'settings' | 'code'>('settings');
+  const [capabilitySettings, setCapabilitySettings] = useState<CapabilitySettings>(DEFAULT_CAPABILITY_SETTINGS);
+  const [rightPanelTab, setRightPanelTab] = useState<'settings' | 'capabilities' | 'code'>('settings');
 
   const {
     messages,
@@ -37,16 +39,33 @@ export default function PlaygroundPage() {
     clearMessages,
     stopGeneration,
     regenerateLast,
-  } = useLayersChat(settings);
+  } = useLayersChat(settings, capabilitySettings);
+
+  // Get current model and its capabilities
+  const currentModel = useMemo(() => getModelSafe(settings.model), [settings.model]);
+  const modelCapabilities = useMemo<Capability[]>(
+    () => (currentModel?.capabilities || []) as Capability[],
+    [currentModel]
+  );
 
   // Check if current model supports vision (image input)
   const supportsVision = useMemo(() => {
-    const model = getModelSafe(settings.model);
-    return model?.capabilities?.includes('vision') ?? false;
-  }, [settings.model]);
+    return modelCapabilities.includes('vision');
+  }, [modelCapabilities]);
+
+  // Check if model has any advanced capabilities
+  const hasAdvancedCapabilities = useMemo(() => {
+    return ['tools', 'json', 'thinking', 'web', 'cache', 'image-gen'].some(cap =>
+      modelCapabilities.includes(cap as Capability)
+    );
+  }, [modelCapabilities]);
 
   const handleSettingsChange = useCallback((partial: Partial<ChatSettings>) => {
     setSettings((prev) => ({ ...prev, ...partial }));
+  }, []);
+
+  const handleCapabilitySettingsChange = useCallback((partial: Partial<CapabilitySettings>) => {
+    setCapabilitySettings((prev) => ({ ...prev, ...partial }));
   }, []);
 
   return (
@@ -173,12 +192,19 @@ export default function PlaygroundPage() {
                 className="flex-1 flex flex-col"
               >
                 <CardHeader className="pb-0">
-                  <TabsList className="w-full">
-                    <TabsTrigger value="settings" className="flex-1">
+                  <TabsList className="w-full grid grid-cols-3">
+                    <TabsTrigger value="settings">
                       <Settings className="h-4 w-4 mr-1" />
                       Settings
                     </TabsTrigger>
-                    <TabsTrigger value="code" className="flex-1">
+                    <TabsTrigger value="capabilities" className="relative">
+                      <Sparkles className="h-4 w-4 mr-1" />
+                      Capabilities
+                      {hasAdvancedCapabilities && (
+                        <span className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full" />
+                      )}
+                    </TabsTrigger>
+                    <TabsTrigger value="code">
                       <Code className="h-4 w-4 mr-1" />
                       Export
                     </TabsTrigger>
@@ -190,6 +216,14 @@ export default function PlaygroundPage() {
                     <SettingsPanel
                       settings={settings}
                       onSettingsChange={handleSettingsChange}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="capabilities" className="mt-0 h-full">
+                    <CapabilitiesPanel
+                      capabilities={modelCapabilities}
+                      settings={capabilitySettings}
+                      onSettingsChange={handleCapabilitySettingsChange}
                     />
                   </TabsContent>
 
