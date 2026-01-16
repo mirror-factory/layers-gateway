@@ -1,0 +1,77 @@
+---
+title: FLUX 1.1 Pro Ultra
+description: Enhanced quality previous generation
+---
+
+# FLUX 1.1 Pro Ultra
+
+Enhanced quality version of FLUX 1.1 Pro.
+
+## Specifications
+
+| Property | Value |
+|----------|-------|
+| **Model ID** | `bfl/flux-pro-1.1-ultra` |
+| **Pricing** | $0.06 per image |
+| **Type** | Image-only (generateImage) |
+
+## Quick Start
+
+```typescript
+import { experimental_generateImage as generateImage } from 'ai';
+
+const result = await generateImage({
+  model: 'bfl/flux-pro-1.1-ultra',
+  prompt: 'Ultra-detailed fantasy landscape with dragon',
+  aspectRatio: '16:9',
+});
+
+const image = result.images[0];
+console.log(image.base64);
+```
+
+## Features
+
+### Enhanced Details
+
+Better fine details compared to standard 1.1 Pro:
+
+```typescript
+const result = await generateImage({
+  model: 'bfl/flux-pro-1.1-ultra',
+  prompt: 'Intricate mechanical watch with visible gears, macro photography',
+  aspectRatio: '1:1',
+});
+```
+
+### Fixed Pricing
+
+Same per-image pricing model as 1.1 Pro:
+
+```typescript
+// All aspect ratios: $0.06 per image
+const portrait = await generateImage({
+  model: 'bfl/flux-pro-1.1-ultra',
+  prompt: 'Detailed portrait painting',
+  aspectRatio: '3:4',
+});
+```
+
+## Best Use Cases
+
+- High-detail requirements
+- Print-quality output
+- Fine art reproduction
+- Detailed illustrations
+
+## Comparison
+
+| Model | Quality | Price | Pricing Model |
+|-------|---------|-------|---------------|
+| FLUX 1.1 Pro | High | $0.04/img | Per image |
+| **FLUX 1.1 Ultra** | Higher | $0.06/img | Per image |
+| FLUX 2 Pro | Highest | $0.03/MP | Per megapixel |
+
+## Migration Note
+
+For most use cases, FLUX 2 Pro provides better quality at comparable or lower cost. Consider migrating to the 2.x series.

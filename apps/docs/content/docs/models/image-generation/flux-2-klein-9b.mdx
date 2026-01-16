@@ -1,0 +1,94 @@
+---
+title: FLUX 2 Klein 9B
+description: Balanced quality and speed
+---
+
+# FLUX 2 Klein 9B
+
+9B parameter model balancing quality and efficiency.
+
+## Specifications
+
+| Property | Value |
+|----------|-------|
+| **Model ID** | `bfl/flux-2-klein-9b` |
+| **Parameters** | 9 billion |
+| **Pricing** | $0.015 per megapixel |
+| **Type** | Image-only (generateImage) |
+
+## Quick Start
+
+```typescript
+import { experimental_generateImage as generateImage } from 'ai';
+
+const result = await generateImage({
+  model: 'bfl/flux-2-klein-9b',
+  prompt: 'Professional product photography of a smartphone',
+  aspectRatio: '1:1',
+});
+
+const image = result.images[0];
+console.log(image.base64);
+```
+
+## Features
+
+### Balanced Performance
+
+Better quality than 4B with reasonable speed:
+
+```typescript
+const result = await generateImage({
+  model: 'bfl/flux-2-klein-9b',
+  prompt: 'Detailed architectural visualization of a modern building',
+  aspectRatio: '16:9',
+});
+```
+
+### Good for Production
+
+Quality suitable for most production use cases:
+
+```typescript
+// E-commerce product images
+const product = await generateImage({
+  model: 'bfl/flux-2-klein-9b',
+  prompt: 'Clean product photo of running shoes on white background',
+  aspectRatio: '1:1',
+});
+
+// Marketing banners
+const banner = await generateImage({
+  model: 'bfl/flux-2-klein-9b',
+  prompt: 'Summer sale banner with tropical theme',
+  aspectRatio: '21:9',
+});
+```
+
+## Pricing
+
+Slightly more than 4B, significantly less than Pro:
+
+| Aspect Ratio | Resolution | Cost |
+|--------------|------------|------|
+| 1:1 | 1024x1024 | ~$0.016 |
+| 16:9 | 1792x1024 | ~$0.027 |
+| 9:16 | 1024x1792 | ~$0.027 |
+
+## Best Use Cases
+
+- Production applications
+- E-commerce imagery
+- Social media content
+- Marketing materials
+- Balanced quality/cost needs
+
+## Comparison
+
+| Model | Quality | Speed | Cost |
+|-------|---------|-------|------|
+| FLUX 2 Pro | Highest | Medium | $$$ |
+| **FLUX 2 Klein 9B** | Better | Medium | $$ |
+| FLUX 2 Klein 4B | Good | Fast | $ |
+
+Choose FLUX 2 Klein 9B for the best quality/cost balance.

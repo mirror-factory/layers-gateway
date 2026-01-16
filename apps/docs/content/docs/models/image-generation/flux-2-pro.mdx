@@ -1,0 +1,104 @@
+---
+title: FLUX 2 Pro
+description: Highest quality image generation
+---
+
+# FLUX 2 Pro
+
+BFL's flagship image model with the highest quality output.
+
+## Specifications
+
+| Property | Value |
+|----------|-------|
+| **Model ID** | `bfl/flux-2-pro` |
+| **Context** | 67K |
+| **Pricing** | $0.03 per megapixel |
+| **Type** | Image-only (generateImage) |
+
+## Quick Start
+
+```typescript
+import { experimental_generateImage as generateImage } from 'ai';
+
+const result = await generateImage({
+  model: 'bfl/flux-2-pro',
+  prompt: 'A majestic mountain landscape at golden hour, photorealistic',
+  aspectRatio: '16:9',
+});
+
+const image = result.images[0];
+console.log(image.base64);
+```
+
+## Features
+
+### Aspect Ratios
+
+```typescript
+// Square
+const square = await generateImage({
+  model: 'bfl/flux-2-pro',
+  prompt: 'Product photo of a modern watch',
+  aspectRatio: '1:1',
+});
+
+// Landscape
+const landscape = await generateImage({
+  model: 'bfl/flux-2-pro',
+  prompt: 'Panoramic view of a city skyline',
+  aspectRatio: '21:9',
+});
+
+// Portrait
+const portrait = await generateImage({
+  model: 'bfl/flux-2-pro',
+  prompt: 'Professional headshot portrait',
+  aspectRatio: '9:16',
+});
+```
+
+### Saving Images
+
+```typescript
+import fs from 'fs';
+
+const result = await generateImage({
+  model: 'bfl/flux-2-pro',
+  prompt: 'Abstract geometric art in vibrant colors',
+  aspectRatio: '1:1',
+});
+
+// Save as PNG
+const buffer = Buffer.from(result.images[0].base64, 'base64');
+fs.writeFileSync('output.png', buffer);
+```
+
+## Pricing
+
+Megapixel-based pricing means cost scales with image size:
+
+| Aspect Ratio | Resolution | Megapixels | Cost |
+|--------------|------------|------------|------|
+| 1:1 | 1024x1024 | 1.05 MP | ~$0.03 |
+| 16:9 | 1792x1024 | 1.83 MP | ~$0.05 |
+| 21:9 | 2048x878 | 1.80 MP | ~$0.05 |
+
+## Best Use Cases
+
+- Professional photography
+- Marketing materials
+- Product visualization
+- Fine art generation
+- Print-quality images
+
+## Comparison
+
+| Model | Quality | Speed | Cost |
+|-------|---------|-------|------|
+| **FLUX 2 Pro** | Highest | Medium | $$$ |
+| FLUX 2 Flex | High | Medium | $$$$ |
+| FLUX 2 Klein 9B | Good | Fast | $$ |
+| FLUX 2 Klein 4B | Good | Fastest | $ |
+
+Choose FLUX 2 Pro for the highest quality output.
