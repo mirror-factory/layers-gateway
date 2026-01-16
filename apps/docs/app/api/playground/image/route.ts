@@ -60,10 +60,8 @@ export async function POST(request: NextRequest) {
     const image = result.image;
 
     return NextResponse.json({
-      image: {
-        base64: image.base64,
-        mimeType: 'image/png',
-      },
+      image: image.base64,
+      mimeType: 'image/png',
       model,
       dimensions,
     });
