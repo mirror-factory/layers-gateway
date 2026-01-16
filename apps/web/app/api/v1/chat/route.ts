@@ -138,9 +138,8 @@ export async function POST(request: NextRequest) {
     const latencyMs = Date.now() - startTime;
 
     // 7. Calculate actual credits used
-    const usage = data.usage || {};
-    const inputTokens = usage.prompt_tokens || 0;
-    const outputTokens = usage.completion_tokens || 0;
+    const inputTokens = data.usage.prompt_tokens || 0;
+    const outputTokens = data.usage.completion_tokens || 0;
     const creditsUsed = calculateCredits(model, inputTokens, outputTokens);
     const provider = parseProvider(model);
 
@@ -163,8 +162,6 @@ export async function POST(request: NextRequest) {
     ]);
 
     // 9. Return OpenAI-compatible response
-    const text = data.choices?.[0]?.message?.content || '';
-
     return NextResponse.json(
       {
         id: data.id,
@@ -176,9 +173,9 @@ export async function POST(request: NextRequest) {
             index: 0,
             message: {
               role: 'assistant',
-              content: text,
+              content: data.text,
             },
-            finish_reason: data.choices?.[0]?.finish_reason || 'stop',
+            finish_reason: 'stop',
           },
         ],
         usage: {
