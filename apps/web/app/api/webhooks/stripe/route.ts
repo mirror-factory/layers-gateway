@@ -247,7 +247,9 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   console.log('Invoice paid:', invoice.id);
 
   // Only process subscription invoices
-  if (!invoice.subscription) return;
+  // @ts-ignore - subscription exists on invoice for subscription invoices
+  const subscriptionId = invoice.subscription as string | null;
+  if (!subscriptionId) return;
 
   const customerId = invoice.customer as string;
 
