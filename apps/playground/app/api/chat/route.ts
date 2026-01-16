@@ -27,12 +27,50 @@ interface ChatMessage {
   content: MessageContent;
 }
 
+// Tool/Function definition
+interface Tool {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters?: Record<string, unknown>;
+  };
+}
+
+// Response format for JSON/structured output
+interface ResponseFormat {
+  type: 'text' | 'json_object' | 'json_schema';
+  json_schema?: {
+    name: string;
+    schema: Record<string, unknown>;
+    strict?: boolean;
+  };
+}
+
+// Extended thinking configuration
+interface ThinkingConfig {
+  type: 'enabled';
+  budget_tokens: number;
+}
+
 interface ChatRequest {
   model: string;
   messages: ChatMessage[];
   max_tokens?: number;
   temperature?: number;
   stream?: boolean;
+  // Tools / Function calling
+  tools?: Tool[];
+  tool_choice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
+  // Structured output
+  response_format?: ResponseFormat;
+  // Extended thinking
+  thinking?: ThinkingConfig;
+  // Web search
+  web_search?: boolean;
+  search_domains?: string[];
+  // Prompt caching
+  cache?: boolean;
 }
 
 /**
@@ -77,6 +115,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Build the request body with all capability settings
+    const requestBody: Record<string, unknown> = {
+      model: body.model,
+      messages: body.messages,
+      max_tokens: body.max_tokens ?? 4096,
+      temperature: body.temperature ?? 0.7,
+      stream: body.stream ?? true,
+    };
+
+    // Add tools/function calling if provided
+    if (body.tools && body.tools.length > 0) {
+      requestBody.tools = body.tools;
+      if (body.tool_choice) {
+        requestBody.tool_choice = body.tool_choice;
+      }
+    }
+
+    // Add response format for JSON/structured output
+    if (body.response_format) {
+      requestBody.response_format = body.response_format;
+    }
+
+    // Add extended thinking configuration
+    if (body.thinking) {
+      requestBody.thinking = body.thinking;
+    }
+
+    // Add web search settings
+    if (body.web_search) {
+      requestBody.web_search = body.web_search;
+      if (body.search_domains && body.search_domains.length > 0) {
+        requestBody.search_domains = body.search_domains;
+      }
+    }
+
+    // Add prompt caching
+    if (body.cache) {
+      requestBody.cache = body.cache;
+    }
+
     // Forward request to Layers API
     const response = await fetch(`${apiUrl}/api/v1/chat`, {
       method: 'POST',
@@ -84,13 +162,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model: body.model,
-        messages: body.messages,
-        max_tokens: body.max_tokens ?? 4096,
-        temperature: body.temperature ?? 0.7,
-        stream: body.stream ?? true,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     // Extract rate limit headers from response

@@ -1,18 +1,72 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { cn, formatNumber, formatCredits } from '@/lib/utils';
-import { User, Bot, AlertCircle, Loader2, ImageIcon } from 'lucide-react';
+import { User, Bot, AlertCircle, Loader2, ImageIcon, Wrench, Code, Brain, ChevronDown } from 'lucide-react';
 import type { Message } from '@/hooks/use-layers-chat';
-import type { TextContent } from '@/lib/layers-client';
+import type { TextContent, ToolCall } from '@/lib/layers-client';
 
 interface ResponseDisplayProps {
   messages: Message[];
   isLoading: boolean;
+}
+
+// Component to display a single tool call
+function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
+  // Try to parse and format the arguments JSON
+  let formattedArgs = toolCall.function.arguments;
+  try {
+    const parsed = JSON.parse(toolCall.function.arguments);
+    formattedArgs = JSON.stringify(parsed, null, 2);
+  } catch {
+    // Keep original if parsing fails
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-muted/50 p-3 text-sm">
+      <div className="flex items-center gap-2 mb-2">
+        <Wrench className="h-4 w-4 text-primary" />
+        <span className="font-medium text-foreground">{toolCall.function.name}</span>
+        <Badge variant="outline" className="text-[10px]">
+          function
+        </Badge>
+      </div>
+      <div className="rounded bg-background p-2 font-mono text-xs overflow-x-auto">
+        <pre className="text-muted-foreground whitespace-pre-wrap">{formattedArgs}</pre>
+      </div>
+    </div>
+  );
+}
+
+// Component to display extended thinking/reasoning
+function ThinkingDisplay({ thinking }: { thinking: string }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (!thinking) return null;
+
+  return (
+    <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center gap-2 w-full text-left"
+      >
+        <Brain className="h-4 w-4 text-amber-500" />
+        <span className="font-medium text-amber-600 dark:text-amber-400">Extended Thinking</span>
+        <Badge variant="outline" className="ml-auto text-[10px] border-amber-500/30 text-amber-600 dark:text-amber-400">
+          {isExpanded ? 'Hide' : 'Show'}
+        </Badge>
+      </button>
+      {isExpanded && (
+        <div className="mt-3 rounded bg-background p-3 text-xs overflow-x-auto max-h-[300px] overflow-y-auto">
+          <pre className="text-muted-foreground whitespace-pre-wrap font-mono">{thinking}</pre>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function MessageBubble({ message }: { message: Message }) {
@@ -95,12 +149,31 @@ function MessageBubble({ message }: { message: Message }) {
           ) : (
             <div className="text-sm whitespace-pre-wrap">
               {textContent || (images.length > 0 ? <span className="text-muted-foreground italic">(image only)</span> : '')}
+              {!textContent && !images.length && message.toolCalls?.length && (
+                <span className="text-muted-foreground italic">(tool calls)</span>
+              )}
               {isStreaming && (
                 <span className="inline-block w-2 h-4 ml-1 bg-current animate-blink" />
               )}
             </div>
           )}
         </Card>
+
+        {/* Tool calls display */}
+        {!isUser && message.toolCalls && message.toolCalls.length > 0 && (
+          <div className="flex flex-col gap-2 mt-2 w-full max-w-md">
+            {message.toolCalls.map((toolCall) => (
+              <ToolCallDisplay key={toolCall.id} toolCall={toolCall} />
+            ))}
+          </div>
+        )}
+
+        {/* Thinking/reasoning display */}
+        {!isUser && message.thinking && (
+          <div className="mt-2 w-full max-w-md">
+            <ThinkingDisplay thinking={message.thinking} />
+          </div>
+        )}
 
         {/* Metadata for assistant messages */}
         {!isUser && (message.usage || message.layers) && !hasError && (

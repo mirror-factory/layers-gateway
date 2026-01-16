@@ -34,18 +34,93 @@ export interface ChatMessage {
   content: MessageContent;
 }
 
+/**
+ * Tool/Function definition for function calling
+ */
+export interface ToolFunction {
+  name: string;
+  description: string;
+  parameters?: Record<string, unknown>;
+}
+
+export interface Tool {
+  type: 'function';
+  function: ToolFunction;
+}
+
+/**
+ * Tool call in assistant message
+ */
+export interface ToolCall {
+  id: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+/**
+ * Response format for structured output
+ */
+export interface ResponseFormat {
+  type: 'text' | 'json_object' | 'json_schema';
+  json_schema?: {
+    name: string;
+    schema: Record<string, unknown>;
+    strict?: boolean;
+  };
+}
+
+/**
+ * Extended thinking configuration
+ */
+export interface ThinkingConfig {
+  type: 'enabled';
+  budget_tokens: number;
+}
+
 export interface ChatRequest {
   model: string;
   messages: ChatMessage[];
   max_tokens?: number;
   temperature?: number;
   stream?: boolean;
+  // Tools / Function calling
+  tools?: Tool[];
+  tool_choice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
+  // Structured output
+  response_format?: ResponseFormat;
+  // Extended thinking (Anthropic)
+  thinking?: ThinkingConfig;
+  // Web search
+  web_search?: boolean;
+  search_domains?: string[];
+  // Prompt caching
+  cache?: boolean;
+}
+
+/**
+ * Generated image data in response
+ */
+export interface GeneratedImage {
+  url?: string;
+  b64_json?: string;
+  revised_prompt?: string;
 }
 
 export interface ChatChoice {
   index: number;
-  message: ChatMessage;
+  message: ChatMessage & { tool_calls?: ToolCall[] };
   finish_reason: string;
+}
+
+/**
+ * Image generation response (from DALL-E)
+ */
+export interface ImageGenerationResponse {
+  created: number;
+  data: GeneratedImage[];
 }
 
 export interface ChatUsage {
@@ -74,6 +149,15 @@ export interface ChatResponse {
 export interface StreamDelta {
   role?: 'assistant';
   content?: string;
+  tool_calls?: Array<{
+    index: number;
+    id?: string;
+    type?: 'function';
+    function?: {
+      name?: string;
+      arguments?: string;
+    };
+  }>;
 }
 
 export interface StreamChoice {
