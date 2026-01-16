@@ -14,7 +14,8 @@
     "ai": "^6.0.31",
     "next": "^15.0.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "stripe": "^20.1.2"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
