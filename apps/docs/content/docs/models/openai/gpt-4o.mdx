@@ -1,0 +1,130 @@
+---
+title: GPT-4o
+description: Fast multimodal model for general use
+---
+
+# GPT-4o
+
+OpenAI's flagship multimodal model with excellent vision capabilities and fast response times.
+
+## Specifications
+
+| Property | Value |
+|----------|-------|
+| **Model ID** | `openai/gpt-4o` |
+| **Context Window** | 128K tokens |
+| **Input Price** | $0.0025 / 1K tokens |
+| **Output Price** | $0.01 / 1K tokens |
+| **Capabilities** | text, vision, tools, json, stream |
+
+## Quick Start
+
+```typescript
+import { generateText, createGateway } from 'ai';
+
+const gateway = createGateway({
+  apiKey: process.env.AI_GATEWAY_API_KEY
+});
+
+const { text } = await generateText({
+  model: gateway('openai/gpt-4o'),
+  prompt: 'Explain the difference between REST and GraphQL APIs',
+});
+
+console.log(text);
+```
+
+## Features
+
+### Vision (Image Input)
+
+Process images for analysis, OCR, and description:
+
+```typescript
+const { text } = await generateText({
+  model: gateway('openai/gpt-4o'),
+  messages: [{
+    role: 'user',
+    content: [
+      { type: 'text', text: 'Describe what you see in this image' },
+      { type: 'image', image: imageUrl },
+    ],
+  }],
+});
+```
+
+### Tool Calling
+
+```typescript
+import { jsonSchema } from 'ai';
+
+const { toolCalls } = await generateText({
+  model: gateway('openai/gpt-4o'),
+  prompt: 'Get the weather in New York',
+  tools: {
+    getWeather: {
+      description: 'Get current weather for a location',
+      inputSchema: jsonSchema<{ location: string }>({
+        type: 'object',
+        properties: { location: { type: 'string' } },
+        required: ['location'],
+      }),
+      execute: async ({ location }) => ({ temp: 72, conditions: 'sunny' }),
+    },
+  },
+});
+```
+
+### Structured Output
+
+```typescript
+import { Output } from 'ai';
+import { z } from 'zod/v4';
+
+const { output } = await generateText({
+  model: gateway('openai/gpt-4o'),
+  prompt: 'Generate a product review summary',
+  output: Output.object({
+    schema: z.object({
+      sentiment: z.enum(['positive', 'neutral', 'negative']),
+      score: z.number().min(1).max(5),
+      summary: z.string(),
+      pros: z.array(z.string()),
+      cons: z.array(z.string()),
+    }),
+  }),
+});
+```
+
+### Streaming
+
+```typescript
+import { streamText } from 'ai';
+
+const { textStream } = streamText({
+  model: gateway('openai/gpt-4o'),
+  prompt: 'Write a tutorial on React hooks',
+});
+
+for await (const chunk of textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Best Use Cases
+
+- General chat applications
+- Image analysis and description
+- Document processing
+- Code assistance
+- Multi-turn conversations
+
+## Comparison
+
+| Model | Speed | Vision | Cost |
+|-------|-------|--------|------|
+| GPT-4o Mini | Fastest | Yes | $ |
+| **GPT-4o** | Fast | Yes | $$ |
+| GPT-5 Chat | Fast | Yes | $$ |
+
+Choose GPT-4o for a well-rounded multimodal experience.
