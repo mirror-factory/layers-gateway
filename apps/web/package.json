@@ -2,12 +2,23 @@
   "name": "@layers/web",
   "version": "0.0.1",
   "private": true,
-  "description": "Main Layers web application (Next.js)",
+  "description": "Main Layers web application - API Gateway with authentication and credit management",
   "scripts": {
-    "dev": "echo 'Next.js app not yet configured - run pnpm create next-app . --typescript'",
-    "build": "echo 'Next.js app not yet configured'",
-    "lint": "echo 'Next.js app not yet configured'"
+    "dev": "next dev -p 3002",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "@supabase/supabase-js": "^2.90.1",
+    "ai": "^6.0.31",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "typescript": "^5.0.0"
+  }
 }
