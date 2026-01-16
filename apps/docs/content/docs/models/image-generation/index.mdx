@@ -1,11 +1,11 @@
 ---
 title: Image Generation
-description: 9 image generation models via Vercel AI Gateway
+description: 12 image generation models via Vercel AI Gateway
 ---
 
 # Image Generation
 
-9 models for image generation via Vercel AI Gateway.
+12 models for image generation via Vercel AI Gateway.
 
 ## Model Types
 
@@ -14,29 +14,43 @@ description: 9 image generation models via Vercel AI Gateway
 
 ## Quick Reference
 
-| Model | Provider | Price |
-|-------|----------|-------|
-| bfl/flux-pro-1.1 | BFL | $0.04 |
-| bfl/flux-pro-1.1-ultra | BFL | $0.06 |
-| bfl/flux-kontext-pro | BFL | $0.04 |
-| bfl/flux-kontext-max | BFL | $0.08 |
-| bfl/flux-pro-1.0-fill | BFL | $0.05 |
-| google/imagen-4.0-fast-generate-001 | Google | $0.02 |
-| google/imagen-4.0-ultra-generate-001 | Google | $0.08 |
-| google/gemini-2.5-flash-image | Google | Per token |
-| google/gemini-3-pro-image | Google | Per token |
+### BFL Flux 2.x (Megapixel Pricing)
 
-## BFL Flux Models
+| Model | Price | Notes |
+|-------|-------|-------|
+| bfl/flux-2-pro | $0.03/MP | Highest quality, 67K context |
+| bfl/flux-2-flex | $0.06/MP | Flexible generation |
+| bfl/flux-2-klein-4b | $0.014/MP | Fast, efficient |
+| bfl/flux-2-klein-9b | $0.015/MP | Balanced quality/speed |
 
-High-quality image generation with style control.
+### BFL Flux 1.x (Per-Image Pricing)
 
-### Basic Generation
+| Model | Price | Notes |
+|-------|-------|-------|
+| bfl/flux-pro-1.1 | $0.04/img | Standard quality |
+| bfl/flux-pro-1.1-ultra | $0.06/img | Ultra quality |
+| bfl/flux-kontext-pro | $0.04/img | Context-aware |
+| bfl/flux-kontext-max | $0.08/img | Maximum context |
+
+### Google Models
+
+| Model | Price | Notes |
+|-------|-------|-------|
+| google/imagen-4.0-fast-generate-001 | $0.02/img | Fast generation |
+| google/imagen-4.0-ultra-generate-001 | $0.08/img | Ultra quality |
+| google/gemini-2.5-flash-image | Per token | Multimodal (text + image) |
+| google/gemini-3-pro-image | Per token | Multimodal (text + image) |
+
+## BFL Flux 2.x Models
+
+The newest generation with megapixel-based pricing. Best quality and value.
 
 ```typescript
 import { experimental_generateImage as generateImage } from 'ai';
 
+// Flux 2.x - newest generation
 const result = await generateImage({
-  model: 'bfl/flux-pro-1.1',
+  model: 'bfl/flux-2-pro',
   prompt: 'A serene mountain landscape at sunset',
   aspectRatio: '16:9',
 });
@@ -45,9 +59,38 @@ const image = result.images[0];
 console.log(image.base64);
 ```
 
-### Aspect Ratios
+### Flux 2.x Model Comparison
 
-Supported: 1:1, 16:9, 9:16, 4:3, 3:4, 21:9
+| Model | Best For | Quality | Speed |
+|-------|----------|---------|-------|
+| flux-2-pro | Premium output | Highest | Medium |
+| flux-2-flex | Varied styles | High | Medium |
+| flux-2-klein-4b | Quick drafts | Good | Fast |
+| flux-2-klein-9b | Balanced work | Better | Medium |
+
+## BFL Flux 1.x Models
+
+Previous generation with per-image pricing.
+
+```typescript
+const result = await generateImage({
+  model: 'bfl/flux-pro-1.1',
+  prompt: 'A futuristic cityscape',
+  aspectRatio: '16:9',
+});
+```
+
+### Kontext Models
+
+Context-aware generation for consistent styling.
+
+```typescript
+const result = await generateImage({
+  model: 'bfl/flux-kontext-max',
+  prompt: 'Same character in a different scene',
+  aspectRatio: '1:1',
+});
+```
 
 ## Google Imagen Models
 
@@ -61,9 +104,22 @@ const result = await generateImage({
 });
 ```
 
+### Multiple Images
+
+```typescript
+const result = await generateImage({
+  model: 'google/imagen-4.0-fast-generate-001',
+  prompt: 'Abstract geometric art',
+  n: 2, // Generate 2 images
+  aspectRatio: '1:1',
+});
+
+console.log(`Generated ${result.images.length} images`);
+```
+
 ## Gemini Multimodal
 
-Text and image generation in a single call.
+Text and image generation in a single call. These models can generate both text descriptions AND images.
 
 ```typescript
 import { generateText, createGateway } from 'ai';
@@ -74,7 +130,7 @@ const gateway = createGateway({
 
 const result = await generateText({
   model: gateway('google/gemini-3-pro-image'),
-  prompt: 'Generate an image of a sunset over mountains',
+  prompt: 'Generate an image of a sunset over mountains and describe it',
   providerOptions: {
     google: {
       responseModalities: ['TEXT', 'IMAGE'],
@@ -82,25 +138,49 @@ const result = await generateText({
   },
 });
 
+// Text response
+console.log(result.text);
+
 // Images returned in result.files
 if (result.files) {
   for (const file of result.files) {
     if (file.mediaType?.startsWith('image/')) {
-      console.log('Got image:', file.mediaType);
+      console.log('Got image:', file.mediaType, file.uint8Array?.length, 'bytes');
     }
   }
 }
 ```
 
+## Aspect Ratios
+
+All image models support these aspect ratios:
+
+| Ratio | Use Case |
+|-------|----------|
+| 1:1 | Square, social media |
+| 16:9 | Landscape, presentations |
+| 9:16 | Portrait, mobile |
+| 4:3 | Traditional photos |
+| 3:4 | Portrait photos |
+| 21:9 | Ultrawide, cinematic |
+
 ## Test Status
 
-All models verified via Vercel AI Gateway:
+All 12 models verified via Vercel AI Gateway:
 
+**Flux 2.x (4 models):**
+- flux-2-pro: Passing
+- flux-2-flex: Passing
+- flux-2-klein-4b: Passing
+- flux-2-klein-9b: Passing
+
+**Flux 1.x (4 models):**
 - flux-pro-1.1: Passing
 - flux-pro-1.1-ultra: Passing
 - flux-kontext-pro: Passing
 - flux-kontext-max: Passing
-- flux-pro-1.0-fill: Skipped (requires source image)
+
+**Google (4 models):**
 - imagen-4.0-fast: Passing
 - imagen-4.0-ultra: Passing
 - gemini-2.5-flash-image: Passing

@@ -1,0 +1,120 @@
+---
+title: Perplexity Sonar Reasoning Pro
+description: Multi-step reasoning with web search for complex analysis
+---
+
+# Perplexity Sonar Reasoning Pro
+
+Combines multi-step reasoning with web search for complex analytical queries.
+
+## Specifications
+
+| Property | Value |
+|----------|-------|
+| **Model ID** | `perplexity/sonar-reasoning-pro` |
+| **Context Window** | 127K tokens |
+| **Input Price** | $0.002 / 1K tokens |
+| **Output Price** | $0.008 / 1K tokens |
+| **Capabilities** | web, thinking |
+
+## Quick Start
+
+```typescript
+import { generateText, createGateway } from 'ai';
+
+const gateway = createGateway({
+  apiKey: process.env.AI_GATEWAY_API_KEY
+});
+
+const { text } = await generateText({
+  model: gateway('perplexity/sonar-reasoning-pro'),
+  prompt: 'Analyze the factors that led to the latest tech industry layoffs and predict future trends',
+});
+
+console.log(text);
+// Returns step-by-step analysis with web-sourced evidence
+```
+
+## Features
+
+### Multi-Step Reasoning
+
+The model breaks down complex questions into steps, researching each part:
+
+```typescript
+const { text } = await generateText({
+  model: gateway('perplexity/sonar-reasoning-pro'),
+  prompt: 'Should I invest in renewable energy stocks? Consider current trends, government policies, and market forecasts.',
+});
+// Returns structured analysis with reasoning chain
+```
+
+### Research + Analysis
+
+Combines web search with analytical thinking:
+
+```typescript
+const { text } = await generateText({
+  model: gateway('perplexity/sonar-reasoning-pro'),
+  prompt: 'Compare the economic impact of AI adoption across healthcare, finance, and manufacturing sectors',
+});
+```
+
+### Complex Queries
+
+Best for questions that require synthesis and judgment:
+
+```typescript
+const { text } = await generateText({
+  model: gateway('perplexity/sonar-reasoning-pro'),
+  prompt: 'What are the strongest arguments for and against remote work becoming permanent?',
+});
+```
+
+## Best Use Cases
+
+- Complex research requiring analysis
+- Questions needing synthesis from multiple sources
+- Comparative analysis (pros/cons, tradeoffs)
+- Trend analysis and predictions
+- Decision support with evidence
+
+## Limitations
+
+- **Reasoning only**: This is a reasoning-focused model
+- **No streaming**: Responses are returned complete
+- **No JSON output**: Cannot produce structured JSON
+- **No tool calling**: Cannot execute custom functions
+- **No vision**: Cannot process images
+
+## Comparison
+
+| Model | Reasoning | Streaming | JSON | Best For |
+|-------|-----------|-----------|------|----------|
+| Sonar | No | Yes | Yes | Quick lookups |
+| Sonar Pro | No | Yes | Yes | Deep research |
+| **Sonar Reasoning Pro** | Yes | No | No | Analysis & synthesis |
+
+Choose Sonar Reasoning Pro when you need analytical thinking combined with current web data.
+
+## Example: Investment Analysis
+
+```typescript
+const { text } = await generateText({
+  model: gateway('perplexity/sonar-reasoning-pro'),
+  prompt: `
+    I'm considering investing in AI-focused ETFs.
+    Please analyze:
+    1. Current market trends for AI stocks
+    2. Major players and their recent performance
+    3. Risks and opportunities
+    4. Your recommendation with reasoning
+  `,
+});
+```
+
+The model will:
+1. Search for current AI market data
+2. Research major AI companies
+3. Find analyst opinions and forecasts
+4. Synthesize findings into a reasoned recommendation
