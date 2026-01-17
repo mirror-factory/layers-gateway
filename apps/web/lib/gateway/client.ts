@@ -53,6 +53,11 @@ export interface GatewayRequest {
   tool_choice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
   // JSON mode
   response_format?: { type: 'json_object' | 'text' };
+  // Web search (for Perplexity models)
+  web_search?: boolean;
+  search_domains?: string[];
+  // Prompt caching
+  cache?: boolean;
   // Provider-specific options (for thinking, etc.)
   anthropic?: Record<string, unknown>;
   openai?: Record<string, unknown>;

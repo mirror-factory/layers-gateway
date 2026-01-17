@@ -52,16 +52,56 @@ POST /api/v1/chat
 
 ```typescript
 {
-  model: string;        // Required: Model ID (e.g., "anthropic/claude-sonnet-4.5")
-  messages: Message[];  // Required: Array of messages
-  max_tokens?: number;  // Optional: Maximum output tokens (default: 1024)
-  temperature?: number; // Optional: Sampling temperature (0-2)
-  stream?: boolean;     // Optional: Enable streaming (not yet implemented)
+  // Required
+  model: string;           // Model ID (e.g., "anthropic/claude-sonnet-4.5")
+  messages: Message[];     // Array of messages
+
+  // Basic Options
+  max_tokens?: number;     // Maximum output tokens (default: 1024)
+  temperature?: number;    // Sampling temperature (0-2)
+  stream?: boolean;        // Enable SSE streaming
+
+  // Tools / Function Calling
+  tools?: Tool[];          // Tool definitions
+  tool_choice?: "auto" | "none" | "required" | { type: "function", function: { name: string } };
+
+  // Structured Output
+  response_format?: { type: "json_object" | "text" };
+
+  // Extended Thinking (Anthropic models)
+  thinking?: {
+    type: "enabled";
+    budget_tokens: number; // Max tokens for reasoning
+  };
+
+  // Web Search (Perplexity models)
+  web_search?: boolean;
+  search_domains?: string[];
+
+  // Prompt Caching
+  cache?: boolean;
 }
 
 interface Message {
   role: "system" | "user" | "assistant";
-  content: string;
+  content: string | ContentPart[];  // String or multimodal array
+}
+
+// For vision/multimodal
+interface ContentPart {
+  type: "text" | "image_url";
+  text?: string;
+  image_url?: { url: string; detail?: "low" | "high" | "auto" };
+}
+
+// For function calling
+interface Tool {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters?: object;  // JSON Schema
+  };
 }
 ```
 
@@ -77,9 +117,17 @@ interface Message {
     index: 0;
     message: {
       role: "assistant";
-      content: string;  // The AI response
+      content: string | null;  // The AI response (null if tool_calls)
+      tool_calls?: [{          // Function calls (if tools used)
+        id: string;
+        type: "function";
+        function: {
+          name: string;
+          arguments: string;   // JSON string
+        };
+      }];
     };
-    finish_reason: "stop";
+    finish_reason: "stop" | "tool_calls";
   }];
   usage: {
     prompt_tokens: number;
@@ -89,8 +137,20 @@ interface Message {
   layers: {             // Layers-specific metadata
     credits_used: number;
     latency_ms: number;
+    reasoning?: object; // Extended thinking output (if enabled)
   };
 }
+```
+
+### Streaming Response
+
+When `stream: true`, the response is Server-Sent Events (SSE) format:
+
+```
+data: {"id":"...","object":"chat.completion.chunk","choices":[{"delta":{"content":"Hello"}}]}
+data: {"id":"...","object":"chat.completion.chunk","choices":[{"delta":{"content":" there"}}]}
+data: {"id":"...","object":"chat.completion.chunk","choices":[{"delta":{},"finish_reason":"stop"}]}
+data: [DONE]
 ```
 
 ### Example Request
@@ -210,7 +270,7 @@ All errors follow this format:
 | `402` | Payment Required | Insufficient credits |
 | `429` | Too Many Requests | Rate limit exceeded |
 | `500` | Internal Server Error | Unexpected error |
-| `501` | Not Implemented | Feature not yet available (e.g., streaming) |
+| `502` | Bad Gateway | Error communicating with AI provider |
 
 ### Error Examples
 
@@ -304,6 +364,160 @@ const completion = await client.chat.completions.create({
   model: 'anthropic/claude-sonnet-4.5',  // Any Layers model
   messages: [{ role: 'user', content: 'Hello!' }],
 });
+```
+
+---
+
+## Advanced Features
+
+### Vision / Multimodal
+
+Send images with your messages for vision-capable models:
+
+```typescript
+const response = await fetch('/api/v1/chat', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${apiKey}`,
+  },
+  body: JSON.stringify({
+    model: 'anthropic/claude-sonnet-4.5',
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What is in this image?' },
+        { type: 'image_url', image_url: { url: 'data:image/png;base64,...' } }
+      ]
+    }],
+    max_tokens: 256,
+  }),
+});
+```
+
+### Function Calling / Tools
+
+Define tools for the model to call:
+
+```typescript
+const response = await fetch('/api/v1/chat', {
+  method: 'POST',
+  headers: { /* ... */ },
+  body: JSON.stringify({
+    model: 'anthropic/claude-sonnet-4.5',
+    messages: [{ role: 'user', content: 'What is 15 + 27?' }],
+    tools: [{
+      type: 'function',
+      function: {
+        name: 'calculator',
+        description: 'Performs arithmetic operations',
+        parameters: {
+          type: 'object',
+          properties: {
+            a: { type: 'number' },
+            b: { type: 'number' },
+            operation: { type: 'string', enum: ['add', 'subtract', 'multiply', 'divide'] }
+          },
+          required: ['a', 'b', 'operation']
+        }
+      }
+    }],
+    tool_choice: 'auto',
+  }),
+});
+
+// Response includes tool_calls:
+// { message: { tool_calls: [{ function: { name: 'calculator', arguments: '{"a":15,"b":27,"operation":"add"}' } }] } }
+```
+
+### JSON Mode / Structured Output
+
+Get structured JSON responses:
+
+```typescript
+const response = await fetch('/api/v1/chat', {
+  method: 'POST',
+  headers: { /* ... */ },
+  body: JSON.stringify({
+    model: 'anthropic/claude-sonnet-4.5',
+    messages: [{ role: 'user', content: 'List 3 colors as JSON array' }],
+    response_format: { type: 'json_object' },
+  }),
+});
+// Response: { "colors": ["red", "blue", "green"] }
+```
+
+### Extended Thinking (Anthropic)
+
+Enable chain-of-thought reasoning:
+
+```typescript
+const response = await fetch('/api/v1/chat', {
+  method: 'POST',
+  headers: { /* ... */ },
+  body: JSON.stringify({
+    model: 'anthropic/claude-sonnet-4.5',
+    messages: [{ role: 'user', content: 'Solve this complex math problem...' }],
+    thinking: {
+      type: 'enabled',
+      budget_tokens: 10000,
+    },
+  }),
+});
+// Response includes layers.reasoning with the model's thinking process
+```
+
+### Web Search (Perplexity)
+
+Enable real-time web search:
+
+```typescript
+const response = await fetch('/api/v1/chat', {
+  method: 'POST',
+  headers: { /* ... */ },
+  body: JSON.stringify({
+    model: 'perplexity/sonar-pro',
+    messages: [{ role: 'user', content: 'What are the latest AI news today?' }],
+    web_search: true,
+    search_domains: ['techcrunch.com', 'theverge.com'],  // Optional: limit domains
+  }),
+});
+```
+
+### Streaming
+
+Get responses as they're generated:
+
+```typescript
+const response = await fetch('/api/v1/chat', {
+  method: 'POST',
+  headers: { /* ... */ },
+  body: JSON.stringify({
+    model: 'anthropic/claude-sonnet-4.5',
+    messages: [{ role: 'user', content: 'Write a story...' }],
+    stream: true,
+  }),
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+
+  const chunk = decoder.decode(value);
+  const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+
+  for (const line of lines) {
+    const data = line.slice(6);
+    if (data === '[DONE]') continue;
+
+    const parsed = JSON.parse(data);
+    const content = parsed.choices[0]?.delta?.content;
+    if (content) process.stdout.write(content);
+  }
+}
 ```
 
 ---

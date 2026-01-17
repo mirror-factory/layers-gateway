@@ -15,7 +15,14 @@ interface ChatRequest {
   tool_choice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
   // JSON mode
   response_format?: { type: 'json_object' | 'text' };
-  // Provider-specific options (for thinking, etc.)
+  // Extended thinking (convenience parameter, converted to provider options)
+  thinking?: { type: 'enabled'; budget_tokens: number };
+  // Web search (for Perplexity models)
+  web_search?: boolean;
+  search_domains?: string[];
+  // Prompt caching
+  cache?: boolean;
+  // Provider-specific options (for advanced usage)
   anthropic?: Record<string, unknown>;
   openai?: Record<string, unknown>;
   google?: Record<string, unknown>;
@@ -71,9 +78,13 @@ export async function POST(request: NextRequest) {
       tools,
       tool_choice,
       response_format,
-      anthropic,
-      openai,
-      google,
+      thinking,
+      web_search,
+      search_domains,
+      cache,
+      anthropic: anthropicOptions,
+      openai: openaiOptions,
+      google: googleOptions,
     } = body;
 
     // Validate required fields
@@ -120,6 +131,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Build gateway request with all parameters
+    // Convert thinking to provider-specific options
+    const anthropic = thinking?.type === 'enabled'
+      ? { ...anthropicOptions, thinking: { type: 'enabled', budget_tokens: thinking.budget_tokens } }
+      : anthropicOptions;
+
     const gatewayRequest = {
       model,
       messages,
@@ -129,8 +145,13 @@ export async function POST(request: NextRequest) {
       tool_choice,
       response_format,
       anthropic,
-      openai,
-      google,
+      openai: openaiOptions,
+      google: googleOptions,
+      // Web search (for Perplexity)
+      ...(web_search && { web_search }),
+      ...(search_domains && { search_domains }),
+      // Prompt caching
+      ...(cache && { cache }),
     };
 
     // 6. Handle streaming
