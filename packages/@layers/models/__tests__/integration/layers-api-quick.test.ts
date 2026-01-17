@@ -186,26 +186,49 @@ describeWithApi('Layers API Quick Tests', () => {
   }, 30000);
 
   // ============================================================
-  // 6. DOCUMENTED LIMITATIONS (Expected to fail/behave differently)
+  // 6. STREAMING (NOW WORKING)
   // ============================================================
-  it('should return 501 for streaming (NOT IMPLEMENTED)', async () => {
-    const { status, data } = await layersChat({
-      model: 'anthropic/claude-haiku-4.5',
-      messages: [{ role: 'user', content: 'Hi' }],
-      max_tokens: 10,
-      stream: true,
+  it('should stream responses with SSE format', async () => {
+    const fetchHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    };
+
+    const response = await fetch(chatEndpoint, {
+      method: 'POST',
+      headers: fetchHeaders,
+      body: JSON.stringify({
+        model: 'anthropic/claude-haiku-4.5',
+        messages: [{ role: 'user', content: 'Say "hello" and nothing else.' }],
+        max_tokens: 20,
+        stream: true,
+      }),
     });
 
-    if (status === 429) {
+    if (response.status === 429) {
       console.log('⚠️ Rate limited - cannot verify streaming behavior');
       return;
     }
 
-    // CURRENT BEHAVIOR: Returns 501
-    expect(status).toBe(501);
-    expect(data.error).toContain('Streaming not yet implemented');
-    console.log('✅ Streaming returns 501 as expected (NOT IMPLEMENTED)');
-  }, 10000);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toContain('text/event-stream');
+
+    // Read the stream
+    const text = await response.text();
+    expect(text).toContain('data: ');
+    expect(text).toContain('[DONE]');
+
+    // Parse a chunk to verify format
+    const lines = text.split('\n').filter(l => l.startsWith('data: ') && !l.includes('[DONE]'));
+    expect(lines.length).toBeGreaterThan(0);
+
+    const firstChunk = JSON.parse(lines[0].replace('data: ', ''));
+    expect(firstChunk.object).toBe('chat.completion.chunk');
+    expect(firstChunk.choices[0].delta).toBeDefined();
+
+    console.log('✅ Streaming: PASS');
+    console.log(`   Received ${lines.length} chunks`);
+  }, 30000);
 
   // ============================================================
   // SUMMARY: Print test results summary
@@ -223,24 +246,15 @@ WORKING:
   ✅ Rate limiting with proper headers
   ✅ OpenAI-compatible response format
   ✅ Layers-specific fields (latency_ms)
+  ✅ Streaming with SSE format
+  ✅ Tools/Function calling
+  ✅ JSON mode/response_format
+  ✅ Thinking/providerOptions
+  ✅ Vision/multimodal content
 
-NOT IMPLEMENTED / KNOWN ISSUES:
-  ❌ Streaming (returns 501)
-  ❌ Tools/Function calling (not forwarded to gateway)
-  ❌ JSON mode/response_format (not forwarded)
-  ❌ Thinking/providerOptions (not forwarded)
-  ❌ Vision/multimodal (content JSON.stringify issue)
+NOTES:
   ⚠️ Credits calculation returns 0 in demo mode
-
-TO FIX:
-  1. Update apps/web/app/api/v1/chat/route.ts to pass:
-     - stream → use callGatewayStream()
-     - tools, tool_choice
-     - response_format
-     - providerOptions (for thinking, etc.)
-  2. Update apps/web/lib/gateway/client.ts:
-     - Handle multimodal content properly (don't JSON.stringify)
-     - Forward all gateway options
+  ⚠️ Web search requires Perplexity models
 `);
     console.log('='.repeat(60));
   });
