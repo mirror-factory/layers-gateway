@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Make request to Layers API
-    const response = await fetch(`${apiUrl}/v1/embeddings`, {
+    const response = await fetch(`${apiUrl}/api/v1/embeddings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
