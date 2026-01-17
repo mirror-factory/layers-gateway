@@ -1,0 +1,115 @@
+---
+title: Anthropic Models
+description: Claude 4.5 series - 3 models for chat, coding, and complex reasoning
+---
+
+# Anthropic Models
+
+Claude 4.5 series models - our primary provider for chat, coding, and complex reasoning.
+
+## Models
+
+| Model | Context | Input $/1K | Output $/1K | Capabilities |
+|-------|---------|------------|-------------|--------------|
+| [Claude 4.5 Haiku](/docs/models/anthropic/claude-haiku-4.5) | 200K | $0.001 | $0.005 | text, vision, tools, json, stream |
+| [Claude 4.5 Sonnet](/docs/models/anthropic/claude-sonnet-4.5) | 200K | $0.003 | $0.015 | text, vision, tools, json, stream, thinking |
+| [Claude 4.5 Opus](/docs/models/anthropic/claude-opus-4.5) | 200K | $0.005 | $0.025 | text, vision, tools, json, stream, thinking |
+
+## Quick Start
+
+```typescript
+import { generateText, createGateway } from 'ai';
+
+const gateway = createGateway({ apiKey: process.env.AI_GATEWAY_API_KEY });
+
+const { text } = await generateText({
+  model: gateway('anthropic/claude-sonnet-4.5'),
+  prompt: 'Explain quantum computing in simple terms',
+});
+```
+
+## Capabilities
+
+### Vision (Image Input)
+
+```typescript
+const { text } = await generateText({
+  model: gateway('anthropic/claude-sonnet-4.5'),
+  messages: [{
+    role: 'user',
+    content: [
+      { type: 'text', text: 'What is in this image?' },
+      { type: 'image', image: imageBuffer },
+    ],
+  }],
+});
+```
+
+### Tool Calling
+
+```typescript
+import { jsonSchema } from 'ai';
+
+const { toolCalls } = await generateText({
+  model: gateway('anthropic/claude-sonnet-4.5'),
+  prompt: 'What is the weather in San Francisco?',
+  tools: {
+    getWeather: {
+      description: 'Get current weather',
+      inputSchema: jsonSchema<{ city: string }>({
+        type: 'object',
+        properties: { city: { type: 'string' } },
+        required: ['city'],
+      }),
+      execute: async ({ city }) => ({ temp: 72, conditions: 'sunny' }),
+    },
+  },
+});
+```
+
+### Extended Thinking (Sonnet/Opus)
+
+```typescript
+const { text, reasoning } = await generateText({
+  model: gateway('anthropic/claude-opus-4.5'),
+  prompt: 'Solve this complex problem...',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 10000 },
+    },
+  },
+});
+```
+
+### Structured Output
+
+```typescript
+import { Output } from 'ai';
+import { z } from 'zod/v4';
+
+const { output } = await generateText({
+  model: gateway('anthropic/claude-sonnet-4.5'),
+  prompt: 'Generate a user profile',
+  output: Output.object({
+    schema: z.object({
+      name: z.string(),
+      age: z.number(),
+      email: z.string().email(),
+    }),
+  }),
+});
+```
+
+## Model Comparison
+
+| Feature | Haiku | Sonnet | Opus |
+|---------|-------|--------|------|
+| Speed | Fastest | Fast | Standard |
+| Quality | Good | Better | Best |
+| Cost | $$ | $$$ | $$$$ |
+| Extended Thinking | No | Yes | Yes |
+| Best For | Quick tasks | Coding, chat | Complex reasoning |
+
+## Try Anthropic Models
+
+<ModelPlayground defaultProvider="anthropic" singleProvider={true} />

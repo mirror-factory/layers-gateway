@@ -1,0 +1,113 @@
+---
+title: Perplexity Sonar Pro
+description: Advanced web search with deeper research capabilities
+---
+
+# Perplexity Sonar Pro
+
+Advanced model with deeper web search and larger context for complex research queries.
+
+## Specifications
+
+| Property | Value |
+|----------|-------|
+| **Model ID** | `perplexity/sonar-pro` |
+| **Context Window** | 200K tokens |
+| **Input Price** | $0.003 / 1K tokens |
+| **Output Price** | $0.015 / 1K tokens |
+| **Capabilities** | web, json, stream |
+
+## Quick Start
+
+```typescript
+import { generateText, createGateway } from 'ai';
+
+const gateway = createGateway({
+  apiKey: process.env.AI_GATEWAY_API_KEY
+});
+
+const { text } = await generateText({
+  model: gateway('perplexity/sonar-pro'),
+  prompt: 'Analyze the current state of quantum computing research and major breakthroughs in 2026',
+});
+
+console.log(text);
+```
+
+## Features
+
+### Deep Research
+
+Sonar Pro searches more sources and provides more comprehensive answers:
+
+```typescript
+const { text } = await generateText({
+  model: gateway('perplexity/sonar-pro'),
+  prompt: 'Compare the AI strategies of OpenAI, Anthropic, and Google in 2026',
+});
+// Returns detailed comparison with multiple sources
+```
+
+### Larger Context Window
+
+200K tokens allows for longer conversations and more context:
+
+```typescript
+const { text } = await generateText({
+  model: gateway('perplexity/sonar-pro'),
+  messages: [
+    { role: 'user', content: 'Research the history of electric vehicles' },
+    { role: 'assistant', content: '...' },
+    { role: 'user', content: 'Now focus on battery technology advances' },
+    { role: 'assistant', content: '...' },
+    { role: 'user', content: 'What are the predictions for 2030?' },
+  ],
+});
+```
+
+### Structured Output
+
+```typescript
+import { Output } from 'ai';
+import { z } from 'zod/v4';
+
+const { output } = await generateText({
+  model: gateway('perplexity/sonar-pro'),
+  prompt: 'Research the top 5 AI companies by funding in 2026',
+  output: Output.object({
+    schema: z.object({
+      companies: z.array(z.object({
+        name: z.string(),
+        funding: z.string(),
+        focus: z.string(),
+        source: z.string(),
+      })),
+    }),
+  }),
+});
+```
+
+## Best Use Cases
+
+- In-depth research queries
+- Multi-source analysis
+- Complex questions requiring synthesis
+- Long-form content with citations
+- Academic or business research
+
+## Limitations
+
+- **Higher cost**: 3x more expensive than Sonar
+- **No tool calling**: Cannot execute custom functions
+- **No vision**: Cannot process images
+- **No reasoning mode**: Use Sonar Reasoning Pro for step-by-step analysis
+
+## Comparison
+
+| Model | Context | Research Depth | Cost |
+|-------|---------|----------------|------|
+| Sonar | 127K | Standard | $ |
+| **Sonar Pro** | 200K | Deep | $$ |
+| Sonar Reasoning Pro | 127K | Deep + Reasoning | $$ |
+
+Choose Sonar Pro for comprehensive research with larger context needs.

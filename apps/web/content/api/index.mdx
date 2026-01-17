@@ -1,0 +1,81 @@
+---
+title: SDK Reference
+description: Auto-generated TypeDoc documentation for Layers SDK packages
+---
+
+# SDK Reference
+
+This section contains auto-generated TypeDoc documentation for the `@layers/*` packages.
+
+> **Looking for the REST API?** See [API Reference](/docs/api/reference) for endpoint documentation.
+
+## Packages
+
+### @layers/models
+
+AI model registry with pricing data for Vercel AI Gateway.
+
+**Status:** 112 tests passing (23 language models, 11 image models)
+
+**Key Exports:**
+- `MODEL_REGISTRY` - Complete model definitions with pricing
+- `getModel(id)` - Get model by ID
+- `getModelsByProvider(provider)` - Filter by provider
+- `getModelsByCapability(capability)` - Filter by capability
+
+[View Source](https://github.com/mirror-factory/layers-dev/tree/main/packages/@layers/models)
+
+### @layers/credits
+
+Credit calculation and usage tracking.
+
+**Status:** Implemented
+
+**Key Exports:**
+- `calculateCredits(modelId, inputTokens, outputTokens, margin?)` - Calculate credits
+- `getCostBreakdown(...)` - Full cost breakdown with profit
+- `estimateCredits(...)` - Pre-request estimation
+- `creditsToUsd(credits)` / `usdToCredits(usd)` - Conversions
+- `calculateBatchCredits(requests)` - Batch calculations
+
+[View Source](https://github.com/mirror-factory/layers-dev/tree/main/packages/@layers/credits)
+
+### @layers/ui
+
+React components for AI interfaces.
+
+**Status:** Planned (not yet implemented)
+
+---
+
+## Generating Documentation
+
+TypeDoc is configured to generate full API documentation from TSDoc comments:
+
+```bash
+# From repository root
+pnpm docs:generate
+```
+
+This outputs to `apps/docs/content/api/` for packages that have TSDoc comments.
+
+---
+
+## Documentation Guide
+
+| Topic | Location |
+|-------|----------|
+| REST API | [/docs/api/reference](/docs/api/reference) |
+| Getting Started | [/docs/getting-started](/docs/getting-started) |
+| Authentication | [/docs/authentication](/docs/authentication) |
+| Credit System | [/docs/credits](/docs/credits) |
+| Model Selection | [/docs/models](/docs/models) |
+| Playground | [/docs/playground](/docs/playground) |
+
+---
+
+## Source Code
+
+For the most up-to-date API, see the source code directly:
+- [@layers/models](https://github.com/mirror-factory/layers-dev/tree/main/packages/@layers/models/src)
+- [@layers/credits](https://github.com/mirror-factory/layers-dev/tree/main/packages/@layers/credits/src)

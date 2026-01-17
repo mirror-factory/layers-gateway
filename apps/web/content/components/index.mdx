@@ -1,0 +1,75 @@
+---
+title: Component Library
+description: Interactive UI components for AI interfaces
+---
+
+import { StorybookEmbed } from '@/components';
+import { CoverageBadge, TestStatusBadge } from '@/components';
+
+# Component Library
+
+<div className="flex gap-2 mb-4">
+  <CoverageBadge package="@layers/ui" coverage={85} />
+  <TestStatusBadge package="@layers/ui" status="passing" testCount={42} />
+</div>
+
+Interactive UI components from `@layers/ui`. Each component is displayed using Storybook with live examples.
+
+## Installation
+
+```bash
+npm install @layers/ui
+# or
+bun add @layers/ui
+```
+
+## Available Components
+
+### Button
+
+Primary interaction component with multiple variants.
+
+<StorybookEmbed story="components-button--primary" />
+
+### Card
+
+Container component for grouping content.
+
+<StorybookEmbed story="components-card--default" />
+
+### Input
+
+Text input with validation states.
+
+<StorybookEmbed story="components-input--default" />
+
+## Viewing All Stories
+
+For the full Storybook experience with controls and documentation:
+
+- [Open Storybook](/storybook) (full interface)
+
+## Using Components
+
+```tsx
+import { Button, Card, Input } from '@layers/ui';
+
+function MyComponent() {
+  return (
+    <Card>
+      <Input placeholder="Enter text..." />
+      <Button variant="primary">Submit</Button>
+    </Card>
+  );
+}
+```
+
+## Testing Components
+
+Components are tested using:
+
+1. **Storybook Interaction Tests** - User flow simulation
+2. **Visual Regression** - Screenshot comparison
+3. **Accessibility** - a11y addon checks
+
+See [MFDR-010: Testing Strategy](/docs/mfdr-010) for details.

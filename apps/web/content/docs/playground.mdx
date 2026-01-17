@@ -1,0 +1,262 @@
+---
+title: API Playground
+description: Interactive testing environment for Layers AI models
+---
+
+# API Playground
+
+<Callout type="info">
+**Try it now:** [Open Standalone Playground](https://playground-ten-woad.vercel.app) - Full-featured playground with all 21 models
+</Callout>
+
+The API Playground lets you test AI models directly in your browser without writing any code. It's perfect for:
+
+- Exploring different models and their capabilities
+- Testing prompts before implementing them
+- Comparing responses across providers
+- Generating ready-to-use code snippets
+
+## Using the Playground
+
+### Chat Mode
+
+The default mode for testing language models.
+
+**1. Select a Provider**
+
+Choose from:
+- **Anthropic** - Claude 4.5 Haiku, Sonnet, Opus
+- **OpenAI** - GPT-4o, GPT-5, GPT-5.1 variants
+- **Google** - Gemini 2.5/3 Flash and Pro
+- **Perplexity** - Sonar, Sonar Pro, Reasoning Pro
+- **Morph** - V3 Fast and Large
+
+**2. Choose a Model**
+
+Each provider offers multiple models with different tradeoffs:
+
+| Model Type | Best For | Example |
+|------------|----------|---------|
+| Fast/Mini | Quick responses, low cost | GPT-4o Mini, Gemini Flash |
+| Standard | General purpose | Claude Sonnet, GPT-4o |
+| Pro/Opus | Complex reasoning | Claude Opus, GPT-5.1 Thinking |
+
+**3. Write Your Prompt**
+
+Enter your prompt in the text area. The playground shows real-time cost estimation based on your prompt length.
+
+**4. Advanced Options**
+
+Click "Show Advanced Options" to access:
+
+- **System Prompt** - Set AI behavior (e.g., "You are a helpful coding assistant")
+- **Streaming** - Enable/disable real-time token streaming
+
+System prompts are saved locally and persist across sessions.
+
+**5. Run It**
+
+Click "Try It" to send your request. The response appears in the output area along with:
+- Token usage (input/output)
+- Actual cost in credits
+- Latency in milliseconds
+
+### Image Mode
+
+Toggle to "Image Mode" to test image generation models.
+
+**Available Models:**
+- **FLUX 2 Pro/Flex** - High quality, fast generation
+- **FLUX 2 Klein** - Compact models (4B, 9B parameters)
+- **FLUX 1.1 Pro/Ultra** - Previous generation
+- **Imagen 4 Fast/Ultra** - Google's image models
+
+**Options:**
+- **Aspect Ratio** - 1:1, 16:9, 9:16, 4:3, 3:4, 21:9
+- **Image Prompt** - Describe what you want to generate
+
+Generated images can be viewed inline and downloaded.
+
+---
+
+## Code Export
+
+The playground generates ready-to-use code in three formats:
+
+### TypeScript (Vercel AI SDK)
+
+Uses the official Vercel AI SDK with `createGateway`:
+
+```typescript
+import { generateText, createGateway } from 'ai';
+
+const gateway = createGateway({
+  apiKey: process.env.AI_GATEWAY_API_KEY
+});
+
+const { text } = await generateText({
+  model: gateway('anthropic/claude-sonnet-4.5'),
+  prompt: 'Your prompt here',
+});
+
+console.log(text);
+```
+
+### cURL (Layers API)
+
+Direct REST API calls:
+
+```bash
+curl -X POST https://preview.hustletogether.com/api/v1/chat \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_LAYERS_API_KEY" \
+  -d '{
+    "model": "anthropic/claude-sonnet-4.5",
+    "messages": [{"role": "user", "content": "Your prompt here"}],
+    "max_tokens": 1024
+  }'
+```
+
+### Python (requests)
+
+Using the requests library:
+
+```python
+import requests
+import os
+
+response = requests.post(
+    "https://preview.hustletogether.com/api/v1/chat",
+    headers={
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {os.environ['LAYERS_API_KEY']}"
+    },
+    json={
+        "model": "anthropic/claude-sonnet-4.5",
+        "messages": [{"role": "user", "content": "Your prompt here"}],
+        "max_tokens": 1024
+    }
+)
+
+data = response.json()
+print(data["choices"][0]["message"]["content"])
+```
+
+---
+
+## Cost Estimation
+
+The playground provides cost estimates before and after requests.
+
+### Before Request
+
+Based on your prompt length (approximately 4 characters = 1 token):
+
+```
+Estimated cost: ~$0.0012
+($0.0003 input + ~$0.0009 output)
+```
+
+### After Request
+
+Actual cost based on token usage:
+
+```
+Cost: $0.0008 (156 in / 312 out)
+```
+
+This helps you understand costs before committing to a request.
+
+---
+
+## Current Capabilities
+
+The playground currently supports:
+
+| Feature | Status |
+|---------|--------|
+| Text chat | ✅ Working |
+| Streaming | ✅ Working |
+| System prompts | ✅ Working |
+| Model selection (21 models) | ✅ Working |
+| Code export (TypeScript/cURL/Python) | ✅ Working |
+
+## Coming Soon
+
+We're actively building these features:
+
+| Feature | Priority | ETA |
+|---------|----------|-----|
+| **Vision (image input)** | High | Next release |
+| **Image generation** | High | Next release |
+| **Tool/function calling** | Medium | Q1 2026 |
+| **JSON structured output** | Medium | Q1 2026 |
+| **PDF processing** | Low | Q1 2026 |
+| **Extended thinking display** | Low | Q1 2026 |
+
+## Limitations
+
+### Demo Rate Limits
+
+The playground uses demo credentials with limited rate limits:
+- 10 requests per minute
+- Some expensive models may be restricted
+
+For production use, get your own API key.
+
+### Streaming
+
+Streaming mode shows tokens as they arrive but doesn't update the code export to use `streamText()`. The generated TypeScript always uses `generateText()`.
+
+### Image Generation
+
+- Not yet available in standalone playground (coming soon)
+- Will support: gemini-2.5-flash-image, gemini-3-pro-image
+
+---
+
+## Embedding in Documentation
+
+You can embed the playground in any MDX page using the `<ModelPlayground />` component:
+
+```mdx
+import { ModelPlayground } from '@/components/ModelPlayground';
+
+## Try It Now
+
+<ModelPlayground
+  defaultProvider="anthropic"
+  defaultModel="anthropic/claude-sonnet-4.5"
+/>
+```
+
+### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `defaultProvider` | Provider | `"anthropic"` | Initial provider selection |
+| `defaultModel` | string | `"anthropic/claude-sonnet-4.5"` | Initial model selection |
+| `singleProvider` | boolean | `false` | Hide provider selector |
+| `defaultMode` | `"chat" \| "image"` | `"chat"` | Initial mode |
+
+---
+
+## Try It Now
+
+**Standalone Playground:** [https://playground-ten-woad.vercel.app](https://playground-ten-woad.vercel.app)
+
+The playground is also embedded on model documentation pages:
+
+- [Claude 4.5 Sonnet](/docs/models/anthropic/claude-sonnet-4.5)
+- [GPT-4o](/docs/models/openai/gpt-4o)
+- [Gemini 2.5 Flash](/docs/models/google/gemini-2.5-flash)
+
+Or see the full [Model Selection Guide](/docs/models) to explore all options.
+
+---
+
+## Next Steps
+
+- [API Reference](/docs/api/reference) - Full API documentation
+- [Credit System](/docs/credits) - Understand pricing
+- [Model Selection](/docs/models) - Choose the right model

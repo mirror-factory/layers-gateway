@@ -26,7 +26,10 @@ import {
   BarChart3,
   Eye,
   EyeOff,
+  BookOpen,
+  TestTube,
 } from 'lucide-react';
+import Link from 'next/link';
 
 interface ApiKey {
   id: string;
@@ -179,6 +182,18 @@ export default function DashboardPage() {
             <span className="text-xl font-bold">Layers</span>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/docs">
+              <Button variant="ghost" size="sm">
+                <BookOpen className="h-4 w-4 mr-2" />
+                Docs
+              </Button>
+            </Link>
+            <Link href="/dashboard/tests">
+              <Button variant="ghost" size="sm">
+                <TestTube className="h-4 w-4 mr-2" />
+                Tests
+              </Button>
+            </Link>
             <span className="text-sm text-muted-foreground">{user?.email}</span>
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 mr-2" />
