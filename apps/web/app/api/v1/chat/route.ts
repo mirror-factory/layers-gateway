@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateApiKey, authErrorResponse } from '@/lib/middleware/auth';
 import { calculateCredits, estimateCredits, checkBalance, deductCredits, logUsage, creditsToUsd } from '@/lib/middleware/credits';
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/middleware/rate-limit';
-import { callGateway, parseProvider, GatewayMessage } from '@/lib/gateway/client';
+import { callGateway, callGatewayStream, parseProvider, GatewayMessage, ToolDefinition } from '@/lib/gateway/client';
 
 interface ChatRequest {
   model: string;
@@ -10,6 +10,15 @@ interface ChatRequest {
   max_tokens?: number;
   temperature?: number;
   stream?: boolean;
+  // Tools support
+  tools?: ToolDefinition[];
+  tool_choice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
+  // JSON mode
+  response_format?: { type: 'json_object' | 'text' };
+  // Provider-specific options (for thinking, etc.)
+  anthropic?: Record<string, unknown>;
+  openai?: Record<string, unknown>;
+  google?: Record<string, unknown>;
 }
 
 /**
@@ -53,7 +62,19 @@ export async function POST(request: NextRequest) {
 
     // 2. Parse request body
     const body: ChatRequest = await request.json();
-    const { model, messages, max_tokens = 1024, temperature, stream = false } = body;
+    const {
+      model,
+      messages,
+      max_tokens = 1024,
+      temperature,
+      stream = false,
+      tools,
+      tool_choice,
+      response_format,
+      anthropic,
+      openai,
+      google,
+    } = body;
 
     // Validate required fields
     if (!model) {
@@ -98,21 +119,61 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Handle streaming (not yet implemented)
-    if (stream) {
-      return NextResponse.json(
-        { error: 'Streaming not yet implemented. Use stream: false' },
-        { status: 501 }
-      );
-    }
-
-    // 6. Call AI Gateway
-    const gatewayResult = await callGateway({
+    // 5. Build gateway request with all parameters
+    const gatewayRequest = {
       model,
       messages,
       max_tokens,
       temperature,
-    });
+      tools,
+      tool_choice,
+      response_format,
+      anthropic,
+      openai,
+      google,
+    };
+
+    // 6. Handle streaming
+    if (stream) {
+      const streamResult = await callGatewayStream(gatewayRequest);
+
+      if (!streamResult.success) {
+        await logUsage({
+          user_id: userId,
+          api_key_id: apiKeyId,
+          model_id: model,
+          provider: parseProvider(model),
+          request_type: 'chat_stream',
+          status: 'error',
+          error_message: streamResult.error.error,
+          latency_ms: Date.now() - startTime,
+          credits_used: 0,
+        });
+
+        return NextResponse.json(
+          { error: streamResult.error.error, details: streamResult.error.details },
+          { status: streamResult.error.status }
+        );
+      }
+
+      // Return streaming response
+      // Note: Credit deduction for streaming happens after the stream completes
+      // For now, we estimate credits upfront
+      const estimatedCredits = estimateCredits(model, max_tokens);
+
+      return new Response(streamResult.stream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          ...getRateLimitHeaders(rateLimitResult),
+          'X-Layers-Credits-Estimated': String(estimatedCredits),
+        },
+      });
+    }
+
+    // 7. Call AI Gateway (non-streaming)
+    const gatewayResult = await callGateway(gatewayRequest);
 
     if (!gatewayResult.success) {
       // Log failed request
@@ -161,7 +222,26 @@ export async function POST(request: NextRequest) {
       deductCredits(userId, creditsUsed),
     ]);
 
-    // 9. Return OpenAI-compatible response
+    // 9. Build message response
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const messageResponse: any = {
+      role: 'assistant',
+      content: data.text,
+    };
+
+    // Add tool_calls if present
+    if (data.tool_calls && data.tool_calls.length > 0) {
+      messageResponse.tool_calls = data.tool_calls;
+      // When tool calls are present, content might be null
+      if (!data.text) {
+        messageResponse.content = null;
+      }
+    }
+
+    // Determine finish_reason
+    const finishReason = data.tool_calls && data.tool_calls.length > 0 ? 'tool_calls' : 'stop';
+
+    // 10. Return OpenAI-compatible response
     return NextResponse.json(
       {
         id: data.id,
@@ -171,11 +251,8 @@ export async function POST(request: NextRequest) {
         choices: [
           {
             index: 0,
-            message: {
-              role: 'assistant',
-              content: data.text,
-            },
-            finish_reason: 'stop',
+            message: messageResponse,
+            finish_reason: finishReason,
           },
         ],
         usage: {
@@ -187,6 +264,7 @@ export async function POST(request: NextRequest) {
         layers: {
           credits_used: creditsUsed,
           latency_ms: latencyMs,
+          ...(data.reasoning && { reasoning: data.reasoning }),
         },
       },
       {

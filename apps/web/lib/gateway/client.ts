@@ -32,7 +32,13 @@ export interface ToolDefinition {
   function: {
     name: string;
     description?: string;
-    parameters?: Record<string, unknown>;
+    parameters?: {
+      type?: string;
+      properties?: Record<string, unknown>;
+      required?: string[];
+      additionalProperties?: boolean;
+      [key: string]: unknown;
+    };
   };
 }
 
@@ -101,6 +107,72 @@ export function isGatewayConfigured(): boolean {
 }
 
 /**
+ * Convert OpenAI-style content parts to AI SDK format
+ */
+function convertContentParts(content: string | ContentPart[]): string | Array<{ type: string; text?: string; image?: unknown }> {
+  if (typeof content === 'string') {
+    return content;
+  }
+
+  return content.map(part => {
+    if (part.type === 'text') {
+      return { type: 'text', text: (part as TextContentPart).text };
+    }
+    if (part.type === 'image_url') {
+      const imgPart = part as ImageContentPart;
+      const url = imgPart.image_url?.url || '';
+      // Handle data URLs (base64)
+      if (url.startsWith('data:')) {
+        const matches = url.match(/^data:([^;]+);base64,(.+)$/);
+        if (matches) {
+          return {
+            type: 'image',
+            image: Buffer.from(matches[2], 'base64'),
+            mimeType: matches[1],
+          };
+        }
+      }
+      // Handle regular URLs
+      return { type: 'image', image: new URL(url) };
+    }
+    if (part.type === 'image') {
+      const imgPart = part as ImageContentPart;
+      return { type: 'image', image: imgPart.image };
+    }
+    // Pass through unknown types
+    return part;
+  });
+}
+
+/**
+ * Convert OpenAI-style tools to AI SDK format
+ * AI SDK uses `inputSchema` (not `parameters`) and requires additionalProperties: false
+ */
+function convertTools(tools: ToolDefinition[]): Record<string, { description?: string; inputSchema: unknown }> {
+  const sdkTools: Record<string, { description?: string; inputSchema: unknown }> = {};
+
+  for (const tool of tools) {
+    if (tool.type === 'function' && tool.function) {
+      // Ensure the parameters have the required structure for AI SDK
+      const params = tool.function.parameters || {};
+      const schema = {
+        type: 'object',
+        properties: params.properties || {},
+        required: params.required || [],
+        additionalProperties: false, // Required by AI SDK
+      };
+
+      sdkTools[tool.function.name] = {
+        description: tool.function.description,
+        inputSchema: jsonSchema(schema),
+      };
+    }
+  }
+
+  return sdkTools;
+}
+
+/**
  * Send a chat completion request using Vercel AI SDK Gateway
  */
 export async function callGateway(
@@ -131,36 +203,104 @@ export async function callGateway(
       ? systemMessages.map(m => typeof m.content === 'string' ? m.content : '').join('\n')
       : undefined;
 
-    // Use generateText for non-streaming
-    const result = await generateText({
+    // Convert messages to AI SDK format, properly handling multimodal content
+    const convertedMessages = otherMessages.map(m => ({
+      role: m.role as 'user' | 'assistant' | 'tool',
+      content: convertContentParts(m.content),
+      ...(m.tool_call_id && { toolCallId: m.tool_call_id }),
+    }));
+
+    // Build generateText options
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const generateOptions: any = {
       model: gateway(request.model),
       system: systemPrompt,
-      messages: otherMessages.map(m => ({
-        role: m.role as 'user' | 'assistant',
-        content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
-      })),
+      messages: convertedMessages,
       maxOutputTokens: request.max_tokens || 1024,
       temperature: request.temperature,
-    });
+    };
+
+    // Add tools if provided
+    if (request.tools && request.tools.length > 0) {
+      generateOptions.tools = convertTools(request.tools);
+
+      // Convert tool_choice
+      if (request.tool_choice) {
+        if (typeof request.tool_choice === 'string') {
+          generateOptions.toolChoice = request.tool_choice;
+        } else if (request.tool_choice.type === 'function') {
+          generateOptions.toolChoice = {
+            type: 'tool',
+            toolName: request.tool_choice.function.name,
+          };
+        }
+      }
+    }
+
+    // Add JSON mode if requested
+    if (request.response_format?.type === 'json_object') {
+      // Use Output.object with a permissive schema for JSON mode
+      generateOptions.output = Output.object({
+        schema: z.record(z.unknown()),
+      });
+    }
+
+    // Add provider-specific options
+    const providerOptions: Record<string, unknown> = {};
+    if (request.anthropic) {
+      providerOptions.anthropic = request.anthropic;
+    }
+    if (request.openai) {
+      providerOptions.openai = request.openai;
+    }
+    if (request.google) {
+      providerOptions.google = request.google;
+    }
+    if (Object.keys(providerOptions).length > 0) {
+      generateOptions.providerOptions = providerOptions;
+    }
+
+    // Use generateText for non-streaming
+    const result = await generateText(generateOptions);
 
     // Build response in OpenAI-compatible format
-    // Note: AI SDK returns usage with different property names depending on version
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const usage = result.usage as any;
     const promptTokens = usage?.promptTokens ?? usage?.prompt_tokens ?? 0;
     const completionTokens = usage?.completionTokens ?? usage?.completion_tokens ?? 0;
+
+    // Extract tool calls if present
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const toolCalls = result.toolCalls?.map((tc: any, i: number) => ({
+      id: `call_${Date.now()}_${i}`,
+      type: 'function' as const,
+      function: {
+        name: tc.toolName,
+        arguments: JSON.stringify(tc.args || {}),
+      },
+    }));
+
+    // Handle JSON mode response
+    let responseText = result.text;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (request.response_format?.type === 'json_object' && (result as any).output) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      responseText = JSON.stringify((result as any).output);
+    }
 
     const response: GatewayResponse = {
       id: `chatcmpl-${Date.now()}`,
       object: 'chat.completion',
       created: Math.floor(Date.now() / 1000),
       model: request.model,
-      text: result.text,
+      text: responseText,
       usage: {
         prompt_tokens: promptTokens,
         completion_tokens: completionTokens,
         total_tokens: promptTokens + completionTokens,
       },
+      ...(toolCalls && toolCalls.length > 0 && { tool_calls: toolCalls }),
+      ...(result.reasoning && { reasoning: result.reasoning }),
     };
 
     return { success: true, data: response };
@@ -192,6 +332,7 @@ export async function callGateway(
 
 /**
  * Send a streaming chat completion request using Vercel AI SDK Gateway
+ * Returns SSE-formatted stream compatible with OpenAI streaming format
  */
 export async function callGatewayStream(
   request: GatewayRequest
@@ -221,26 +362,86 @@ export async function callGatewayStream(
       ? systemMessages.map(m => typeof m.content === 'string' ? m.content : '').join('\n')
       : undefined;
 
-    // Use streamText for streaming
-    const result = streamText({
+    // Convert messages to AI SDK format, properly handling multimodal content
+    const convertedMessages = otherMessages.map(m => ({
+      role: m.role as 'user' | 'assistant' | 'tool',
+      content: convertContentParts(m.content),
+      ...(m.tool_call_id && { toolCallId: m.tool_call_id }),
+    }));
+
+    // Build streamText options
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const streamOptions: any = {
       model: gateway(request.model),
       system: systemPrompt,
-      messages: otherMessages.map(m => ({
-        role: m.role as 'user' | 'assistant',
-        content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
-      })),
+      messages: convertedMessages,
       maxOutputTokens: request.max_tokens || 1024,
       temperature: request.temperature,
-    });
+    };
 
-    // Convert the async iterator to a ReadableStream
+    // Add tools if provided
+    if (request.tools && request.tools.length > 0) {
+      streamOptions.tools = convertTools(request.tools);
+
+      if (request.tool_choice) {
+        if (typeof request.tool_choice === 'string') {
+          streamOptions.toolChoice = request.tool_choice;
+        } else if (request.tool_choice.type === 'function') {
+          streamOptions.toolChoice = {
+            type: 'tool',
+            toolName: request.tool_choice.function.name,
+          };
+        }
+      }
+    }
+
+    // Add provider-specific options
+    const providerOptions: Record<string, unknown> = {};
+    if (request.anthropic) providerOptions.anthropic = request.anthropic;
+    if (request.openai) providerOptions.openai = request.openai;
+    if (request.google) providerOptions.google = request.google;
+    if (Object.keys(providerOptions).length > 0) {
+      streamOptions.providerOptions = providerOptions;
+    }
+
+    // Use streamText for streaming
+    const result = streamText(streamOptions);
+
+    // Convert to SSE format compatible with OpenAI streaming
+    const responseId = `chatcmpl-${Date.now()}`;
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         const encoder = new TextEncoder();
         try {
           for await (const chunk of result.textStream) {
-            controller.enqueue(encoder.encode(chunk));
+            // Format as SSE event in OpenAI format
+            const sseData = {
+              id: responseId,
+              object: 'chat.completion.chunk',
+              created: Math.floor(Date.now() / 1000),
+              model: request.model,
+              choices: [{
+                index: 0,
+                delta: { content: chunk },
+                finish_reason: null,
+              }],
+            };
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(sseData)}\n\n`));
           }
+          // Send final chunk with finish_reason
+          const finalData = {
+            id: responseId,
+            object: 'chat.completion.chunk',
+            created: Math.floor(Date.now() / 1000),
+            model: request.model,
+            choices: [{
+              index: 0,
+              delta: {},
+              finish_reason: 'stop',
+            }],
+          };
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(finalData)}\n\n`));
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
           controller.close();
         } catch (err) {
           controller.error(err);
