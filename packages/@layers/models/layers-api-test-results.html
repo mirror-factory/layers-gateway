@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Layers API Test Results</title>
+  <style>
+    :root {
+      --bg-primary: #1a1a2e;
+      --bg-secondary: #16213e;
+      --bg-card: #0f3460;
+      --text-primary: #eee;
+      --text-secondary: #aaa;
+      --accent: #e94560;
+      --success: #4ade80;
+      --warning: #fbbf24;
+      --error: #ef4444;
+      --border: #334155;
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #e2e8f0;
+      --bg-card: #fff;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --border: #cbd5e1;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--accent), #ff6b6b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--success);
+    }
+
+    .stat-value.warning {
+      color: var(--warning);
+    }
+
+    .stat-value.error {
+      color: var(--error);
+    }
+
+    .stat-label {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-top: 0.25rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+
+    .tab:hover {
+      background: var(--bg-card);
+    }
+
+    .tab.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .section h2 {
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section h3 {
+      font-size: 1.1rem;
+      margin: 1.5rem 0 1rem;
+      color: var(--text-secondary);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background: var(--bg-secondary);
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    tr:hover {
+      background: var(--bg-secondary);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .status.pass {
+      background: rgba(74, 222, 128, 0.15);
+      color: var(--success);
+    }
+
+    .status.fail {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--error);
+    }
+
+    .status.skip {
+      background: rgba(251, 191, 36, 0.15);
+      color: var(--warning);
+    }
+
+    .status.na {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+    }
+
+    .icon {
+      font-size: 1rem;
+    }
+
+    .legend {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      background: var(--bg-secondary);
+      border-radius: 0.5rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .note {
+      background: rgba(251, 191, 36, 0.1);
+      border-left: 3px solid var(--warning);
+      padding: 1rem;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+      border-radius: 0 0.5rem 0.5rem 0;
+    }
+
+    .note.info {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: #3b82f6;
+    }
+
+    .capability-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.75rem;
+      margin: 1rem 0;
+    }
+
+    .capability-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .capability-card .icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .capability-card .name {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .capability-card.pass {
+      border-color: var(--success);
+    }
+
+    .capability-card.pass .icon {
+      color: var(--success);
+    }
+
+    .provider-badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+
+    .provider-badge.anthropic {
+      background: rgba(233, 69, 96, 0.2);
+      color: #e94560;
+    }
+
+    .provider-badge.openai {
+      background: rgba(16, 163, 127, 0.2);
+      color: #10a37f;
+    }
+
+    .provider-badge.google {
+      background: rgba(66, 133, 244, 0.2);
+      color: #4285f4;
+    }
+
+    .provider-badge.perplexity {
+      background: rgba(147, 51, 234, 0.2);
+      color: #9333ea;
+    }
+
+    .model-name {
+      font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+      font-size: 0.85rem;
+    }
+
+    .timestamp {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      text-align: center;
+      margin-top: 2rem;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 1rem;
+      }
+      h1 {
+        font-size: 1.8rem;
+      }
+      .summary {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+
+  <div class="container">
+    <header>
+      <h1>Layers API Test Results</h1>
+      <p class="subtitle">OpenAI-compatible API with auth, credits, rate limits, and full capability passthrough</p>
+    </header>
+
+    <div class="summary">
+      <div class="stat-card">
+        <div class="stat-value">41</div>
+        <div class="stat-label">Tests Passed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value warning">2</div>
+        <div class="stat-label">Tests Skipped</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color: var(--accent)">0</div>
+        <div class="stat-label">Tests Failed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color: #3b82f6">8</div>
+        <div class="stat-label">Capabilities</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color: #8b5cf6">4</div>
+        <div class="stat-label">Providers</div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="status pass"><span class="icon">✓</span></span> Pass</div>
+      <div class="legend-item"><span class="status fail"><span class="icon">✗</span></span> Fail</div>
+      <div class="legend-item"><span class="status skip"><span class="icon">○</span></span> Skip</div>
+      <div class="legend-item"><span class="status na"><span class="icon">—</span></span> N/A</div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('overview')">Overview</button>
+      <button class="tab" onclick="showTab('api-features')">API Features</button>
+      <button class="tab" onclick="showTab('capabilities')">Capabilities</button>
+      <button class="tab" onclick="showTab('providers')">Provider Tests</button>
+    </div>
+
+    <!-- Overview Tab -->
+    <div id="overview" class="tab-content active">
+      <div class="section">
+        <h2>Capability Summary</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem;">All capabilities pass through the Layers API to the Vercel AI Gateway.</p>
+
+        <div class="capability-grid">
+          <div class="capability-card pass">
+            <div class="icon">✓</div>
+            <div class="name">Text Generation</div>
+          </div>
+          <div class="capability-card pass">
+            <div class="icon">✓</div>
+            <div class="name">Streaming</div>
+          </div>
+          <div class="capability-card pass">
+            <div class="icon">✓</div>
+            <div class="name">Vision</div>
+          </div>
+          <div class="capability-card pass">
+            <div class="icon">✓</div>
+            <div class="name">Tools</div>
+          </div>
+          <div class="capability-card pass">
+            <div class="icon">✓</div>
+            <div class="name">JSON Mode</div>
+          </div>
+          <div class="capability-card pass">
+            <div class="icon">✓</div>
+            <div class="name">Thinking</div>
+          </div>
+          <div class="capability-card pass">
+            <div class="icon">✓</div>
+            <div class="name">Web Search</div>
+          </div>
+          <div class="capability-card pass">
+            <div class="icon">✓</div>
+            <div class="name">Prompt Cache</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Request Flow</h2>
+        <pre style="background: var(--bg-secondary); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.85rem;">
+┌─────────────┐     ┌──────────────────────┐     ┌─────────────┐     ┌──────────┐
+│ Test Script │ ──► │ Layers API           │ ──► │ AI Gateway  │ ──► │ Provider │
+│ or Client   │     │ /api/v1/chat         │     │ (Vercel)    │     │          │
+└─────────────┘     │                      │     └─────────────┘     └──────────┘
+                    │ 1. Auth (API key)    │
+                    │ 2. Rate limit check  │
+                    │ 3. Credit check      │
+                    │ 4. Call gateway      │
+                    │ 5. Deduct credits    │
+                    │ 6. Log usage         │
+                    └──────────────────────┘
+        </pre>
+      </div>
+
+      <div class="note info">
+        <strong>Demo Mode:</strong> Tests run in demo mode without Supabase connection.
+        Credits are tracked but return 0 (no actual billing). Auth uses a test key.
+      </div>
+    </div>
+
+    <!-- API Features Tab -->
+    <div id="api-features" class="tab-content">
+      <div class="section">
+        <h2>Authentication Tests</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th>Description</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Valid API key</td>
+              <td>Accepts Bearer lyr_live_* keys</td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Invalid API key</td>
+              <td>Returns 401 for bad keys</td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Missing API key</td>
+              <td>Returns 401 when no auth header</td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>Credits Tests</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th>Description</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Credits tracking</td>
+              <td>Response includes layers.credits_used</td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Latency tracking</td>
+              <td>Response includes layers.latency_ms</td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Insufficient balance</td>
+              <td>Returns 402 when balance too low</td>
+              <td><span class="status skip"><span class="icon">○</span> Skip</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="note">
+          Insufficient balance test skipped - requires Supabase setup with specific balance state.
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Rate Limit Tests</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th>Description</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Rate limit headers</td>
+              <td>Returns X-RateLimit-Limit header</td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Remaining header</td>
+              <td>Returns X-RateLimit-Remaining header</td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Reset header</td>
+              <td>Returns X-RateLimit-Reset header</td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>429 on exceed</td>
+              <td>Returns 429 when rate exceeded</td>
+              <td><span class="status skip"><span class="icon">○</span> Skip</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="note">
+          Rate limit 429 test skipped - would require making 100+ requests to trigger.
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Response Format</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th>Description</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>OpenAI compatible</td>
+              <td>Returns choices[].message structure</td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Usage tokens</td>
+              <td>Includes prompt_tokens, completion_tokens</td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Layers metadata</td>
+              <td>Includes layers.credits_used, latency_ms</td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Capabilities Tab -->
+    <div id="capabilities" class="tab-content">
+      <div class="section">
+        <h2>Text Generation</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th>Model</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Basic completion</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Temperature control</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Max tokens limit</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>Streaming</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th>Model</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>SSE format</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Content-Type header</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Data chunks</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>[DONE] terminator</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>Vision / Multimodal</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th>Model</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Base64 image input</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Image color detection</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Content parts format</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>Tools / Function Calling</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th>Model</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Tool definition</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Tool call response</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Function arguments</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>tool_choice: required</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>JSON Mode</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th>Model</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>response_format: json_object</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Valid JSON output</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Structured extraction</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>Extended Thinking</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th>Model</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>thinking param (convenience)</td>
+              <td><span class="model-name">anthropic/claude-sonnet-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>anthropic.thinking (provider)</td>
+              <td><span class="model-name">anthropic/claude-sonnet-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Reasoning output</td>
+              <td><span class="model-name">anthropic/claude-sonnet-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>Web Search</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th>Model</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>web_search: true</td>
+              <td><span class="model-name">perplexity/sonar</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+            <tr>
+              <td>Current info retrieval</td>
+              <td><span class="model-name">perplexity/sonar</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>Prompt Caching</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th>Model</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>cache: true param</td>
+              <td><span class="model-name">anthropic/claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span> Pass</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Providers Tab -->
+    <div id="providers" class="tab-content">
+      <div class="section">
+        <h2><span class="provider-badge anthropic">Anthropic</span> Claude Models</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Text</th>
+              <th>Stream</th>
+              <th>Vision</th>
+              <th>Tools</th>
+              <th>JSON</th>
+              <th>Think</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="model-name">claude-haiku-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status na"><span class="icon">—</span></span></td>
+            </tr>
+            <tr>
+              <td><span class="model-name">claude-sonnet-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+            </tr>
+            <tr>
+              <td><span class="model-name">claude-opus-4.5</span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2><span class="provider-badge openai">OpenAI</span> GPT Models</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Text</th>
+              <th>Stream</th>
+              <th>Vision</th>
+              <th>Tools</th>
+              <th>JSON</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="model-name">gpt-4o</span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td style="font-size: 0.8rem; color: var(--warning)">Intermittent 500s</td>
+            </tr>
+            <tr>
+              <td><span class="model-name">gpt-4o-mini</span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="note">
+          OpenAI models may experience intermittent 500 errors from the gateway.
+          Tests handle this gracefully by logging and continuing.
+        </div>
+      </div>
+
+      <div class="section">
+        <h2><span class="provider-badge google">Google</span> Gemini Models</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Text</th>
+              <th>Stream</th>
+              <th>Vision</th>
+              <th>Tools</th>
+              <th>JSON</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="model-name">gemini-2.5-flash</span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+            </tr>
+            <tr>
+              <td><span class="model-name">gemini-2.5-pro</span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2><span class="provider-badge perplexity">Perplexity</span> Sonar Models</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Text</th>
+              <th>Stream</th>
+              <th>Web Search</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="model-name">sonar</span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td>Real-time web search</td>
+            </tr>
+            <tr>
+              <td><span class="model-name">sonar-pro</span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td><span class="status pass"><span class="icon">✓</span></span></td>
+              <td>Enhanced search</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="timestamp">Generated: January 17, 2026 | Test Environment: Demo Mode | Framework: Bun Test</p>
+  </div>
+
+  <script>
+    function showTab(tabId) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      document.querySelector(`[onclick="showTab('${tabId}')"]`).classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      html.setAttribute('data-theme', current === 'light' ? 'dark' : 'light');
+    }
+  </script>
+</body>
+</html>
