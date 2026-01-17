@@ -1,58 +1,164 @@
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Zap, Key, CreditCard, BarChart3, Code, ArrowRight } from 'lucide-react';
+
 export default function Home() {
   return (
-    <main style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>Layers API</h1>
-      <p style={{ fontSize: '1.25rem', color: '#666', marginBottom: '2rem' }}>
-        Unified AI gateway with authentication, credit management, and usage tracking.
-      </p>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className="h-6 w-6 text-primary" />
+            <span className="text-xl font-bold">Layers</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" asChild>
+              <Link href="/login">Sign in</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/signup">Get Started</Link>
+            </Button>
+          </div>
+        </div>
+      </header>
 
-      <section style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>API Endpoints</h2>
-        <ul style={{ lineHeight: 1.8 }}>
-          <li><code>GET /api/v1/chat</code> - Health check</li>
-          <li><code>POST /api/v1/chat</code> - Chat completions (OpenAI-compatible)</li>
-        </ul>
+      {/* Hero */}
+      <section className="container mx-auto px-4 py-24 text-center">
+        <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
+          Unified AI Gateway
+        </h1>
+        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+          One API to access all major AI providers. Built-in authentication,
+          credit management, rate limiting, and usage tracking.
+        </p>
+        <div className="flex items-center justify-center gap-4">
+          <Button size="lg" asChild>
+            <Link href="/signup">
+              Start Building
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+          <Button variant="outline" size="lg" asChild>
+            <Link href="#api">View API Docs</Link>
+          </Button>
+        </div>
       </section>
 
-      <section style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Authentication</h2>
-        <p>
-          All requests require an API key in the Authorization header:
-        </p>
-        <pre style={{
-          background: '#f5f5f5',
-          padding: '1rem',
-          borderRadius: '4px',
-          overflow: 'auto'
-        }}>
-{`curl -X POST https://api.layers.dev/api/v1/chat \\
-  -H "Authorization: Bearer lyr_your_api_key" \\
+      {/* Features */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader>
+              <Key className="h-8 w-8 text-primary mb-2" />
+              <CardTitle className="text-lg">API Key Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Create and manage API keys with granular permissions and expiration settings.
+              </CardDescription>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CreditCard className="h-8 w-8 text-primary mb-2" />
+              <CardTitle className="text-lg">Credit System</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Pay-as-you-go pricing with monthly subscriptions. Track credits in real-time.
+              </CardDescription>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <BarChart3 className="h-8 w-8 text-primary mb-2" />
+              <CardTitle className="text-lg">Usage Analytics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Monitor API usage, costs, and performance across all your applications.
+              </CardDescription>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <Code className="h-8 w-8 text-primary mb-2" />
+              <CardTitle className="text-lg">OpenAI Compatible</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Drop-in replacement for OpenAI SDK. Works with any model from any provider.
+              </CardDescription>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* API Section */}
+      <section id="api" className="container mx-auto px-4 py-16">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-3xl font-bold mb-8 text-center">Quick Start</h2>
+
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>1. Get your API key</CardTitle>
+              <CardDescription>
+                Sign up and create an API key from your dashboard.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>2. Make your first request</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+                <code>{`curl -X POST https://api.layers.dev/v1/chat \\
+  -H "Authorization: Bearer lyr_live_YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "model": "anthropic/claude-sonnet-4.5",
     "messages": [{"role": "user", "content": "Hello!"}]
-  }'`}
-        </pre>
+  }'`}</code>
+              </pre>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Supported Models</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <p><strong>Anthropic:</strong> claude-haiku-4.5, claude-sonnet-4.5, claude-opus-4.5</p>
+              <p><strong>OpenAI:</strong> gpt-4o, gpt-4o-mini, o1, o1-mini, o3-mini</p>
+              <p><strong>Google:</strong> gemini-2.5-flash, gemini-2.5-pro, gemini-2.0-flash</p>
+              <p><strong>Perplexity:</strong> sonar, sonar-pro, sonar-reasoning-pro</p>
+              <p className="text-muted-foreground text-sm mt-4">
+                And many more. Use the <code>provider/model</code> format.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </section>
 
-      <section style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Supported Models</h2>
-        <ul style={{ lineHeight: 1.8 }}>
-          <li><strong>Anthropic:</strong> claude-haiku-4.5, claude-sonnet-4.5, claude-opus-4.5</li>
-          <li><strong>OpenAI:</strong> gpt-4o, gpt-4o-mini, gpt-5-chat, gpt-5-codex</li>
-          <li><strong>Google:</strong> gemini-2.5-flash, gemini-2.5-pro, gemini-3-flash</li>
-          <li><strong>Perplexity:</strong> sonar, sonar-pro, sonar-reasoning-pro</li>
-        </ul>
-      </section>
-
-      <section>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Documentation</h2>
-        <p>
-          Full API documentation: <a href="https://preview.hustletogether.com/docs" style={{ color: '#0070f3' }}>
-            preview.hustletogether.com/docs
-          </a>
-        </p>
-      </section>
-    </main>
+      {/* Footer */}
+      <footer className="border-t mt-16">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              <span>Layers API</span>
+            </div>
+            <p>&copy; 2026 Layers. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }
