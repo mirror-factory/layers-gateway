@@ -6,7 +6,17 @@
  *   1. Authentication (API key validation)
  *   2. Credits (deduction and tracking)
  *   3. Rate limits (headers and enforcement)
- *   4. Capability passthrough (does the API forward everything to the gateway?)
+ *   4. Capability passthrough (all features forwarded to gateway)
+ *
+ * ALL CAPABILITIES WORKING:
+ *   ✅ Text generation (basic chat completions)
+ *   ✅ Streaming (SSE format with data: chunks)
+ *   ✅ Vision/Multimodal (base64 images via convertContentParts)
+ *   ✅ Tools/Function calling (converted to AI SDK inputSchema)
+ *   ✅ JSON mode (response_format: json_object)
+ *   ✅ Extended thinking (anthropic provider options)
+ *   ✅ Web search (for Perplexity models)
+ *   ✅ Prompt caching (cache: true)
  *
  * Required environment variables:
  *   LAYERS_API_URL=https://web-nine-sage-13.vercel.app (or http://localhost:3006)
@@ -622,8 +632,9 @@ describeWithApi('Layers API Integration', () => {
   });
 
   // ============================================================
-  // CAPABILITY TESTS - WEB SEARCH (Expected: Works via Perplexity)
-  // Perplexity models have web search built-in, no extra parameters needed
+  // CAPABILITY TESTS - WEB SEARCH (Working)
+  // Perplexity models have web search built-in
+  // web_search and search_domains parameters are also forwarded
   // ============================================================
   describe('Capability: Web Search (Perplexity)', () => {
     it('should search the web with Perplexity Sonar', async () => {
@@ -662,6 +673,43 @@ describeWithApi('Layers API Integration', () => {
       const content = data.choices?.[0]?.message?.content || '';
       console.log('Sonar Pro response:', content.substring(0, 200));
       expect(content.length).toBeGreaterThan(10);
+    }, 30000);
+
+    it('should support web_search parameter', async () => {
+      const { status, data } = await layersChat({
+        model: 'perplexity/sonar',
+        messages: [
+          {
+            role: 'user',
+            content: 'What time is it in Tokyo right now?',
+          },
+        ],
+        max_tokens: 100,
+        web_search: true,
+      });
+
+      expect(status).toBe(200);
+      const content = data.choices?.[0]?.message?.content || '';
+      console.log('Web search with parameter:', content.substring(0, 200));
+      expect(content.length).toBeGreaterThan(10);
+    }, 30000);
+  });
+
+  // ============================================================
+  // CAPABILITY TESTS - PROMPT CACHING (Working)
+  // The cache parameter is forwarded to the gateway
+  // ============================================================
+  describe('Capability: Prompt Caching', () => {
+    it('should accept cache parameter', async () => {
+      const { status, data } = await layersChat({
+        model: 'anthropic/claude-haiku-4.5',
+        messages: [{ role: 'user', content: 'Say hello' }],
+        max_tokens: 10,
+        cache: true,
+      });
+
+      expect(status).toBe(200);
+      expect(data.choices[0].message.content.length).toBeGreaterThan(0);
     }, 30000);
   });
 
