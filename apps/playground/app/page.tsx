@@ -12,9 +12,8 @@ import { ResponseDisplay, UsageSummary } from '@/components/response-display';
 import { SettingsPanel } from '@/components/settings-panel';
 import { CapabilitiesPanel, DEFAULT_CAPABILITY_SETTINGS, type CapabilitySettings } from '@/components/capabilities-panel';
 import { CodeExport } from '@/components/code-export';
-import { EmbeddingsPanel } from '@/components/embeddings-panel';
 import { useLayersChat, type ChatSettings } from '@/hooks/use-layers-chat';
-import { ExternalLink, Github, Settings, Code, MessageSquare, Zap, Sparkles, Hash } from 'lucide-react';
+import { ExternalLink, Github, Settings, Code, MessageSquare, Zap, Sparkles } from 'lucide-react';
 import { getModelSafe, type Capability } from '@/lib/models-src';
 
 const DEFAULT_SETTINGS: ChatSettings = {
@@ -28,7 +27,7 @@ const DEFAULT_SETTINGS: ChatSettings = {
 export default function PlaygroundPage() {
   const [settings, setSettings] = useState<ChatSettings>(DEFAULT_SETTINGS);
   const [capabilitySettings, setCapabilitySettings] = useState<CapabilitySettings>(DEFAULT_CAPABILITY_SETTINGS);
-  const [rightPanelTab, setRightPanelTab] = useState<'settings' | 'capabilities' | 'code' | 'embeddings'>('settings');
+  const [rightPanelTab, setRightPanelTab] = useState<'settings' | 'capabilities' | 'code'>('settings');
 
   const {
     messages,
@@ -208,21 +207,17 @@ export default function PlaygroundPage() {
                 className="flex-1 flex flex-col"
               >
                 <CardHeader className="pb-0">
-                  <TabsList className="w-full grid grid-cols-4">
+                  <TabsList className="w-full grid grid-cols-3">
                     <TabsTrigger value="settings" className="text-xs px-2">
                       <Settings className="h-4 w-4 mr-1" />
                       Settings
                     </TabsTrigger>
                     <TabsTrigger value="capabilities" className="relative text-xs px-2">
                       <Sparkles className="h-4 w-4 mr-1" />
-                      Caps
+                      Capabilities
                       {hasAdvancedCapabilities && (
                         <span className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full" />
                       )}
-                    </TabsTrigger>
-                    <TabsTrigger value="embeddings" className="text-xs px-2">
-                      <Hash className="h-4 w-4 mr-1" />
-                      Embed
                     </TabsTrigger>
                     <TabsTrigger value="code" className="text-xs px-2">
                       <Code className="h-4 w-4 mr-1" />
@@ -245,10 +240,6 @@ export default function PlaygroundPage() {
                       settings={capabilitySettings}
                       onSettingsChange={handleCapabilitySettingsChange}
                     />
-                  </TabsContent>
-
-                  <TabsContent value="embeddings" className="mt-0 h-full">
-                    <EmbeddingsPanel />
                   </TabsContent>
 
                   <TabsContent value="code" className="mt-0 h-full">

@@ -246,7 +246,7 @@ export async function callGateway(
     if (request.response_format?.type === 'json_object') {
       // Use Output.object with a permissive schema for JSON mode
       generateOptions.output = Output.object({
-        schema: z.record(z.unknown()),
+        schema: z.record(z.string(), z.unknown()),
       });
     }
 

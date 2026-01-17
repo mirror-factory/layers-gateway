@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
           api_key_id: apiKeyId,
           model_id: model,
           provider: parseProvider(model),
-          request_type: 'chat_stream',
+          request_type: 'chat',
           status: 'error',
           error_message: streamResult.error.error,
           latency_ms: Date.now() - startTime,
@@ -285,7 +285,7 @@ export async function POST(request: NextRequest) {
         layers: {
           credits_used: creditsUsed,
           latency_ms: latencyMs,
-          ...(data.reasoning && { reasoning: data.reasoning }),
+          reasoning: data.reasoning || undefined,
         },
       },
       {
