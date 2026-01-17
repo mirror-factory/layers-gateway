@@ -33,7 +33,7 @@ import {
   Database,
   Image as ImageIcon,
 } from 'lucide-react';
-import type { Capability } from '@layers/models';
+import type { Capability } from '@/lib/models-src';
 
 // Tool definition for function calling
 export interface ToolDefinition {

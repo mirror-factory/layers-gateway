@@ -15,7 +15,7 @@ import { CodeExport } from '@/components/code-export';
 import { EmbeddingsPanel } from '@/components/embeddings-panel';
 import { useLayersChat, type ChatSettings } from '@/hooks/use-layers-chat';
 import { ExternalLink, Github, Settings, Code, MessageSquare, Zap, Sparkles, Hash } from 'lucide-react';
-import { getModelSafe, type Capability } from '@layers/models';
+import { getModelSafe, type Capability } from '@/lib/models-src';
 
 const DEFAULT_SETTINGS: ChatSettings = {
   model: 'anthropic/claude-sonnet-4.5',
