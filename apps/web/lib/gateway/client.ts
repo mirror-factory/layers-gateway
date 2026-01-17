@@ -1,8 +1,39 @@
-import { createGateway, generateText, streamText } from 'ai';
+import { createGateway, generateText, streamText, Output, jsonSchema } from 'ai';
+import { z } from 'zod';
+
+// Content part types for multimodal messages
+export interface TextContentPart {
+  type: 'text';
+  text: string;
+}
+
+export interface ImageContentPart {
+  type: 'image_url' | 'image';
+  image_url?: { url: string };
+  image?: string; // base64 or URL
+}
+
+export type ContentPart = TextContentPart | ImageContentPart | { type: string; [key: string]: unknown };
 
 export interface GatewayMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content: string | ContentPart[];
+  tool_call_id?: string;
+  tool_calls?: Array<{
+    id: string;
+    type: 'function';
+    function: { name: string; arguments: string };
+  }>;
+}
+
+// Tool definition (OpenAI format)
+export interface ToolDefinition {
+  type: 'function';
+  function: {
+    name: string;
+    description?: string;
+    parameters?: Record<string, unknown>;
+  };
 }
 
 export interface GatewayRequest {
@@ -11,6 +42,15 @@ export interface GatewayRequest {
   max_tokens?: number;
   temperature?: number;
   stream?: boolean;
+  // Tools support
+  tools?: ToolDefinition[];
+  tool_choice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
+  // JSON mode
+  response_format?: { type: 'json_object' | 'text' };
+  // Provider-specific options (for thinking, etc.)
+  anthropic?: Record<string, unknown>;
+  openai?: Record<string, unknown>;
+  google?: Record<string, unknown>;
 }
 
 export interface GatewayResponse {
@@ -24,6 +64,14 @@ export interface GatewayResponse {
     completion_tokens: number;
     total_tokens: number;
   };
+  // Tool calls in response
+  tool_calls?: Array<{
+    id: string;
+    type: 'function';
+    function: { name: string; arguments: string };
+  }>;
+  // Reasoning/thinking output
+  reasoning?: unknown;
 }
 
 export interface GatewayError {
