@@ -126,12 +126,12 @@ function TestResultCard({ result }: { result: TestRunResult }) {
                   <span className="text-blue-600 dark:text-blue-400">{result.request.method}</span>
                   {' '}
                   <span className="text-green-600 dark:text-green-400">{result.request.url}</span>
-                  {result.request.body && (
+                  {result.request.body != null ? (
                     <>
                       {'\n\n'}
                       {JSON.stringify(result.request.body, null, 2)}
                     </>
-                  )}
+                  ) : null}
                 </code>
               </pre>
             </div>

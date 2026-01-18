@@ -483,7 +483,7 @@ async function runStreamingTest(
   if (response.body) {
     const reader = response.body.getReader();
     const { value } = await reader.read();
-    hasData = value && value.length > 0;
+    hasData = Boolean(value && value.length > 0);
     reader.releaseLock();
   }
 
