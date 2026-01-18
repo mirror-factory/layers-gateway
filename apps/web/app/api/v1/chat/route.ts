@@ -57,8 +57,8 @@ export async function POST(request: NextRequest) {
   let apiKeyId: string | null = null;
 
   try {
-    // 1. Authenticate
-    const authResult = await validateApiKey(request.headers.get('authorization'));
+    // 1. Authenticate (pass headers for test mode detection)
+    const authResult = await validateApiKey(request.headers.get('authorization'), request.headers);
     if (!authResult.success) {
       return authErrorResponse(authResult);
     }

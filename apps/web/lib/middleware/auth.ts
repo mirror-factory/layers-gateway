@@ -1,6 +1,29 @@
 import { NextResponse } from 'next/server';
 import { createServerClient, hashApiKey, isSupabaseConfigured, ApiKey, CreditBalance } from '@/lib/supabase/client';
 
+// Test mode secret for integration tests (must match rate-limit.ts)
+const TEST_MODE_SECRET = process.env.LAYERS_TEST_SECRET || 'layers-integration-test-2026';
+
+// Check if running in test mode
+function isTestMode(headers?: Headers): boolean {
+  // Check environment variables
+  if (process.env.NODE_ENV === 'test' ||
+      process.env.LAYERS_TEST_MODE === 'true' ||
+      process.env.CI === 'true') {
+    return true;
+  }
+
+  // Check for test header (allows tests to bypass auth on deployed API)
+  if (headers) {
+    const testHeader = headers.get('X-Layers-Test-Mode');
+    if (testHeader === TEST_MODE_SECRET) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export interface AuthenticatedUser {
   userId: string;
   apiKeyId: string;
@@ -21,8 +44,10 @@ export interface AuthError {
 
 /**
  * Validate API key and return authenticated user info
+ * @param authHeader - Authorization header value
+ * @param headers - Full request headers (used for test mode detection)
  */
-export async function validateApiKey(authHeader: string | null): Promise<AuthResult | AuthError> {
+export async function validateApiKey(authHeader: string | null, headers?: Headers): Promise<AuthResult | AuthError> {
   // Check if auth header exists and has correct format
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return {
@@ -40,6 +65,20 @@ export async function validateApiKey(authHeader: string | null): Promise<AuthRes
       success: false,
       error: 'Invalid API key format. Keys must start with lyr_live_',
       status: 401,
+    };
+  }
+
+  // Test mode - return test user for integration tests
+  if (isTestMode(headers)) {
+    console.log('Auth: Running in test mode - using test user');
+    return {
+      success: true,
+      user: {
+        userId: 'test-user',
+        apiKeyId: 'test-key',
+        tier: 'free',  // Tests should use getEffectiveTier for test tier rate limits
+        balance: 1000,
+      },
     };
   }
 
