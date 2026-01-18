@@ -327,7 +327,8 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     status: 'ok',
-    version: 'v1',
+    version: 'v1.2.0', // Test mode auth bypass version
+    build: '2026-01-18T21:30:00Z',
     endpoints: {
       chat: 'POST /api/v1/chat',
     },

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient, hashApiKey, isSupabaseConfigured, ApiKey, CreditBalance } from '@/lib/supabase/client';
 
+// Auth v2 - Test mode bypass for integration tests (2026-01-18)
 // Test mode secret for integration tests (must match rate-limit.ts)
 const TEST_MODE_SECRET = process.env.LAYERS_TEST_SECRET || 'layers-integration-test-2026';
 
