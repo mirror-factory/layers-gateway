@@ -18,6 +18,9 @@ const apiUrl = process.env.LAYERS_API_URL;
 const apiKey = process.env.LAYERS_API_KEY;
 const chatEndpoint = apiUrl ? `${apiUrl}/api/v1/chat` : '';
 
+// Test mode secret to bypass rate limits (must match rate-limit.ts)
+const TEST_MODE_SECRET = process.env.LAYERS_TEST_SECRET || 'layers-integration-test-2026';
+
 // Skip all tests if not configured
 const describeWithApi = apiUrl && apiKey ? describe : describe.skip;
 
@@ -26,13 +29,13 @@ const describeWithApi = apiUrl && apiKey ? describe : describe.skip;
  */
 async function layersChat(
   body: Record<string, unknown>,
-  options: { key?: string | null } = {}
+  options: { key?: string | null; skipTestHeader?: boolean } = {}
 ): Promise<{
   status: number;
   headers: Headers;
   data: Record<string, unknown>;
 }> {
-  const { key = apiKey } = options;
+  const { key = apiKey, skipTestHeader = false } = options;
 
   const fetchHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -40,6 +43,11 @@ async function layersChat(
 
   if (key) {
     fetchHeaders['Authorization'] = `Bearer ${key}`;
+  }
+
+  // Add test mode header to bypass rate limits (unless explicitly testing rate limiting)
+  if (!skipTestHeader) {
+    fetchHeaders['X-Layers-Test-Mode'] = TEST_MODE_SECRET;
   }
 
   const response = await fetch(chatEndpoint, {
@@ -192,6 +200,7 @@ describeWithApi('Layers API Quick Tests', () => {
     const fetchHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
+      'X-Layers-Test-Mode': TEST_MODE_SECRET,
     };
 
     const response = await fetch(chatEndpoint, {
