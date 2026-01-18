@@ -1,12 +1,47 @@
 import { CreditBalance } from '@/lib/supabase/client';
 
+// Extended tier type to include test tier
+export type RateLimitTier = CreditBalance['tier'] | 'test';
+
 // Rate limits by tier (requests per minute)
-const RATE_LIMITS: Record<CreditBalance['tier'], number> = {
+const RATE_LIMITS: Record<RateLimitTier, number> = {
   free: 10,
   starter: 60,
   pro: 300,
   team: 1000,
+  test: 1000, // High limit for integration tests
 };
+
+// Secret for test mode bypass (should match what tests send)
+const TEST_MODE_SECRET = process.env.LAYERS_TEST_SECRET || 'layers-integration-test-2026';
+
+// Check if running in test mode
+export function isTestMode(headers?: Headers): boolean {
+  // Check environment variables
+  if (process.env.NODE_ENV === 'test' ||
+      process.env.LAYERS_TEST_MODE === 'true' ||
+      process.env.CI === 'true') {
+    return true;
+  }
+
+  // Check for test header (allows tests to bypass rate limits on deployed API)
+  if (headers) {
+    const testHeader = headers.get('X-Layers-Test-Mode');
+    if (testHeader === TEST_MODE_SECRET) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// Get effective tier (upgrades to test tier in test mode)
+export function getEffectiveTier(tier: CreditBalance['tier'], headers?: Headers): RateLimitTier {
+  if (isTestMode(headers)) {
+    return 'test';
+  }
+  return tier;
+}
 
 // In-memory rate limit store
 // In production, use Redis or similar for distributed rate limiting
@@ -31,12 +66,17 @@ export interface RateLimitResult {
 
 /**
  * Check if request is allowed under rate limit
+ * @param userId - User ID for rate limit tracking
+ * @param tier - User's subscription tier
+ * @param headers - Request headers (optional, used to detect test mode)
  */
 export function checkRateLimit(
   userId: string,
-  tier: CreditBalance['tier']
+  tier: CreditBalance['tier'],
+  headers?: Headers
 ): RateLimitResult {
-  const limit = RATE_LIMITS[tier];
+  const effectiveTier = getEffectiveTier(tier, headers);
+  const limit = RATE_LIMITS[effectiveTier];
   const now = Date.now();
   const windowMs = 60000; // 1 minute window
   const key = `${userId}:${Math.floor(now / windowMs)}`;
@@ -78,5 +118,6 @@ export function getRateLimitHeaders(result: RateLimitResult): Record<string, str
  * Get limit for a specific tier
  */
 export function getTierLimit(tier: CreditBalance['tier']): number {
-  return RATE_LIMITS[tier];
+  const effectiveTier = getEffectiveTier(tier);
+  return RATE_LIMITS[effectiveTier];
 }

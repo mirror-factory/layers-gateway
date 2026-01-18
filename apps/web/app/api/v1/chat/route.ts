@@ -99,8 +99,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Check rate limit
-    const rateLimitResult = checkRateLimit(userId, user.tier);
+    // 3. Check rate limit (pass headers to detect test mode)
+    const rateLimitResult = checkRateLimit(userId, user.tier, request.headers);
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         {

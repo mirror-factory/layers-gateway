@@ -53,23 +53,31 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // Rate limit aware: Space out requests by 6 seconds for 10 req/min limit
 const RATE_LIMIT_DELAY_MS = 6000;
 
+// Test mode secret - allows bypassing rate limits for integration tests
+const TEST_MODE_SECRET = process.env.LAYERS_TEST_SECRET || 'layers-integration-test-2026';
+
 /**
  * Helper to make API calls to Layers API
  */
 async function layersChat(
   body: Record<string, unknown>,
-  options: { key?: string | null; headers?: Record<string, string> } = {}
+  options: { key?: string | null; headers?: Record<string, string>; skipTestHeader?: boolean } = {}
 ): Promise<{
   status: number;
   headers: Headers;
   data: Record<string, unknown>;
 }> {
-  const { key = apiKey, headers = {} } = options;
+  const { key = apiKey, headers = {}, skipTestHeader = false } = options;
 
   const fetchHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
     ...headers,
   };
+
+  // Add test mode header to bypass rate limits (unless explicitly skipped for auth tests)
+  if (!skipTestHeader) {
+    fetchHeaders['X-Layers-Test-Mode'] = TEST_MODE_SECRET;
+  }
 
   if (key) {
     fetchHeaders['Authorization'] = `Bearer ${key}`;
