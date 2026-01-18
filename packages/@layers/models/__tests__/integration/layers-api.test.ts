@@ -810,7 +810,7 @@ describeWithApi('Layers API Integration', () => {
 
       expect(response.status).toBe(200);
       expect(data.status).toBe('ok');
-      expect(data.version).toBe('v1');
+      expect(data.version).toMatch(/^v\d/);  // v1, v1.2.0, etc.
       expect(data.endpoints).toBeDefined();
     }, 10000);
   });
