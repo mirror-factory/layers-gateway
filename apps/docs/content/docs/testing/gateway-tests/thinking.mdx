@@ -1,0 +1,197 @@
+---
+title: Thinking Tests
+description: 2 tests for extended reasoning capabilities
+---
+
+# Thinking Tests
+
+Thinking tests verify that models supporting extended reasoning (thinking/chain-of-thought) return both thinking content and final responses.
+
+## Test Summary
+
+| Test | Model | Description |
+|------|-------|-------------|
+| Claude Thinking | claude-sonnet-4.5 | Extended reasoning with thinking blocks |
+| Claude Thinking Budget | claude-sonnet-4.5 | Thinking with token budget |
+
+## Running Tests
+
+```bash
+cd packages/@layers/models
+AI_GATEWAY_API_KEY=vck_xxx bun test gateway -t "thinking"
+```
+
+## Test Implementation
+
+### Claude Thinking Test
+
+```typescript
+it('should return thinking content with Claude', async () => {
+  const { text, experimental_providerMetadata } = await generateText({
+    model: gateway('anthropic/claude-sonnet-4.5'),
+    messages: [
+      {
+        role: 'user',
+        content: 'What is 15 * 23? Think through it step by step.',
+      },
+    ],
+    providerOptions: {
+      anthropic: {
+        thinking: {
+          type: 'enabled',
+          budgetTokens: 5000,
+        },
+      },
+    },
+    maxTokens: 1000,
+  });
+
+  expect(text).toBeTruthy();
+  expect(text).toContain('345');
+
+  // Check for thinking content in provider metadata
+  const thinking = experimental_providerMetadata?.anthropic?.thinking;
+  expect(thinking).toBeDefined();
+});
+```
+
+### Claude Thinking Budget Test
+
+```typescript
+it('should respect thinking budget', async () => {
+  const { text, usage } = await generateText({
+    model: gateway('anthropic/claude-sonnet-4.5'),
+    messages: [
+      {
+        role: 'user',
+        content: 'Explain why the sky is blue in one sentence.',
+      },
+    ],
+    providerOptions: {
+      anthropic: {
+        thinking: {
+          type: 'enabled',
+          budgetTokens: 1000, // Small budget
+        },
+      },
+    },
+    maxTokens: 500,
+  });
+
+  expect(text).toBeTruthy();
+  // Thinking tokens should be within budget
+  expect(usage.totalTokens).toBeLessThan(2000);
+});
+```
+
+## Thinking Configuration
+
+| Option | Description |
+|--------|-------------|
+| `type: 'enabled'` | Enable extended thinking |
+| `type: 'disabled'` | Disable thinking (default) |
+| `budgetTokens` | Maximum tokens for thinking |
+
+## Response Structure
+
+When thinking is enabled, responses include thinking content:
+
+```typescript
+const { text, experimental_providerMetadata } = await generateText({
+  model: gateway('anthropic/claude-sonnet-4.5'),
+  prompt: 'Solve this problem...',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 5000 },
+    },
+  },
+});
+
+// Access thinking content
+const thinking = experimental_providerMetadata?.anthropic?.thinking;
+console.log('Thinking:', thinking);
+console.log('Final answer:', text);
+```
+
+## Supported Models
+
+| Model | Extended Thinking |
+|-------|-------------------|
+| anthropic/claude-sonnet-4.5 | Yes |
+| anthropic/claude-opus-4.5 | Yes |
+| anthropic/claude-haiku-4.5 | Limited |
+| openai/gpt-* | No |
+| google/gemini-* | No |
+
+## Use Cases
+
+### Complex Problem Solving
+
+```typescript
+const { text, experimental_providerMetadata } = await generateText({
+  model: gateway('anthropic/claude-sonnet-4.5'),
+  messages: [
+    {
+      role: 'user',
+      content: 'A train leaves station A at 9am traveling 60mph...',
+    },
+  ],
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 10000 },
+    },
+  },
+});
+
+// Show the reasoning process
+console.log('Reasoning:', experimental_providerMetadata?.anthropic?.thinking);
+console.log('Answer:', text);
+```
+
+### Code Analysis
+
+```typescript
+const { text } = await generateText({
+  model: gateway('anthropic/claude-sonnet-4.5'),
+  messages: [
+    {
+      role: 'user',
+      content: 'Review this code for bugs and security issues...',
+    },
+  ],
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 8000 },
+    },
+  },
+});
+```
+
+## Best Practices
+
+1. **Set appropriate budgets** - Higher budgets for complex problems
+2. **Use for reasoning tasks** - Math, logic, code analysis
+3. **Monitor token usage** - Thinking tokens count toward costs
+4. **Access thinking content** - Use `experimental_providerMetadata` for debugging
+
+## Streaming with Thinking
+
+```typescript
+const { textStream, experimental_providerMetadata } = await streamText({
+  model: gateway('anthropic/claude-sonnet-4.5'),
+  prompt: 'Analyze this data...',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 5000 },
+    },
+  },
+});
+
+// Stream the final response
+for await (const chunk of textStream) {
+  process.stdout.write(chunk);
+}
+
+// Thinking content available after stream completes
+const thinking = (await experimental_providerMetadata)?.anthropic?.thinking;
+```
