@@ -1,0 +1,137 @@
+---
+title: JSON Mode Tests
+description: 2 tests for structured output capabilities
+---
+
+# JSON Mode Tests
+
+JSON mode tests verify that models can return structured JSON output instead of free-form text.
+
+## Test Summary
+
+| Test | Model | Description |
+|------|-------|-------------|
+| Claude JSON | claude-sonnet-4.5 | Return structured JSON |
+| GPT-4o JSON | gpt-4o | Return structured JSON |
+
+## Running Tests
+
+```bash
+cd packages/@layers/models
+AI_GATEWAY_API_KEY=vck_xxx bun test gateway -t "JSON"
+```
+
+## Test Implementation
+
+### Claude JSON Mode Test
+
+```typescript
+it('should return structured JSON with Claude', async () => {
+  const { text } = await generateText({
+    model: gateway('anthropic/claude-sonnet-4.5'),
+    messages: [
+      {
+        role: 'user',
+        content: 'Return a JSON object with name and age fields for a person named John who is 30.',
+      },
+    ],
+    responseFormat: { type: 'json_object' },
+    maxTokens: 100,
+  });
+
+  const parsed = JSON.parse(text);
+  expect(parsed.name).toBe('John');
+  expect(parsed.age).toBe(30);
+});
+```
+
+### GPT-4o JSON Mode Test
+
+```typescript
+it('should return structured JSON with GPT-4o', async () => {
+  const { text } = await generateText({
+    model: gateway('openai/gpt-4o'),
+    messages: [
+      {
+        role: 'system',
+        content: 'You are a helpful assistant that returns JSON.',
+      },
+      {
+        role: 'user',
+        content: 'Return a JSON object with name and age fields for a person named John who is 30.',
+      },
+    ],
+    responseFormat: { type: 'json_object' },
+    maxTokens: 100,
+  });
+
+  const parsed = JSON.parse(text);
+  expect(parsed.name).toBe('John');
+  expect(parsed.age).toBe(30);
+});
+```
+
+## Response Format Options
+
+| Option | Description |
+|--------|-------------|
+| `{ type: 'text' }` | Normal text output (default) |
+| `{ type: 'json_object' }` | Forces valid JSON output |
+
+## JSON Schema (Advanced)
+
+Some models support JSON schema validation:
+
+```typescript
+const { text } = await generateText({
+  model: gateway('openai/gpt-4o'),
+  messages: [
+    {
+      role: 'user',
+      content: 'Generate a user profile.',
+    },
+  ],
+  responseFormat: {
+    type: 'json_schema',
+    json_schema: {
+      name: 'user_profile',
+      schema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          age: { type: 'integer' },
+          email: { type: 'string', format: 'email' },
+        },
+        required: ['name', 'age'],
+      },
+    },
+  },
+});
+```
+
+## Supported Models
+
+| Model | JSON Mode |
+|-------|-----------|
+| anthropic/claude-* | Yes |
+| openai/gpt-4o | Yes |
+| openai/gpt-4o-mini | Yes |
+| google/gemini-* | Yes |
+| perplexity/sonar | Limited |
+| morph/morph-* | No |
+
+## Best Practices
+
+1. **Include "JSON" in prompt** - Helps model understand the expected format
+2. **Provide examples** - Show the exact structure you want
+3. **Validate output** - Always parse and validate the JSON
+4. **Handle errors** - Models may occasionally return invalid JSON
+
+```typescript
+try {
+  const parsed = JSON.parse(text);
+  // Use parsed data
+} catch (error) {
+  console.error('Invalid JSON response:', text);
+}
+```

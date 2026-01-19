@@ -1,0 +1,138 @@
+---
+title: Gateway Tests
+description: 18 integration tests for the Vercel AI Gateway
+---
+
+# Gateway Tests
+
+Gateway tests verify direct integration with the Vercel AI Gateway, testing all provider connectivity and capabilities without going through the Layers API layer.
+
+## Overview
+
+| Category | Tests | Description |
+|----------|-------|-------------|
+| [Provider Connectivity](/docs/testing/gateway-tests/providers) | 5 | Anthropic, OpenAI, Google, Perplexity, Morph |
+| [Vision](/docs/testing/gateway-tests/vision) | 2 | Image understanding |
+| [Tools](/docs/testing/gateway-tests/tools) | 2 | Function calling |
+| [JSON Mode](/docs/testing/gateway-tests/json-mode) | 2 | Structured output |
+| [Streaming](/docs/testing/gateway-tests/streaming) | 2 | SSE responses |
+| [Thinking](/docs/testing/gateway-tests/thinking) | 2 | Extended reasoning |
+| [Web Search](/docs/testing/gateway-tests/web-search) | 1 | Perplexity search |
+| **Total** | **18** | |
+
+## Prerequisites
+
+```bash
+# Required environment variable
+AI_GATEWAY_API_KEY=vck_your_gateway_key_here
+```
+
+Get your key from [Vercel AI Gateway](https://vercel.com/docs/ai/gateway).
+
+## Running Tests
+
+```bash
+cd packages/@layers/models
+
+# Run all gateway tests
+bun test gateway.test.ts
+
+# Run with verbose output
+bun test gateway.test.ts --reporter=verbose
+```
+
+## Test Architecture
+
+Gateway tests use the Vercel AI SDK directly:
+
+```typescript
+import { createGateway, generateText } from 'ai';
+
+const gateway = createGateway({
+  apiKey: process.env.AI_GATEWAY_API_KEY,
+});
+
+// Direct gateway call
+const { text } = await generateText({
+  model: gateway('anthropic/claude-haiku-4.5'),
+  prompt: 'Hello!',
+});
+```
+
+## Why Gateway Tests?
+
+Gateway tests validate:
+
+1. **Provider connectivity** - Each AI provider is reachable
+2. **Model availability** - Models are deployed and responding
+3. **Capability support** - Features work as expected
+4. **Response format** - Outputs match expected structure
+
+These tests run **without** the Layers API middleware, testing the raw AI Gateway functionality.
+
+## Test Categories
+
+### Provider Connectivity
+
+Tests basic text generation for each provider:
+
+- Anthropic (Claude)
+- OpenAI (GPT)
+- Google (Gemini)
+- Perplexity (Sonar)
+- Morph
+
+### Capability Tests
+
+| Capability | Models Tested | Description |
+|------------|---------------|-------------|
+| Vision | Claude, GPT-4o | Image understanding |
+| Tools | Claude, GPT-4o | Function calling |
+| JSON Mode | Claude, GPT-4o | Structured output |
+| Streaming | Claude, GPT-4o | SSE responses |
+| Thinking | Claude, GPT-5.1-thinking | Extended reasoning |
+| Web Search | Perplexity Sonar | Real-time web data |
+
+## Error Handling
+
+Gateway tests handle common failure scenarios:
+
+```typescript
+it('should handle provider errors gracefully', async () => {
+  try {
+    const { text } = await generateText({
+      model: gateway('anthropic/claude-haiku-4.5'),
+      prompt: 'Hello',
+    });
+    expect(text).toBeTruthy();
+  } catch (error) {
+    // Log but don't fail - some providers have rate limits
+    console.log('Gateway error (intermittent):', error.message);
+  }
+});
+```
+
+## Test Timeouts
+
+Gateway calls can take 10-30 seconds, especially for:
+
+- **Thinking** - Extended reasoning requires more time
+- **Vision** - Image processing adds latency
+- **Web Search** - Real-time web fetching
+
+```typescript
+// Set appropriate timeouts
+it('should generate with thinking', async () => {
+  // Test implementation
+}, 60000); // 60 second timeout
+```
+
+## Next Steps
+
+- [Provider Tests](/docs/testing/gateway-tests/providers) - Connectivity verification
+- [Vision Tests](/docs/testing/gateway-tests/vision) - Image understanding
+- [Tools Tests](/docs/testing/gateway-tests/tools) - Function calling
+- [JSON Mode Tests](/docs/testing/gateway-tests/json-mode) - Structured output
+- [Streaming Tests](/docs/testing/gateway-tests/streaming) - SSE responses
+- [Thinking Tests](/docs/testing/gateway-tests/thinking) - Extended reasoning
+- [Web Search Tests](/docs/testing/gateway-tests/web-search) - Perplexity search
