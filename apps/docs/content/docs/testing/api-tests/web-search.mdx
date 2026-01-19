@@ -1,0 +1,275 @@
+---
+title: Web Search Tests (API)
+description: 3 tests for Perplexity web search via the Layers API
+---
+
+# Web Search Tests (API)
+
+Web search tests verify that the Layers API correctly handles Perplexity models with real-time web search capabilities.
+
+## Test Summary
+
+| Test | Model | Description |
+|------|-------|-------------|
+| Basic Search | sonar | Search and return results |
+| Current Events | sonar | Access recent information |
+| Citations | sonar | Include source references |
+
+## Running Tests
+
+```bash
+cd packages/@layers/models
+LAYERS_API_URL=https://web-nine-sage-13.vercel.app \
+LAYERS_API_KEY=lyr_live_xxx \
+bun test layers-api -t "Search"
+```
+
+## Test Implementation
+
+### Basic Search Test
+
+```typescript
+it('should perform web search with Perplexity via API', async () => {
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LAYERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'perplexity/sonar',
+      messages: [
+        { role: 'user', content: 'What is the current weather in San Francisco?' }
+      ],
+      max_tokens: 200,
+    }),
+  });
+
+  expect(response.status).toBe(200);
+  const data = await response.json();
+
+  expect(data.choices[0].message.content).toBeTruthy();
+  expect(data.choices[0].message.content.toLowerCase()).toMatch(
+    /weather|temperature|degrees|forecast/
+  );
+});
+```
+
+### Current Events Test
+
+```typescript
+it('should access current information', async () => {
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LAYERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'perplexity/sonar',
+      messages: [
+        { role: 'user', content: 'What are the top news stories today?' }
+      ],
+      max_tokens: 500,
+    }),
+  });
+
+  expect(response.status).toBe(200);
+  const data = await response.json();
+
+  // Response should contain current information
+  expect(data.choices[0].message.content).toBeTruthy();
+  expect(data.choices[0].message.content.length).toBeGreaterThan(100);
+});
+```
+
+### Citations Test
+
+```typescript
+it('should include citations in response', async () => {
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LAYERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'perplexity/sonar',
+      messages: [
+        { role: 'user', content: 'Who won the last Super Bowl? Cite your sources.' }
+      ],
+      max_tokens: 300,
+    }),
+  });
+
+  expect(response.status).toBe(200);
+  const data = await response.json();
+
+  // Response typically includes citation markers [1], [2], etc.
+  expect(data.choices[0].message.content).toBeTruthy();
+});
+```
+
+## Request Format
+
+```json
+{
+  "model": "perplexity/sonar",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What are the latest developments in AI?"
+    }
+  ],
+  "max_tokens": 500
+}
+```
+
+## Response Format
+
+```json
+{
+  "id": "chatcmpl-xxx",
+  "model": "perplexity/sonar",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Based on recent reports [1], the latest AI developments include... [2]"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 15,
+    "completion_tokens": 250,
+    "total_tokens": 265
+  }
+}
+```
+
+## Supported Models
+
+| Model | Web Search | Notes |
+|-------|------------|-------|
+| perplexity/sonar | Yes | Standard search |
+| perplexity/sonar-pro | Yes | Enhanced capabilities |
+| anthropic/claude-* | No | No web access |
+| openai/gpt-* | No | No web access |
+
+## Use Cases
+
+### Research Queries
+
+```typescript
+const response = await fetch('https://api.layers.dev/v1/chat', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer lyr_live_xxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'perplexity/sonar',
+    messages: [
+      {
+        role: 'user',
+        content: 'What are the latest research papers on quantum computing from 2024?',
+      },
+    ],
+    max_tokens: 1000,
+  }),
+});
+```
+
+### Fact Checking
+
+```typescript
+const response = await fetch('https://api.layers.dev/v1/chat', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer lyr_live_xxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'perplexity/sonar',
+    messages: [
+      {
+        role: 'user',
+        content: 'Is it true that [claim]? Provide evidence from reliable sources.',
+      },
+    ],
+    max_tokens: 500,
+  }),
+});
+```
+
+### Market Research
+
+```typescript
+const response = await fetch('https://api.layers.dev/v1/chat', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer lyr_live_xxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'perplexity/sonar',
+    messages: [
+      {
+        role: 'user',
+        content: 'What are the current market trends for electric vehicles?',
+      },
+    ],
+    max_tokens: 800,
+  }),
+});
+```
+
+## Limitations
+
+1. **Rate limits** - Perplexity has stricter limits
+2. **Response time** - Search adds 2-5 second latency
+3. **No streaming citations** - Full response only
+4. **Region specific** - Results may vary by location
+
+## Comparison
+
+| Feature | Perplexity | Claude/GPT |
+|---------|------------|------------|
+| Current information | Yes | No (cutoff date) |
+| Response time | Slower | Faster |
+| Citations | Yes | No |
+| Rate limits | Stricter | More generous |
+
+## Error Handling
+
+```typescript
+const response = await fetch('https://api.layers.dev/v1/chat', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer lyr_live_xxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'perplexity/sonar',
+    messages: [{ role: 'user', content: 'Search query...' }],
+  }),
+});
+
+if (response.status === 429) {
+  const retryAfter = response.headers.get('Retry-After');
+  console.log(`Rate limited. Retry after ${retryAfter}s`);
+} else if (!response.ok) {
+  const error = await response.json();
+  console.error('Search failed:', error);
+}
+```
+
+## Best Practices
+
+1. **Use for current information** - News, weather, recent events
+2. **Be specific** - Detailed queries get better results
+3. **Handle latency** - Show loading indicators
+4. **Verify citations** - Cross-check important claims
+5. **Implement retry logic** - For rate limit handling

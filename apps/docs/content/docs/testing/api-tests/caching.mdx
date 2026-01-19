@@ -1,0 +1,224 @@
+---
+title: Caching Tests (API)
+description: 1 test for prompt caching via the Layers API
+---
+
+# Caching Tests (API)
+
+Caching tests verify that the Layers API correctly handles prompt caching, which can reduce costs and latency for repeated prompts.
+
+## Test Summary
+
+| Test | Model | Description |
+|------|-------|-------------|
+| Prompt Cache | claude-sonnet-4.5 | Cache long system prompts |
+
+## Running Tests
+
+```bash
+cd packages/@layers/models
+LAYERS_API_URL=https://web-nine-sage-13.vercel.app \
+LAYERS_API_KEY=lyr_live_xxx \
+bun test layers-api -t "cache"
+```
+
+## Test Implementation
+
+### Prompt Cache Test
+
+```typescript
+it('should use prompt caching', async () => {
+  const longSystemPrompt = `You are a helpful assistant. Here is extensive context about the project:
+    ${Array(100).fill('This is context information. ').join('')}
+  `;
+
+  // First request - establishes cache
+  const response1 = await fetch(`${LAYERS_API_URL}/api/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LAYERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'anthropic/claude-sonnet-4.5',
+      messages: [
+        { role: 'system', content: longSystemPrompt },
+        { role: 'user', content: 'Say hello.' }
+      ],
+      cache: true,
+      max_tokens: 20,
+    }),
+  });
+
+  expect(response1.status).toBe(200);
+  const data1 = await response1.json();
+  expect(data1.choices[0].message.content).toBeTruthy();
+
+  // Second request - should use cache
+  const response2 = await fetch(`${LAYERS_API_URL}/api/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LAYERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'anthropic/claude-sonnet-4.5',
+      messages: [
+        { role: 'system', content: longSystemPrompt },
+        { role: 'user', content: 'Say goodbye.' }
+      ],
+      cache: true,
+      max_tokens: 20,
+    }),
+  });
+
+  expect(response2.status).toBe(200);
+  const data2 = await response2.json();
+  expect(data2.choices[0].message.content).toBeTruthy();
+
+  // Second request should be faster (cache hit)
+  // Note: Timing comparison is optional in tests
+});
+```
+
+## Request Format
+
+```json
+{
+  "model": "anthropic/claude-sonnet-4.5",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Long system prompt with extensive context..."
+    },
+    {
+      "role": "user",
+      "content": "User question"
+    }
+  ],
+  "cache": true,
+  "max_tokens": 100
+}
+```
+
+## How Caching Works
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Request 1 (Cache Miss)                  │
+│                                                             │
+│  System Prompt ────────────────────────────────────────────►│
+│  (Long context)         Process & Cache                     │
+│                                                             │
+│  User Message ─────────────────────────────────────────────►│
+│                         Generate Response                   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│                     Request 2 (Cache Hit)                   │
+│                                                             │
+│  System Prompt ───► Cache Hit! Skip reprocessing            │
+│  (Same as before)                                           │
+│                                                             │
+│  User Message ─────────────────────────────────────────────►│
+│  (Different)        Generate Response (Faster!)             │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Benefits
+
+| Benefit | Description |
+|---------|-------------|
+| **Lower Latency** | Skip processing cached content |
+| **Reduced Costs** | Cached tokens are cheaper |
+| **Consistent Context** | Same system prompt across requests |
+
+## When to Use Caching
+
+**Good Use Cases:**
+- Long system prompts with extensive instructions
+- RAG applications with large context documents
+- Chatbots with detailed persona descriptions
+- Code assistants with repository context
+
+**Not Beneficial:**
+- Short prompts (< 1000 tokens)
+- Unique/one-time prompts
+- Rapidly changing context
+
+## Supported Models
+
+| Model | Prompt Caching |
+|-------|----------------|
+| anthropic/claude-sonnet-4.5 | Yes |
+| anthropic/claude-opus-4.5 | Yes |
+| anthropic/claude-haiku-4.5 | Yes |
+| openai/gpt-* | Limited |
+| google/gemini-* | No |
+
+## Usage Example
+
+```typescript
+// Define your long system context once
+const systemContext = `
+  You are a customer support agent for Acme Corp.
+
+  Product catalog:
+  - Widget A: $29.99, blue, 100g
+  - Widget B: $49.99, red, 200g
+  - Widget C: $99.99, green, 500g
+
+  Policies:
+  - 30 day returns
+  - Free shipping over $50
+  - 24/7 support available
+
+  ${/* More context... */ ''}
+`;
+
+// Multiple requests reuse the cached context
+async function handleCustomerQuery(query: string) {
+  const response = await fetch('https://api.layers.dev/v1/chat', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer lyr_live_xxx',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'anthropic/claude-sonnet-4.5',
+      messages: [
+        { role: 'system', content: systemContext },
+        { role: 'user', content: query },
+      ],
+      cache: true,
+      max_tokens: 500,
+    }),
+  });
+
+  return response.json();
+}
+
+// Each call benefits from cached system prompt
+await handleCustomerQuery('What is Widget A?');
+await handleCustomerQuery('How much is shipping?');
+await handleCustomerQuery('Can I return Widget B?');
+```
+
+## Cache Headers
+
+Responses may include cache information:
+
+```
+X-Cache-Status: hit | miss
+X-Cache-Tokens-Saved: 1500
+```
+
+## Best Practices
+
+1. **Use for long context** - At least 1000+ tokens
+2. **Keep system prompt stable** - Changes invalidate cache
+3. **Group similar requests** - Maximize cache hits
+4. **Monitor savings** - Track cost reduction
+5. **Set appropriate TTL** - Cache expires after ~5 minutes of inactivity
