@@ -1,0 +1,179 @@
+---
+title: Image Tests
+description: 8 tests for AI image generation capabilities
+---
+
+# Image Tests
+
+Image generation tests verify that the Layers API correctly handles image generation requests across multiple providers.
+
+## Test File
+
+**Location:** `packages/@layers/models/__tests__/integration/image-generation.test.ts`
+
+## Test Summary
+
+| Provider | Tests | Description |
+|----------|-------|-------------|
+| [OpenAI DALL-E](/docs/testing/image-tests/dalle) | 3 | DALL-E 3 image generation |
+| [Stability AI](/docs/testing/image-tests/stability) | 3 | Stable Diffusion models |
+| [Flux](/docs/testing/image-tests/flux) | 2 | Flux image models |
+| **Total** | **8** | |
+
+## Running All Image Tests
+
+```bash
+cd packages/@layers/models
+LAYERS_API_URL=https://web-nine-sage-13.vercel.app \
+LAYERS_API_KEY=lyr_live_xxx \
+bun test image-generation
+```
+
+## Running by Provider
+
+```bash
+# DALL-E tests
+bun test image-generation -t "DALL-E"
+
+# Stability tests
+bun test image-generation -t "Stability"
+
+# Flux tests
+bun test image-generation -t "Flux"
+```
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `LAYERS_API_URL` | API base URL | Yes |
+| `LAYERS_API_KEY` | Valid API key (lyr_live_xxx) | Yes |
+
+## API Endpoint
+
+```
+POST /api/v1/images/generate
+```
+
+## Request Format
+
+```json
+{
+  "model": "openai/dall-e-3",
+  "prompt": "A serene mountain landscape at sunset",
+  "size": "1024x1024",
+  "quality": "standard",
+  "n": 1
+}
+```
+
+## Response Format
+
+```json
+{
+  "created": 1705612800,
+  "data": [
+    {
+      "url": "https://...",
+      "revised_prompt": "A breathtaking serene mountain landscape..."
+    }
+  ]
+}
+```
+
+## Supported Models
+
+| Model | Provider | Sizes | Quality |
+|-------|----------|-------|---------|
+| dall-e-3 | OpenAI | 1024x1024, 1792x1024, 1024x1792 | standard, hd |
+| dall-e-2 | OpenAI | 256x256, 512x512, 1024x1024 | standard |
+| stable-diffusion-xl | Stability | 512x512 to 2048x2048 | standard |
+| stable-diffusion-3 | Stability | Various | standard, hd |
+| flux-1-schnell | Flux | Various | standard |
+| flux-1-dev | Flux | Various | standard |
+
+## Cost Comparison
+
+| Model | Cost per Image | Speed |
+|-------|----------------|-------|
+| dall-e-3 (standard) | $0.040 | ~10s |
+| dall-e-3 (hd) | $0.080 | ~15s |
+| dall-e-2 | $0.020 | ~5s |
+| stable-diffusion-xl | $0.030 | ~8s |
+| flux-1-schnell | $0.025 | ~3s |
+
+## Common Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `model` | string | Model ID (required) |
+| `prompt` | string | Image description (required) |
+| `size` | string | Output dimensions |
+| `quality` | string | `standard` or `hd` |
+| `n` | number | Number of images (1-10) |
+| `style` | string | `vivid` or `natural` (DALL-E 3) |
+
+## Test Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Test Request                           │
+│            POST /api/v1/images/generate                     │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Layers API                               │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │    Auth     │  │   Credits   │  │ Rate Limit  │         │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘         │
+│         └────────────────┼────────────────┘                 │
+│                          │                                  │
+│                          ▼                                  │
+│         ┌────────────────────────────────┐                  │
+│         │   Route to Image Provider      │                  │
+│         │   (OpenAI, Stability, Flux)    │                  │
+│         └────────────────────────────────┘                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Error Handling
+
+```typescript
+const response = await fetch('https://api.layers.dev/v1/images/generate', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer lyr_live_xxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'openai/dall-e-3',
+    prompt: 'A sunset over mountains',
+  }),
+});
+
+if (!response.ok) {
+  const error = await response.json();
+  switch (error.error.code) {
+    case 'content_policy_violation':
+      console.error('Prompt violates content policy');
+      break;
+    case 'invalid_request':
+      console.error('Invalid parameters:', error.error.message);
+      break;
+    case 'rate_limit_exceeded':
+      console.error('Too many requests');
+      break;
+    default:
+      console.error('Image generation failed:', error);
+  }
+}
+```
+
+## Best Practices
+
+1. **Be specific** - Detailed prompts get better results
+2. **Check content policy** - Avoid prohibited content
+3. **Handle timeouts** - Image generation can take 10-30 seconds
+4. **Cache results** - Store generated image URLs
+5. **Monitor costs** - Image generation is more expensive than text

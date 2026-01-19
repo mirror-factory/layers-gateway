@@ -1,0 +1,257 @@
+---
+title: Stability AI Tests
+description: 3 tests for Stable Diffusion image generation
+---
+
+# Stability AI Tests
+
+Stability AI tests verify that the Layers API correctly handles Stable Diffusion models for image generation.
+
+## Test Summary
+
+| Test | Model | Description |
+|------|-------|-------------|
+| Basic Generation | stable-diffusion-xl | Generate image from prompt |
+| Custom Dimensions | stable-diffusion-xl | Various aspect ratios |
+| SD3 Generation | stable-diffusion-3 | Latest SD3 model |
+
+## Running Tests
+
+```bash
+cd packages/@layers/models
+LAYERS_API_URL=https://web-nine-sage-13.vercel.app \
+LAYERS_API_KEY=lyr_live_xxx \
+bun test image-generation -t "Stability"
+```
+
+## Test Implementation
+
+### Basic Generation Test
+
+```typescript
+it('should generate image with Stable Diffusion XL', async () => {
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/images/generate`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LAYERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'stability/stable-diffusion-xl',
+      prompt: 'A cyberpunk cityscape at night, neon lights, rain',
+      size: '1024x1024',
+      n: 1,
+    }),
+  });
+
+  expect(response.status).toBe(200);
+  const data = await response.json();
+
+  expect(data.data).toBeDefined();
+  expect(data.data.length).toBe(1);
+  expect(data.data[0].url).toBeTruthy();
+}, 60000);
+```
+
+### Custom Dimensions Test
+
+```typescript
+it('should generate portrait image', async () => {
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/images/generate`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LAYERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'stability/stable-diffusion-xl',
+      prompt: 'A fantasy warrior portrait, detailed armor',
+      size: '768x1344', // Portrait aspect ratio
+      n: 1,
+    }),
+  });
+
+  expect(response.status).toBe(200);
+  const data = await response.json();
+  expect(data.data[0].url).toBeTruthy();
+}, 60000);
+```
+
+### Stable Diffusion 3 Test
+
+```typescript
+it('should generate image with SD3', async () => {
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/images/generate`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LAYERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'stability/stable-diffusion-3',
+      prompt: 'A photorealistic portrait of a robot',
+      size: '1024x1024',
+      n: 1,
+    }),
+  });
+
+  expect(response.status).toBe(200);
+  const data = await response.json();
+  expect(data.data[0].url).toBeTruthy();
+}, 60000);
+```
+
+## Request Format
+
+```json
+{
+  "model": "stability/stable-diffusion-xl",
+  "prompt": "A cyberpunk cityscape",
+  "negative_prompt": "blurry, low quality",
+  "size": "1024x1024",
+  "n": 1,
+  "cfg_scale": 7,
+  "steps": 30
+}
+```
+
+## Parameters
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| `model` | string | Model ID | Required |
+| `prompt` | string | Image description | Required |
+| `negative_prompt` | string | What to avoid | Optional |
+| `size` | string | Output dimensions | `1024x1024` |
+| `n` | number | Number of images | 1 |
+| `cfg_scale` | number | Prompt adherence (1-35) | 7 |
+| `steps` | number | Diffusion steps (10-150) | 30 |
+| `seed` | number | Random seed | Random |
+
+## Supported Models
+
+| Model | Description | Best For |
+|-------|-------------|----------|
+| `stable-diffusion-xl` | SDXL 1.0 | General purpose |
+| `stable-diffusion-3` | SD3 Medium | Photorealism, text |
+| `stable-diffusion-3-turbo` | SD3 Turbo | Fast generation |
+
+## Supported Sizes (SDXL)
+
+| Size | Aspect Ratio | Description |
+|------|--------------|-------------|
+| `1024x1024` | 1:1 | Square |
+| `1152x896` | 9:7 | Landscape |
+| `896x1152` | 7:9 | Portrait |
+| `1344x768` | 16:9 | Wide |
+| `768x1344` | 9:16 | Tall |
+| `1536x640` | 21:9 | Ultra-wide |
+| `640x1536` | 9:21 | Ultra-tall |
+
+## Response Format
+
+```json
+{
+  "created": 1705612800,
+  "data": [
+    {
+      "url": "https://...",
+      "seed": 1234567890
+    }
+  ]
+}
+```
+
+## Negative Prompts
+
+Improve results by specifying what to avoid:
+
+```json
+{
+  "model": "stability/stable-diffusion-xl",
+  "prompt": "A beautiful landscape photograph",
+  "negative_prompt": "blurry, low quality, watermark, text, oversaturated, cartoon, anime, drawing, painting"
+}
+```
+
+## CFG Scale Guide
+
+| Value | Effect |
+|-------|--------|
+| 1-5 | Creative, loose interpretation |
+| 6-10 | Balanced (recommended) |
+| 11-20 | Strict prompt following |
+| 21-35 | Very strict, may reduce quality |
+
+## Usage Example
+
+```typescript
+async function generateWithStability(prompt: string, style?: string) {
+  const response = await fetch('https://api.layers.dev/v1/images/generate', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer lyr_live_xxx',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'stability/stable-diffusion-xl',
+      prompt: style ? `${prompt}, ${style}` : prompt,
+      negative_prompt: 'blurry, low quality, watermark',
+      size: '1024x1024',
+      cfg_scale: 7,
+      steps: 30,
+    }),
+  });
+
+  const data = await response.json();
+  return data.data[0].url;
+}
+
+// Generate with style
+const url = await generateWithStability(
+  'A forest path',
+  'oil painting style, impressionist'
+);
+```
+
+## Style Prompts
+
+Add these to your prompts for specific styles:
+
+| Style | Prompt Addition |
+|-------|-----------------|
+| Photorealistic | `photorealistic, 8k, professional photography` |
+| Digital Art | `digital art, concept art, highly detailed` |
+| Oil Painting | `oil painting, classical, brushstrokes` |
+| Anime | `anime style, studio ghibli, cel shaded` |
+| 3D Render | `3D render, octane render, unreal engine` |
+
+## Cost
+
+| Model | Price per Image |
+|-------|-----------------|
+| stable-diffusion-xl | ~$0.030 |
+| stable-diffusion-3 | ~$0.035 |
+| stable-diffusion-3-turbo | ~$0.025 |
+
+## Reproducibility with Seeds
+
+Use seeds for consistent results:
+
+```json
+{
+  "model": "stability/stable-diffusion-xl",
+  "prompt": "A red apple",
+  "seed": 42
+}
+```
+
+Same prompt + same seed = same image.
+
+## Best Practices
+
+1. **Use negative prompts** - Significantly improves quality
+2. **Appropriate CFG scale** - 7-10 for best results
+3. **Match aspect ratio** - Use size that fits your content
+4. **Add style keywords** - Be explicit about desired style
+5. **Iterate with seeds** - Find good seeds, then vary prompts

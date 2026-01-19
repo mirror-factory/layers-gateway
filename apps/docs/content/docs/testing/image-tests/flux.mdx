@@ -1,0 +1,249 @@
+---
+title: Flux Tests
+description: 2 tests for Flux image generation models
+---
+
+# Flux Tests
+
+Flux tests verify that the Layers API correctly handles Black Forest Labs' Flux image generation models.
+
+## Test Summary
+
+| Test | Model | Description |
+|------|-------|-------------|
+| Schnell Generation | flux-1-schnell | Fast image generation |
+| Dev Generation | flux-1-dev | High-quality generation |
+
+## Running Tests
+
+```bash
+cd packages/@layers/models
+LAYERS_API_URL=https://web-nine-sage-13.vercel.app \
+LAYERS_API_KEY=lyr_live_xxx \
+bun test image-generation -t "Flux"
+```
+
+## Test Implementation
+
+### Flux Schnell Test (Fast)
+
+```typescript
+it('should generate image with Flux Schnell', async () => {
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/images/generate`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LAYERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'flux/flux-1-schnell',
+      prompt: 'A majestic eagle soaring over mountains',
+      size: '1024x1024',
+      n: 1,
+    }),
+  });
+
+  expect(response.status).toBe(200);
+  const data = await response.json();
+
+  expect(data.data).toBeDefined();
+  expect(data.data.length).toBe(1);
+  expect(data.data[0].url).toBeTruthy();
+}, 30000); // 30s timeout - Schnell is fast
+```
+
+### Flux Dev Test (Quality)
+
+```typescript
+it('should generate image with Flux Dev', async () => {
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/images/generate`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LAYERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'flux/flux-1-dev',
+      prompt: 'A photorealistic portrait of an astronaut in a garden',
+      size: '1024x1024',
+      n: 1,
+    }),
+  });
+
+  expect(response.status).toBe(200);
+  const data = await response.json();
+  expect(data.data[0].url).toBeTruthy();
+}, 60000);
+```
+
+## Request Format
+
+```json
+{
+  "model": "flux/flux-1-schnell",
+  "prompt": "A majestic eagle soaring over mountains",
+  "size": "1024x1024",
+  "n": 1
+}
+```
+
+## Parameters
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| `model` | string | Model ID | Required |
+| `prompt` | string | Image description | Required |
+| `size` | string | Output dimensions | `1024x1024` |
+| `n` | number | Number of images | 1 |
+| `seed` | number | Random seed | Random |
+
+## Supported Models
+
+| Model | Speed | Quality | Best For |
+|-------|-------|---------|----------|
+| `flux-1-schnell` | ~3s | Good | Rapid iteration, drafts |
+| `flux-1-dev` | ~10s | Excellent | Final outputs, detail |
+| `flux-1-pro` | ~15s | Premium | Professional use |
+
+## Model Comparison
+
+| Aspect | Flux Schnell | Flux Dev | Flux Pro |
+|--------|--------------|----------|----------|
+| Speed | 3-4 seconds | 10-15 seconds | 15-20 seconds |
+| Quality | Good | Excellent | Premium |
+| Detail | Medium | High | Very High |
+| Cost | Low | Medium | High |
+| License | Open | Research | Commercial |
+
+## Supported Sizes
+
+| Size | Aspect Ratio | Description |
+|------|--------------|-------------|
+| `1024x1024` | 1:1 | Square |
+| `1024x768` | 4:3 | Standard |
+| `768x1024` | 3:4 | Portrait |
+| `1280x720` | 16:9 | Widescreen |
+| `720x1280` | 9:16 | Vertical |
+
+## Response Format
+
+```json
+{
+  "created": 1705612800,
+  "data": [
+    {
+      "url": "https://...",
+      "seed": 987654321
+    }
+  ]
+}
+```
+
+## Usage Example
+
+```typescript
+async function generateWithFlux(prompt: string, fast = true) {
+  const model = fast ? 'flux/flux-1-schnell' : 'flux/flux-1-dev';
+
+  const response = await fetch('https://api.layers.dev/v1/images/generate', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer lyr_live_xxx',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      prompt,
+      size: '1024x1024',
+    }),
+  });
+
+  const data = await response.json();
+  return data.data[0].url;
+}
+
+// Quick draft
+const draft = await generateWithFlux('A sunset beach', true);
+
+// Final quality
+const final = await generateWithFlux('A sunset beach', false);
+```
+
+## Flux Strengths
+
+Flux models excel at:
+
+1. **Text rendering** - Accurate text in images
+2. **Human anatomy** - Correct proportions
+3. **Composition** - Natural layouts
+4. **Prompt following** - Faithful interpretation
+5. **Realism** - Photorealistic outputs
+
+## Prompt Tips for Flux
+
+```typescript
+// Good: Specific and detailed
+const goodPrompt = `
+  A professional photograph of a cozy coffee shop interior,
+  warm lighting, wooden furniture, steam rising from cups,
+  morning sunlight through windows, 35mm photography
+`;
+
+// Bad: Vague
+const badPrompt = 'coffee shop';
+```
+
+## Workflow: Draft to Final
+
+```typescript
+// 1. Iterate quickly with Schnell
+const drafts = await Promise.all([
+  generateWithFlux('Concept A: mountains', true),
+  generateWithFlux('Concept B: ocean', true),
+  generateWithFlux('Concept C: forest', true),
+]);
+
+// 2. Pick the best concept, refine with Dev
+const final = await generateWithFlux(
+  'A misty mountain range at dawn, dramatic lighting, ' +
+  'fog in valleys, peaks catching first light, ' +
+  'professional landscape photography, 4k detailed',
+  false
+);
+```
+
+## Cost
+
+| Model | Price per Image |
+|-------|-----------------|
+| flux-1-schnell | ~$0.003 |
+| flux-1-dev | ~$0.025 |
+| flux-1-pro | ~$0.055 |
+
+## Reproducibility
+
+Use seeds for consistent outputs:
+
+```json
+{
+  "model": "flux/flux-1-schnell",
+  "prompt": "A red rose",
+  "seed": 12345
+}
+```
+
+Save the seed from responses to recreate images:
+
+```typescript
+const response = await generateImage(prompt);
+const seed = response.data[0].seed;
+// Save seed for later reproduction
+```
+
+## Best Practices
+
+1. **Start with Schnell** - Iterate quickly, then switch to Dev
+2. **Be descriptive** - Flux follows prompts well
+3. **Include style** - Specify photography, art style, etc.
+4. **Use seeds** - For reproducible results
+5. **Match model to use case** - Schnell for drafts, Dev for finals
