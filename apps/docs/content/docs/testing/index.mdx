@@ -1,0 +1,140 @@
+---
+title: Testing Overview
+description: Comprehensive test suite for the Layers API with 141 tests across 6 files
+---
+
+# Testing Overview
+
+The Layers platform includes a comprehensive test suite with **141 tests** covering unit tests, gateway integration, API functionality, and image generation capabilities.
+
+## Test Suite Summary
+
+| Test File | Tests | Type | Description |
+|-----------|-------|------|-------------|
+| `helpers.test.ts` | 48 | Unit | Model helper functions (cost calculation, metadata, validation) |
+| `registry.test.ts` | 19 | Unit | Model registry lookups and filtering |
+| `gateway.test.ts` | 18 | Integration | Direct AI Gateway calls to all providers |
+| `layers-api.test.ts` | 39 | Integration | Full API stack with auth, credits, rate limits |
+| `layers-api-quick.test.ts` | 9 | Integration | Fast smoke tests for core functionality |
+| `image-generation.test.ts` | 8 | Integration | Image model capabilities |
+| **Total** | **141** | | |
+
+## Test Categories
+
+### Unit Tests (67 tests)
+
+Pure function tests that don't make network calls:
+
+- **[Helpers](/docs/testing/unit-tests/helpers)** - 48 tests for cost calculation, model metadata, request parsing
+- **[Registry](/docs/testing/unit-tests/registry)** - 19 tests for model lookups and capability filtering
+
+### Gateway Tests (18 tests)
+
+Direct integration with the Vercel AI Gateway:
+
+- **[Provider Connectivity](/docs/testing/gateway-tests/providers)** - 5 tests verifying Anthropic, OpenAI, Google, Perplexity, Morph
+- **[Vision](/docs/testing/gateway-tests/vision)** - 2 tests for image understanding
+- **[Tools](/docs/testing/gateway-tests/tools)** - 2 tests for function calling
+- **[JSON Mode](/docs/testing/gateway-tests/json-mode)** - 2 tests for structured output
+- **[Streaming](/docs/testing/gateway-tests/streaming)** - 2 tests for SSE responses
+- **[Thinking](/docs/testing/gateway-tests/thinking)** - 2 tests for extended reasoning
+- **[Web Search](/docs/testing/gateway-tests/web-search)** - 1 test for Perplexity search
+
+### API Tests (48 tests)
+
+Full Layers API integration tests:
+
+- **[Authentication](/docs/testing/api-tests/authentication)** - 4 tests for API key validation
+- **[Credits](/docs/testing/api-tests/credits)** - 3 tests for usage tracking and deduction
+- **[Rate Limits](/docs/testing/api-tests/rate-limits)** - 3 tests for request throttling
+- **[Text Generation](/docs/testing/api-tests/text-generation)** - 4 tests for basic completions
+- **[Vision](/docs/testing/api-tests/vision)** - 2 tests for image understanding
+- **[Tools](/docs/testing/api-tests/tools)** - 2 tests for function calling
+- **[JSON Mode](/docs/testing/api-tests/json-mode)** - 2 tests for structured output
+- **[Streaming](/docs/testing/api-tests/streaming)** - 1 test for SSE responses
+- **[Thinking](/docs/testing/api-tests/thinking)** - 3 tests for extended reasoning
+- **[Web Search](/docs/testing/api-tests/web-search)** - 3 tests for Perplexity integration
+- **[Caching](/docs/testing/api-tests/caching)** - 1 test for prompt cache
+- **[Validation](/docs/testing/api-tests/validation)** - 3 tests for request validation
+
+### Image Tests (8 tests)
+
+Image generation capabilities:
+
+- **[Flux Models](/docs/testing/image-tests/flux)** - Tests for BFL Flux image generation
+- **[Google Imagen](/docs/testing/image-tests/google)** - Tests for Imagen and Gemini image models
+
+## Running Tests
+
+### Prerequisites
+
+```bash
+# Required environment variables
+AI_GATEWAY_API_KEY=vck_xxx    # For gateway tests
+LAYERS_API_URL=https://...     # For API tests
+LAYERS_API_KEY=lyr_live_xxx    # For API tests
+```
+
+### Run All Tests
+
+```bash
+cd packages/@layers/models
+bun test
+```
+
+### Run by Category
+
+```bash
+# Unit tests only
+bun test helpers registry
+
+# Gateway tests only
+bun test gateway
+
+# API tests only
+bun test layers-api
+
+# Quick smoke tests
+bun test layers-api-quick
+
+# Image tests only
+bun test image-generation
+```
+
+### Run Single Test
+
+```bash
+bun test -t "should generate text with Claude"
+```
+
+## Test Mode
+
+Integration tests use a special test mode header to bypass rate limits:
+
+```typescript
+headers: {
+  'X-Layers-Test-Mode': 'layers-integration-test-2026'
+}
+```
+
+This allows running the full test suite without hitting the free tier's 10 requests/minute limit.
+
+## Interactive Test Runner
+
+Visit the [Test Runner Dashboard](/dashboard/tests/runner) to:
+
+- View all 141 tests in a matrix view
+- Run tests by category or individually
+- See real-time pass/fail status
+- View actual API requests and responses
+
+## Coverage Requirements
+
+All new features must include:
+
+1. Unit tests for helper functions
+2. Gateway tests for new provider capabilities
+3. API tests for endpoint functionality
+4. Documentation updates
+
+See [Getting Started](/docs/testing/getting-started) for detailed instructions.

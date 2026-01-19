@@ -1,0 +1,84 @@
+---
+title: Unit Tests
+description: 67 unit tests for model helpers and registry functions
+---
+
+# Unit Tests
+
+Unit tests verify the core helper functions and model registry without making network calls. These tests run instantly and validate the fundamental building blocks of the Layers platform.
+
+## Overview
+
+| Test File | Tests | Description |
+|-----------|-------|-------------|
+| `helpers.test.ts` | 48 | Cost calculation, metadata, validation, formatting |
+| `registry.test.ts` | 19 | Model lookups, provider filtering, capability filtering |
+| **Total** | **67** | |
+
+## Running Unit Tests
+
+```bash
+cd packages/@layers/models
+
+# Run all unit tests
+bun test helpers registry
+
+# Run with verbose output
+bun test helpers registry --reporter=verbose
+```
+
+## Test Categories
+
+### [Helper Functions](/docs/testing/unit-tests/helpers)
+
+48 tests covering:
+
+- **Cost Calculation** (15 tests) - Calculate costs for all providers based on token usage
+- **Model Metadata** (10 tests) - Retrieve model info, capabilities, pricing
+- **Validation** (8 tests) - Validate model names and request formats
+- **Response Formatting** (10 tests) - Format AI responses consistently
+- **Request Parsing** (5 tests) - Parse and normalize incoming requests
+
+### [Registry Functions](/docs/testing/unit-tests/registry)
+
+19 tests covering:
+
+- **Model Lookup** (8 tests) - Find models by ID, alias, or pattern
+- **Provider Filtering** (5 tests) - Filter models by provider (Anthropic, OpenAI, etc.)
+- **Capability Filtering** (6 tests) - Filter by features (vision, tools, thinking)
+
+## No Network Calls
+
+Unit tests are designed to:
+
+- Run without environment variables
+- Complete in under 1 second
+- Never make external API calls
+- Test pure functions only
+
+```typescript
+// Example: Pure function test
+it('should calculate cost correctly', () => {
+  const cost = calculateCost({
+    model: 'anthropic/claude-haiku-4.5',
+    inputTokens: 1000,
+    outputTokens: 500,
+  });
+
+  expect(cost).toBeCloseTo(0.00125);
+});
+```
+
+## Coverage Requirements
+
+Unit tests should cover:
+
+1. **Happy path** - Normal inputs produce expected outputs
+2. **Edge cases** - Empty inputs, null values, boundary conditions
+3. **Error cases** - Invalid inputs throw appropriate errors
+4. **All providers** - Each provider's models are tested
+
+## Next Steps
+
+- [Helpers Documentation](/docs/testing/unit-tests/helpers) - 48 helper function tests
+- [Registry Documentation](/docs/testing/unit-tests/registry) - 19 registry tests

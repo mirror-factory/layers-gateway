@@ -1,0 +1,237 @@
+---
+title: Getting Started with Testing
+description: How to run the Layers test suite locally
+---
+
+# Getting Started with Testing
+
+This guide covers setting up and running the Layers test suite locally.
+
+## Prerequisites
+
+### Required Software
+
+- **Node.js** 18+ or **Bun** 1.0+
+- **pnpm** or **bun** package manager
+
+### Clone the Repository
+
+```bash
+git clone https://github.com/CrazySwami/layers-dev.git
+cd layers-dev
+pnpm install
+```
+
+## Environment Setup
+
+### 1. Gateway Tests (AI Gateway Direct)
+
+Create a `.env` file in the project root:
+
+```bash
+# packages/@layers/models/.env
+AI_GATEWAY_API_KEY=vck_your_gateway_key_here
+```
+
+Get your AI Gateway key from [Vercel AI Gateway](https://vercel.com/docs/ai/gateway).
+
+### 2. API Tests (Layers API)
+
+For API integration tests, you need:
+
+```bash
+# Test against production
+LAYERS_API_URL=https://web-nine-sage-13.vercel.app
+LAYERS_API_KEY=lyr_live_your_api_key_here
+
+# Or test against local dev server
+LAYERS_API_URL=http://localhost:3006
+LAYERS_API_KEY=lyr_live_test123
+```
+
+Get your Layers API key from the [Dashboard](/dashboard/api-keys).
+
+## Running Tests
+
+### Navigate to Test Directory
+
+```bash
+cd packages/@layers/models
+```
+
+### Run All Tests
+
+```bash
+# Using bun
+bun test
+
+# Using npm
+npm test
+```
+
+### Run Specific Test Files
+
+```bash
+# Unit tests
+bun test helpers.test.ts
+bun test registry.test.ts
+
+# Gateway integration
+bun test gateway.test.ts
+
+# API integration
+bun test layers-api.test.ts
+bun test layers-api-quick.test.ts
+
+# Image generation
+bun test image-generation.test.ts
+```
+
+### Run by Pattern
+
+```bash
+# All tests matching a pattern
+bun test -t "Claude"
+bun test -t "authentication"
+bun test -t "vision"
+```
+
+### Watch Mode
+
+```bash
+bun test --watch
+```
+
+## Test Output
+
+### Successful Run
+
+```
+ ✓ helpers.test.ts (48 tests) 234ms
+ ✓ registry.test.ts (19 tests) 156ms
+ ✓ gateway.test.ts (18 tests) 12453ms
+ ✓ layers-api.test.ts (39 tests) 45234ms
+ ✓ layers-api-quick.test.ts (9 tests) 3456ms
+ ✓ image-generation.test.ts (8 tests) 8765ms
+
+ Test Files  6 passed (6)
+      Tests  141 passed (141)
+   Duration  71.23s
+```
+
+### Skipped Tests
+
+Tests may be skipped if environment variables are missing:
+
+```
+ ✓ gateway.test.ts (18 tests | 18 skipped)
+   ⊘ All tests skipped - AI_GATEWAY_API_KEY not set
+```
+
+## Running Local Development Server
+
+For API tests against localhost:
+
+### Terminal 1: Start the API
+
+```bash
+cd apps/web
+npm run dev
+# Server runs on http://localhost:3006
+```
+
+### Terminal 2: Run Tests
+
+```bash
+cd packages/@layers/models
+LAYERS_API_URL=http://localhost:3006 \
+LAYERS_API_KEY=lyr_live_test123 \
+bun test layers-api
+```
+
+## Test Mode Header
+
+Integration tests include a special header to bypass rate limits:
+
+```typescript
+const TEST_MODE_SECRET = 'layers-integration-test-2026';
+
+const response = await fetch(apiUrl, {
+  headers: {
+    'Authorization': `Bearer ${apiKey}`,
+    'X-Layers-Test-Mode': TEST_MODE_SECRET,
+  },
+});
+```
+
+This is automatically added by the test helpers. You don't need to add it manually unless writing new tests.
+
+## Troubleshooting
+
+### "AI_GATEWAY_API_KEY not set"
+
+Gateway tests are skipped. Set the environment variable:
+
+```bash
+export AI_GATEWAY_API_KEY=vck_xxx
+```
+
+### "Rate limit exceeded" (429)
+
+The test mode header may not be set. Ensure you're using the latest test files with the `X-Layers-Test-Mode` header.
+
+### "Invalid API key" (401)
+
+For local testing, any `lyr_live_*` key works in demo mode. For production:
+1. Get a real key from the [Dashboard](/dashboard/api-keys)
+2. Ensure the key is active
+
+### Tests Timing Out
+
+Some tests (especially thinking and web search) can take 30+ seconds. Increase timeout:
+
+```bash
+bun test --timeout 60000
+```
+
+### OpenAI Gateway Errors
+
+OpenAI models may intermittently fail due to rate limits on the Gateway side. These are automatically handled with skip logic in tests.
+
+## Writing New Tests
+
+### Test File Structure
+
+```typescript
+import { describe, it, expect, beforeAll } from 'vitest';
+
+const apiKey = process.env.LAYERS_API_KEY;
+const describeWithApi = apiKey ? describe : describe.skip;
+
+describeWithApi('My Feature Tests', () => {
+  it('should do something', async () => {
+    const result = await layersChat({
+      model: 'anthropic/claude-haiku-4.5',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.data.choices[0].message.content).toBeTruthy();
+  });
+});
+```
+
+### Best Practices
+
+1. **Skip when config missing** - Use `describe.skip` for missing env vars
+2. **Use helper functions** - `layersChat()` and `gatewayChat()` handle headers
+3. **Set appropriate timeouts** - AI calls can take 10-30 seconds
+4. **Check for intermittent failures** - Some providers have rate limits
+5. **Document what you're testing** - Clear test names and comments
+
+## Next Steps
+
+- [Unit Tests](/docs/testing/unit-tests) - Test helper functions
+- [Gateway Tests](/docs/testing/gateway-tests) - Test AI Gateway directly
+- [API Tests](/docs/testing/api-tests) - Test full API stack
+- [Image Tests](/docs/testing/image-tests) - Test image generation

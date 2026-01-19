@@ -1,0 +1,210 @@
+---
+title: Registry Tests
+description: 19 unit tests for model registry functions
+---
+
+# Registry Tests
+
+The `registry.test.ts` file contains 19 unit tests for the model registry that maintains information about all supported AI models.
+
+## Test Summary
+
+| Category | Tests | Description |
+|----------|-------|-------------|
+| Model Lookup | 8 | Find models by ID or pattern |
+| Provider Filtering | 5 | Filter by provider |
+| Capability Filtering | 6 | Filter by features |
+| **Total** | **19** | |
+
+## Running Tests
+
+```bash
+cd packages/@layers/models
+bun test registry.test.ts
+```
+
+## Model Lookup (8 tests)
+
+Tests for finding models in the registry.
+
+### Tests
+
+| Test | Description |
+|------|-------------|
+| `should find model by exact ID` | anthropic/claude-sonnet-4.5 |
+| `should find model by alias` | gpt-4o -> openai/gpt-4o |
+| `should return undefined for unknown model` | Graceful failure |
+| `should list all models` | Returns full registry |
+| `should count total models` | Currently 23 language models |
+| `should find model by pattern` | Regex matching |
+| `should list image generation models` | Separate from language models |
+| `should differentiate model types` | language vs image |
+
+### Example
+
+```typescript
+import { getModel, getAllModels, findModels } from '@layers/models';
+
+// Exact lookup
+const claude = getModel('anthropic/claude-sonnet-4.5');
+
+// List all
+const models = getAllModels();
+console.log(`Total models: ${models.length}`); // 23
+
+// Pattern matching
+const claudeModels = findModels(/^anthropic\/claude/);
+// Returns all Claude models
+```
+
+## Provider Filtering (5 tests)
+
+Tests for filtering models by provider.
+
+### Tests
+
+| Test | Description |
+|------|-------------|
+| `should filter by Anthropic` | Returns 3 Claude models |
+| `should filter by OpenAI` | Returns 8 GPT models |
+| `should filter by Google` | Returns 5 Gemini models |
+| `should filter by Perplexity` | Returns 3 Sonar models |
+| `should filter by Morph` | Returns 2 Morph models |
+
+### Example
+
+```typescript
+import { getModelsByProvider } from '@layers/models';
+
+const anthropicModels = getModelsByProvider('anthropic');
+// Returns: ['anthropic/claude-haiku-4.5', 'anthropic/claude-sonnet-4.5', 'anthropic/claude-opus-4.5']
+
+const openaiModels = getModelsByProvider('openai');
+// Returns: ['openai/gpt-4o', 'openai/gpt-4o-mini', ...]
+```
+
+### Provider Model Counts
+
+| Provider | Language Models | Image Models |
+|----------|-----------------|--------------|
+| Anthropic | 3 | 0 |
+| OpenAI | 8 | 0 |
+| Google | 5 | 4 |
+| Perplexity | 3 | 0 |
+| Morph | 2 | 0 |
+| BFL (Flux) | 0 | 8 |
+| **Total** | **23** | **12** |
+
+## Capability Filtering (6 tests)
+
+Tests for filtering models by capabilities.
+
+### Tests
+
+| Test | Description |
+|------|-------------|
+| `should filter by vision capability` | Models that accept images |
+| `should filter by tools capability` | Models with function calling |
+| `should filter by thinking capability` | Extended reasoning models |
+| `should filter by streaming support` | SSE streaming |
+| `should filter by JSON mode support` | Structured output |
+| `should filter by multiple capabilities` | Combined filters |
+
+### Example
+
+```typescript
+import { getModelsByCapability, getModelsWithCapabilities } from '@layers/models';
+
+// Single capability
+const visionModels = getModelsByCapability('vision');
+// Returns models that can process images
+
+// Multiple capabilities
+const advancedModels = getModelsWithCapabilities(['vision', 'tools', 'thinking']);
+// Returns models with all three capabilities
+```
+
+### Capability Matrix
+
+| Capability | Models |
+|------------|--------|
+| Vision | Claude, GPT-4o, Gemini |
+| Tools | Claude, GPT-4o, Gemini |
+| Thinking | Claude (with option), GPT-5.1-thinking |
+| Streaming | All language models |
+| JSON Mode | Claude, GPT-4o, Gemini |
+| Web Search | Perplexity Sonar models only |
+
+## Registry Structure
+
+The model registry is a typed object containing:
+
+```typescript
+interface ModelEntry {
+  id: string;                    // e.g., 'anthropic/claude-sonnet-4.5'
+  name: string;                  // Human-readable name
+  provider: Provider;            // 'anthropic' | 'openai' | 'google' | 'perplexity' | 'morph' | 'bfl'
+  type: 'language' | 'image';    // Model type
+  capabilities: {
+    vision: boolean;             // Can process images
+    tools: boolean;              // Function calling support
+    thinking: boolean;           // Extended reasoning
+    streaming: boolean;          // SSE streaming
+    jsonMode: boolean;           // Structured output
+    webSearch: boolean;          // Web search (Perplexity only)
+  };
+  pricing: {
+    input: number;               // Cost per 1M input tokens (USD)
+    output: number;              // Cost per 1M output tokens (USD)
+    thinking?: number;           // Cost for thinking tokens
+    cacheRead?: number;          // Reduced cost for cached tokens
+    cacheWrite?: number;         // Additional cost for cache writes
+  };
+  contextWindow: number;         // Max tokens in context
+  maxOutputTokens: number;       // Max tokens in response
+  deprecated?: boolean;          // If model is deprecated
+  deprecatedDate?: string;       // When it will be removed
+  replacement?: string;          // Suggested replacement model
+}
+```
+
+## Adding New Models
+
+When adding a new model to the registry:
+
+1. Add entry to `src/registry.ts`
+2. Add unit tests to `registry.test.ts`
+3. Add pricing tests to `helpers.test.ts`
+4. Update documentation
+
+```typescript
+// Example: Adding a new model
+export const models = {
+  // ... existing models
+  'newprovider/new-model': {
+    id: 'newprovider/new-model',
+    name: 'New Model',
+    provider: 'newprovider',
+    type: 'language',
+    capabilities: {
+      vision: false,
+      tools: true,
+      thinking: false,
+      streaming: true,
+      jsonMode: true,
+      webSearch: false,
+    },
+    pricing: {
+      input: 0.001,
+      output: 0.002,
+    },
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+  },
+};
+```
+
+## Source Code
+
+View the full test file:
+[registry.test.ts](https://github.com/CrazySwami/layers-dev/blob/main/packages/@layers/models/__tests__/unit/registry.test.ts)
