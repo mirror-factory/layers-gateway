@@ -1,0 +1,142 @@
+---
+title: API Tests
+description: 39 integration tests for the Layers API
+---
+
+# API Tests
+
+API tests verify the full Layers API stack, including authentication, credits, rate limiting, and all AI capabilities.
+
+## Test File
+
+**Location:** `packages/@layers/models/__tests__/integration/layers-api.test.ts`
+
+## Test Summary
+
+| Category | Tests | Description |
+|----------|-------|-------------|
+| [Authentication](/docs/testing/api-tests/authentication) | 4 | API key validation |
+| [Credits](/docs/testing/api-tests/credits) | 3 | Credit deduction and tracking |
+| [Rate Limits](/docs/testing/api-tests/rate-limits) | 3 | Request throttling |
+| [Text Generation](/docs/testing/api-tests/text-generation) | 4 | Basic completions |
+| [Vision](/docs/testing/api-tests/vision) | 2 | Image understanding |
+| [Tools](/docs/testing/api-tests/tools) | 2 | Function calling |
+| [JSON Mode](/docs/testing/api-tests/json-mode) | 2 | Structured output |
+| [Streaming](/docs/testing/api-tests/streaming) | 1 | SSE responses |
+| [Thinking](/docs/testing/api-tests/thinking) | 3 | Extended reasoning |
+| [Web Search](/docs/testing/api-tests/web-search) | 3 | Perplexity integration |
+| [Caching](/docs/testing/api-tests/caching) | 1 | Prompt caching |
+| [Validation](/docs/testing/api-tests/validation) | 3 | Request validation |
+| Health Check | 1 | API availability |
+| Response Format | 1 | OpenAI compatibility |
+| **Total** | **39** | |
+
+## Running All API Tests
+
+```bash
+cd packages/@layers/models
+LAYERS_API_URL=https://web-nine-sage-13.vercel.app \
+LAYERS_API_KEY=lyr_live_xxx \
+bun test layers-api
+```
+
+## Running by Category
+
+```bash
+# Authentication tests
+bun test layers-api -t "Authentication"
+
+# Credits tests
+bun test layers-api -t "Credits"
+
+# Vision tests
+bun test layers-api -t "Vision"
+```
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `LAYERS_API_URL` | API base URL | Yes |
+| `LAYERS_API_KEY` | Valid API key (lyr_live_xxx) | Yes |
+| `LAYERS_TEST_SECRET` | Test mode secret (optional) | No |
+
+## Test Architecture
+
+API tests differ from gateway tests in that they test the **full stack**:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Test Request                           │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Layers API                               │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │    Auth     │  │   Credits   │  │ Rate Limit  │         │
+│  │  Middleware │  │  Middleware │  │  Middleware │         │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘         │
+│         │                │                │                 │
+│         └────────────────┼────────────────┘                 │
+│                          │                                  │
+│                          ▼                                  │
+│              ┌───────────────────────┐                      │
+│              │    AI Gateway         │                      │
+│              │  (Vercel AI SDK)      │                      │
+│              └───────────────────────┘                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Response Headers
+
+API responses include tracking headers:
+
+```
+X-Request-ID: req_abc123
+X-RateLimit-Limit: 10
+X-RateLimit-Remaining: 9
+X-RateLimit-Reset: 1705612800
+X-Credits-Used: 0.0015
+X-Credits-Remaining: 999.9985
+```
+
+## OpenAI Compatibility
+
+All API tests verify OpenAI-compatible response format:
+
+```json
+{
+  "id": "chatcmpl-xxx",
+  "object": "chat.completion",
+  "created": 1705612800,
+  "model": "anthropic/claude-haiku-4.5",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Hello!"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 10,
+    "completion_tokens": 5,
+    "total_tokens": 15
+  }
+}
+```
+
+## Quick Smoke Tests
+
+For faster verification, use the quick test file:
+
+```bash
+LAYERS_API_URL=https://web-nine-sage-13.vercel.app \
+LAYERS_API_KEY=lyr_live_xxx \
+bun test layers-api-quick
+```
+
+This runs 9 essential tests covering core functionality.

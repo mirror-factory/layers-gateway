@@ -1,0 +1,232 @@
+---
+title: Text Generation Tests
+description: 4 tests for basic text completions
+---
+
+# Text Generation Tests
+
+Text generation tests verify that the Layers API correctly handles basic chat completion requests across multiple providers.
+
+## Test Summary
+
+| Test | Model | Description |
+|------|-------|-------------|
+| Claude Text | claude-haiku-4.5 | Basic Anthropic completion |
+| GPT-4o Text | gpt-4o-mini | Basic OpenAI completion |
+| Gemini Text | gemini-2.5-flash-lite | Basic Google completion |
+| Multi-turn | claude-haiku-4.5 | Conversation context |
+
+## Running Tests
+
+```bash
+cd packages/@layers/models
+LAYERS_API_URL=https://web-nine-sage-13.vercel.app \
+LAYERS_API_KEY=lyr_live_xxx \
+bun test layers-api -t "text generation"
+```
+
+## Test Implementation
+
+### Claude Text Generation
+
+```typescript
+it('should generate text with Claude', async () => {
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LAYERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'anthropic/claude-haiku-4.5',
+      messages: [
+        { role: 'user', content: 'Say hello in one word.' }
+      ],
+      max_tokens: 10,
+    }),
+  });
+
+  expect(response.status).toBe(200);
+  const data = await response.json();
+
+  expect(data.choices).toBeDefined();
+  expect(data.choices[0].message.content).toBeTruthy();
+  expect(data.choices[0].message.content.toLowerCase()).toContain('hello');
+});
+```
+
+### GPT-4o Text Generation
+
+```typescript
+it('should generate text with GPT-4o', async () => {
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LAYERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'openai/gpt-4o-mini',
+      messages: [
+        { role: 'user', content: 'Say hello in one word.' }
+      ],
+      max_tokens: 10,
+    }),
+  });
+
+  expect(response.status).toBe(200);
+  const data = await response.json();
+  expect(data.choices[0].message.content).toBeTruthy();
+});
+```
+
+### Multi-turn Conversation
+
+```typescript
+it('should handle multi-turn conversations', async () => {
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LAYERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'anthropic/claude-haiku-4.5',
+      messages: [
+        { role: 'user', content: 'My name is Alice.' },
+        { role: 'assistant', content: 'Hello Alice!' },
+        { role: 'user', content: 'What is my name?' }
+      ],
+      max_tokens: 20,
+    }),
+  });
+
+  expect(response.status).toBe(200);
+  const data = await response.json();
+  expect(data.choices[0].message.content.toLowerCase()).toContain('alice');
+});
+```
+
+## Request Format
+
+```json
+{
+  "model": "anthropic/claude-haiku-4.5",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful assistant."
+    },
+    {
+      "role": "user",
+      "content": "Hello!"
+    }
+  ],
+  "max_tokens": 100,
+  "temperature": 0.7
+}
+```
+
+## Response Format
+
+```json
+{
+  "id": "chatcmpl-abc123",
+  "object": "chat.completion",
+  "created": 1705612800,
+  "model": "anthropic/claude-haiku-4.5",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Hello! How can I help you today?"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 15,
+    "completion_tokens": 10,
+    "total_tokens": 25
+  }
+}
+```
+
+## Supported Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `model` | string | Model ID (required) |
+| `messages` | array | Conversation messages (required) |
+| `max_tokens` | number | Maximum response length |
+| `temperature` | number | Randomness (0-2) |
+| `top_p` | number | Nucleus sampling |
+| `stop` | array | Stop sequences |
+| `presence_penalty` | number | Topic diversity (-2 to 2) |
+| `frequency_penalty` | number | Repetition reduction (-2 to 2) |
+
+## Message Roles
+
+| Role | Description |
+|------|-------------|
+| `system` | System instructions (first message) |
+| `user` | User messages |
+| `assistant` | Previous assistant responses |
+
+## Supported Models
+
+| Model | Provider | Speed | Cost |
+|-------|----------|-------|------|
+| claude-haiku-4.5 | Anthropic | Fast | Low |
+| claude-sonnet-4.5 | Anthropic | Medium | Medium |
+| gpt-4o-mini | OpenAI | Fast | Low |
+| gpt-4o | OpenAI | Medium | Medium |
+| gemini-2.5-flash-lite | Google | Fast | Low |
+
+## Usage Example
+
+```typescript
+const response = await fetch('https://api.layers.dev/v1/chat', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer lyr_live_xxx',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'anthropic/claude-haiku-4.5',
+    messages: [
+      { role: 'system', content: 'You are a helpful assistant.' },
+      { role: 'user', content: 'Explain quantum computing in one sentence.' }
+    ],
+    max_tokens: 100,
+    temperature: 0.7,
+  }),
+});
+
+const data = await response.json();
+console.log(data.choices[0].message.content);
+```
+
+## Error Handling
+
+```typescript
+const response = await fetch(/* ... */);
+
+if (!response.ok) {
+  const error = await response.json();
+  switch (response.status) {
+    case 400:
+      console.error('Invalid request:', error.error.message);
+      break;
+    case 401:
+      console.error('Invalid API key');
+      break;
+    case 429:
+      console.error('Rate limited, retry after:', error.error.retry_after);
+      break;
+    default:
+      console.error('API error:', error);
+  }
+}
+```

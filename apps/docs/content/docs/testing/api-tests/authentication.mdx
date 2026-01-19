@@ -1,0 +1,185 @@
+---
+title: Authentication Tests
+description: 4 tests for API key validation
+---
+
+# Authentication Tests
+
+Authentication tests verify that the Layers API correctly validates API keys and returns appropriate errors for invalid credentials.
+
+## Test Summary
+
+| Test | Description |
+|------|-------------|
+| Valid API Key | Request succeeds with valid key |
+| Invalid API Key | Returns 401 for invalid key |
+| Missing API Key | Returns 401 for missing header |
+| Malformed API Key | Returns 401 for wrong format |
+
+## Running Tests
+
+```bash
+cd packages/@layers/models
+LAYERS_API_URL=https://web-nine-sage-13.vercel.app \
+LAYERS_API_KEY=lyr_live_xxx \
+bun test layers-api -t "Authentication"
+```
+
+## Test Implementation
+
+### Valid API Key Test
+
+```typescript
+it('should authenticate with valid API key', async () => {
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LAYERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'anthropic/claude-haiku-4.5',
+      messages: [{ role: 'user', content: 'Say hi' }],
+      max_tokens: 10,
+    }),
+  });
+
+  expect(response.status).toBe(200);
+  const data = await response.json();
+  expect(data.choices).toBeDefined();
+});
+```
+
+### Invalid API Key Test
+
+```typescript
+it('should reject invalid API key', async () => {
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer lyr_live_invalid_key_12345',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'anthropic/claude-haiku-4.5',
+      messages: [{ role: 'user', content: 'Say hi' }],
+    }),
+  });
+
+  expect(response.status).toBe(401);
+  const data = await response.json();
+  expect(data.error).toBeDefined();
+  expect(data.error.code).toBe('invalid_api_key');
+});
+```
+
+### Missing API Key Test
+
+```typescript
+it('should reject missing API key', async () => {
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'anthropic/claude-haiku-4.5',
+      messages: [{ role: 'user', content: 'Say hi' }],
+    }),
+  });
+
+  expect(response.status).toBe(401);
+  const data = await response.json();
+  expect(data.error.code).toBe('missing_api_key');
+});
+```
+
+### Malformed API Key Test
+
+```typescript
+it('should reject malformed API key', async () => {
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer not_a_layers_key',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'anthropic/claude-haiku-4.5',
+      messages: [{ role: 'user', content: 'Say hi' }],
+    }),
+  });
+
+  expect(response.status).toBe(401);
+});
+```
+
+## API Key Format
+
+Valid Layers API keys follow this format:
+
+| Prefix | Environment | Example |
+|--------|-------------|---------|
+| `lyr_live_` | Production | `lyr_live_abc123xyz789` |
+| `lyr_test_` | Testing | `lyr_test_abc123xyz789` |
+
+## Error Responses
+
+### 401 Unauthorized
+
+```json
+{
+  "error": {
+    "code": "invalid_api_key",
+    "message": "Invalid API key provided",
+    "type": "authentication_error"
+  }
+}
+```
+
+### Missing Authorization Header
+
+```json
+{
+  "error": {
+    "code": "missing_api_key",
+    "message": "Authorization header is required",
+    "type": "authentication_error"
+  }
+}
+```
+
+## Authentication Flow
+
+```
+1. Client sends request
+   └─> Authorization: Bearer lyr_live_xxx
+
+2. Auth middleware extracts key
+   └─> Validates format (lyr_live_* or lyr_test_*)
+
+3. Database lookup
+   └─> Checks api_keys table in Supabase
+   └─> Verifies is_active = true
+
+4. User context loaded
+   └─> Returns user_id, tier, balance
+   └─> Attaches to request context
+
+5. Request proceeds or fails
+   └─> 200: Valid key, request processed
+   └─> 401: Invalid/missing key
+```
+
+## Getting an API Key
+
+1. **Dashboard**: Visit `/dashboard/api-keys`
+2. **Create Key**: Click "Create API Key"
+3. **Copy Key**: Save it securely (shown only once)
+
+## Best Practices
+
+1. **Never expose keys** - Use environment variables
+2. **Rotate regularly** - Create new keys periodically
+3. **Use test keys** - `lyr_test_*` for development
+4. **Monitor usage** - Check dashboard for anomalies

@@ -1,0 +1,194 @@
+---
+title: Credits Tests
+description: 3 tests for credit deduction and tracking
+---
+
+# Credits Tests
+
+Credits tests verify that the Layers API correctly calculates, deducts, and reports credit usage for API calls.
+
+## Test Summary
+
+| Test | Description |
+|------|-------------|
+| Credit Deduction | Credits deducted after request |
+| Credit Headers | Usage reported in response headers |
+| Insufficient Credits | Returns 402 when balance is zero |
+
+## Running Tests
+
+```bash
+cd packages/@layers/models
+LAYERS_API_URL=https://web-nine-sage-13.vercel.app \
+LAYERS_API_KEY=lyr_live_xxx \
+bun test layers-api -t "Credits"
+```
+
+## Test Implementation
+
+### Credit Deduction Test
+
+```typescript
+it('should deduct credits for requests', async () => {
+  // Get initial balance
+  const balanceBefore = await getBalance();
+
+  // Make a request
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LAYERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'anthropic/claude-haiku-4.5',
+      messages: [{ role: 'user', content: 'Say hi' }],
+      max_tokens: 10,
+    }),
+  });
+
+  expect(response.status).toBe(200);
+
+  // Get balance after
+  const balanceAfter = await getBalance();
+
+  // Credits should be deducted
+  expect(balanceAfter).toBeLessThan(balanceBefore);
+});
+```
+
+### Credit Headers Test
+
+```typescript
+it('should include credit usage in headers', async () => {
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${LAYERS_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'anthropic/claude-haiku-4.5',
+      messages: [{ role: 'user', content: 'Say hi' }],
+      max_tokens: 10,
+    }),
+  });
+
+  expect(response.status).toBe(200);
+
+  // Check credit headers
+  const creditsUsed = response.headers.get('X-Credits-Used');
+  const creditsRemaining = response.headers.get('X-Credits-Remaining');
+
+  expect(creditsUsed).toBeTruthy();
+  expect(parseFloat(creditsUsed!)).toBeGreaterThan(0);
+  expect(creditsRemaining).toBeTruthy();
+});
+```
+
+### Insufficient Credits Test
+
+```typescript
+it('should return 402 when insufficient credits', async () => {
+  // This test uses a key with zero balance
+  const response = await fetch(`${LAYERS_API_URL}/api/v1/chat`, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer lyr_live_zero_balance_key',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'anthropic/claude-haiku-4.5',
+      messages: [{ role: 'user', content: 'Say hi' }],
+    }),
+  });
+
+  expect(response.status).toBe(402);
+  const data = await response.json();
+  expect(data.error.code).toBe('insufficient_credits');
+});
+```
+
+## Response Headers
+
+Every successful response includes credit information:
+
+| Header | Description | Example |
+|--------|-------------|---------|
+| `X-Credits-Used` | Credits consumed by this request | `0.0015` |
+| `X-Credits-Remaining` | User's remaining balance | `999.9985` |
+
+## Credit Calculation
+
+Credits are calculated based on token usage:
+
+```typescript
+// Simplified credit calculation
+const inputCost = inputTokens * model.inputPricePerToken;
+const outputCost = outputTokens * model.outputPricePerToken;
+const totalCredits = inputCost + outputCost;
+```
+
+### Model Pricing (Credits per 1K tokens)
+
+| Model | Input | Output |
+|-------|-------|--------|
+| claude-haiku-4.5 | 0.25 | 1.25 |
+| claude-sonnet-4.5 | 3.00 | 15.00 |
+| gpt-4o-mini | 0.15 | 0.60 |
+| gpt-4o | 2.50 | 10.00 |
+
+## Error Responses
+
+### 402 Payment Required
+
+```json
+{
+  "error": {
+    "code": "insufficient_credits",
+    "message": "Insufficient credits. Please add more credits to continue.",
+    "type": "payment_error",
+    "balance": 0.0,
+    "required": 0.001
+  }
+}
+```
+
+## Credit Flow
+
+```
+1. Request received
+   └─> Auth validated
+
+2. Pre-request estimate
+   └─> Calculate expected cost
+   └─> Check if balance sufficient
+
+3. Request processed
+   └─> Send to AI Gateway
+   └─> Get actual token usage
+
+4. Post-request deduction
+   └─> Calculate actual credits used
+   └─> Deduct from balance
+   └─> Log usage
+
+5. Response sent
+   └─> Include X-Credits-Used header
+   └─> Include X-Credits-Remaining header
+```
+
+## Adding Credits
+
+Credits can be added via:
+
+1. **Dashboard**: `/dashboard/billing`
+2. **Stripe Checkout**: Automated purchase flow
+3. **API**: For enterprise integrations
+
+## Best Practices
+
+1. **Monitor usage** - Check headers in responses
+2. **Set alerts** - Notify when balance is low
+3. **Use efficient models** - Haiku for simple tasks
+4. **Optimize prompts** - Shorter prompts = fewer input tokens
