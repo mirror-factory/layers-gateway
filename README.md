@@ -30,21 +30,30 @@ cd apps/web && pnpm dev
 |------|-------------|
 | [README.md](README.md) | This file - project overview and quick start |
 | [CLAUDE.md](CLAUDE.md) | Claude Code instructions and working style |
-| [apps/web/README.md](apps/web/README.md) | Web app specific documentation |
+| [docs/](docs/) | Developer documentation (internal) |
+
+### Developer Documentation (`/docs/`)
+
+| Document | Description |
+|----------|-------------|
+| [Getting Started](docs/getting-started.md) | Development setup, prerequisites |
+| [Architecture](docs/architecture.md) | System design, request flow, providers |
+| [API Reference](docs/api/) | Authentication, endpoints, credits |
+| [Development Guide](docs/development/) | Testing, environment variables |
+| [Package Docs](docs/packages/) | @layers/models, @layers/credits |
 
 ### Package Documentation
 
 | Package | README | Description |
 |---------|--------|-------------|
-| `@layers/models` | [README](packages/@layers/models/README.md) | AI model registry (24 models, 5 providers) |
+| `@layers/models` | [README](packages/@layers/models/README.md) | AI model registry (54 models, 7 providers) |
 | `@layers/credits` | [README](packages/@layers/credits/README.md) | Credit calculation with margin config |
-| `@layers/core` | [README](packages/@layers/core/README.md) | Shared core utilities |
-| `@layers/ui` | [README](packages/@layers/ui/README.md) | Shared UI components |
 
 ### Test Documentation
 
 | File | Description |
 |------|-------------|
+| [Testing Guide](docs/development/testing.md) | How to run tests |
 | [packages/@layers/models/__tests__/README.md](packages/@layers/models/__tests__/README.md) | Integration test guide |
 
 ### Online Documentation (Fumadocs)
