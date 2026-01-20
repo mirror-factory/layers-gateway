@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Working Style
+
+**Important:** Before taking action on any task:
+1. Ask clarifying questions to understand the full scope
+2. Explain what you understand and your reasoning
+3. Offer options or approaches when multiple paths exist
+4. Wait for explicit confirmation before implementing changes
+
+Do not just start doing work in response to a request unless explicitly told to proceed. The goal is collaborative understanding, not just task execution.
+
 ## Project Overview
 
 Layers is an AI Gateway platform that provides unified access to multiple AI providers (Anthropic, OpenAI, Google, Perplexity, Morph) with built-in credit management, rate limiting, and usage tracking. Part of Mirror Factory R&D.
