@@ -19,8 +19,8 @@ import {
   GeneratedImage,
   WebSearchCitation,
 } from '@/lib/layers-client';
-import type { AttachedImage } from '@/components/prompt-editor';
-import type { CapabilitySettings, ToolDefinition } from '@/components/capabilities-panel';
+import type { AttachedImage } from '@/components/playground/prompt-editor';
+import type { CapabilitySettings, ToolDefinition } from '@/components/playground/capabilities-panel';
 
 export interface ChatSettings {
   model: string;

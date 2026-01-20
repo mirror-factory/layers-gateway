@@ -271,7 +271,7 @@ async function* parseSSEStream(
  * Send a chat request to the Layers API
  */
 export async function chat(request: ChatRequest): Promise<ChatResponse> {
-  const response = await fetch('/api/chat', {
+  const response = await fetch('/api/playground/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -296,7 +296,7 @@ export async function chat(request: ChatRequest): Promise<ChatResponse> {
  * Send a streaming chat request to the Layers API
  */
 export async function chatStream(request: ChatRequest): Promise<ChatStreamResult> {
-  const response = await fetch('/api/chat', {
+  const response = await fetch('/api/playground/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -401,7 +401,7 @@ export interface EmbeddingResponse {
  * Create embeddings for text
  */
 export async function createEmbeddings(request: EmbeddingRequest): Promise<EmbeddingResponse> {
-  const response = await fetch('/api/embeddings', {
+  const response = await fetch('/api/playground/embeddings', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
