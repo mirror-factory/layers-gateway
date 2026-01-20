@@ -1,182 +1,127 @@
-# Layers-Dev - Claude Code Context
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-Layers is a human-AI coordination platform that helps knowledge workers manage context across fragmented tools. It's the flagship product of Mirror Factory R&D.
-
-**Vision**: Shift people from "context drowning" to "context authoring"—enabling them to direct work through unified personal context rather than fragmented tool-switching.
-
----
-
-## Repository Relationship
-
-```
-mirror-factory/                    # R&D Documentation & Decisions
-├── foundation/                    # Mission, direction, measurement
-├── process/decisions/             # MFDRs (architecture decisions)
-└── linked: layers-dev/            # ← This repository (implementation)
-
-layers-dev/                        # Product Implementation
-├── docs/                          # Product-specific documentation
-├── apps/                          # Next.js applications
-├── packages/                      # Shared packages
-└── CLAUDE.md                      # You are here
-```
-
-**Key Link**: Decision records live in `mirror-factory/process/decisions/`. This repo implements those decisions.
-
----
-
-## Tech Stack (from MFDR decisions)
-
-| Layer | Technology | MFDR Reference |
-|-------|------------|----------------|
-| **Monorepo** | Turborepo + pnpm | MFDR-001 |
-| **Sandbox** | E2B.dev (Firecracker) | MFDR-002 |
-| **AI Credits** | LiteLLM + Stripe | MFDR-003 |
-| **Frontend** | Next.js 14+ + shadcn/ui | Tech Stack v2 |
-| **Database** | Supabase (PostgreSQL) | Tech Stack v2 |
-| **Real-time** | Yjs + Supabase Realtime | Tech Stack v2 |
-| **Mobile** | Capacitor | Tech Stack v2 |
-| **Desktop** | Tauri 2.x | Tech Stack v2 |
-
----
-
-## Quick Navigation
-
-| Path | Purpose |
-|------|---------|
-| `/apps/web/` | Main Layers web application |
-| `/apps/docs/` | Documentation site (Docusaurus) |
-| `/packages/@layers/core/` | Core business logic |
-| `/packages/@layers/ui/` | React component library |
-| `/packages/@layers/hooks/` | Custom React hooks |
-| `/packages/@layers/ai/` | AI gateway integration |
-| `/docs/` | Product documentation |
-| `/docs/registry/` | Documentation registry |
-
----
-
-## Documentation System
-
-This project uses a hybrid documentation approach:
-
-### In-Code Documentation
-- **TSDoc** for all public APIs and exports
-- **Storybook** for component documentation
-- **TypeDoc** generates API reference automatically
-
-### External Documentation
-- **ADRs** live in `mirror-factory/process/decisions/`
-- **Product docs** live in `/docs/`
-- **Registry** tracks all docs at `/docs/registry/REGISTRY.md`
-
-### Documentation Status
-| Status | Meaning |
-|--------|---------|
-| `active` | Current, maintained |
-| `draft` | In progress |
-| `review` | Awaiting review |
-| `deprecated` | Being phased out |
-| `archived` | Historical only |
-
----
+Layers is an AI Gateway platform that provides unified access to multiple AI providers (Anthropic, OpenAI, Google, Perplexity, Morph) with built-in credit management, rate limiting, and usage tracking. Part of Mirror Factory R&D.
 
 ## Development Commands
 
 ```bash
 # Install dependencies
-pnpm install
+bun install          # or pnpm install
 
-# Start all apps in development
-pnpm dev
+# Development
+bun dev              # Start all apps (web on 3006, docs on 3001)
+bun dev --filter=@layers/web     # Start web app only
+bun dev --filter=@layers/docs    # Start docs only
 
-# Start specific app
-pnpm dev --filter web
+# Testing
+bun test                              # Run all tests via Turborepo
+bun test --filter=@layers/models      # Test specific package
+cd packages/@layers/models && bun test --watch  # Watch mode for package
 
-# Run tests
-pnpm test
+# Build & Type Check
+bun build            # Build all packages
+bun typecheck        # Type check all packages
+bun lint             # Lint all packages
 
-# Build all packages
-pnpm build
-
-# Generate API docs
-pnpm docs:generate
-
-# Run Storybook
-pnpm storybook
+# Documentation
+bun docs:generate    # Generate TypeDoc API docs
 ```
 
----
+## Architecture
 
-## Key Decisions Reference
+### Monorepo Structure (Turborepo + pnpm)
 
-Before implementing, check these decision records in `mirror-factory/`:
+```
+apps/
+  web/                    # Next.js 14 - Main API Gateway application
+    app/api/v1/chat/      # OpenAI-compatible chat endpoint
+    app/api/keys/         # API key management
+    app/api/stripe/       # Billing integration
+    lib/gateway/          # Vercel AI SDK gateway client
+    lib/middleware/       # Auth, credits, rate-limit middleware
 
-| Topic | MFDR | Key Points |
-|-------|------|------------|
-| Repository structure | MFDR-001 | Hybrid monorepo with NPM distribution |
-| Code execution | MFDR-002 | E2B.dev for AI sandbox |
-| Credits system | MFDR-003 | LiteLLM + custom layer |
-| Tech stack | Tech Stack v2 | Full technology choices |
-| Product spec | Layers-Infrastructure-v3 | 80 questions answered |
+  docs/                   # Fumadocs documentation site
 
----
+packages/@layers/
+  models/                 # AI model registry (24 models, 5 providers)
+  credits/                # Credit calculation with margin config
+  core/                   # Shared utilities (placeholder)
+  ui/                     # React component library (placeholder)
+  hooks/                  # React hooks (placeholder)
+```
 
-## Cross-Reference Links
+### Key Architectural Patterns
 
-- **R&D Direction**: `mirror-factory/foundation/mirror-factory-rnd-direction.md`
-- **Measurement**: `mirror-factory/foundation/mirror-factory-rnd-measurement.md`
-- **Decision Records**: `mirror-factory/process/decisions/`
-- **Tech Stack**: `mirror-factory/process/decisions/MF-Technology-Stack-Decisions-v2.md`
+**AI Gateway Flow** ([apps/web/app/api/v1/chat/route.ts](apps/web/app/api/v1/chat/route.ts)):
+1. Authenticate via `lyr_live_*` or `lyr_test_*` API key
+2. Check rate limits (tier-based)
+3. Pre-flight credit check (estimate)
+4. Route to Vercel AI Gateway ([apps/web/lib/gateway/client.ts](apps/web/lib/gateway/client.ts))
+5. Calculate actual credits used
+6. Log usage and deduct credits
 
----
+**Model Registry** ([packages/@layers/models/src/registry.ts](packages/@layers/models/src/registry.ts)):
+- 24 models across 5 providers with capabilities, pricing, context windows
+- Helper functions for filtering by capability (`vision`, `tools`, `json`, `thinking`, etc.)
 
-## Multi-Session Coordination (MANDATORY)
+**Credit System** ([packages/@layers/credits/src/calculator.ts](packages/@layers/credits/src/calculator.ts)):
+- Cost calculation with configurable margin (default 60%)
+- Per-model overrides supported
+- 1 credit = $0.01 USD
 
-When working in this repository, you may be one of several Claude sessions. **You MUST update shared state files when completing significant work.**
+### Database (Supabase)
 
-### Before Starting Work
+Tables: `users`, `api_keys`, `credit_transactions`, `usage_logs`
+- Auth handled via Supabase SSR ([apps/web/lib/supabase/](apps/web/lib/supabase/))
+- Credits stored in `users.credit_balance`
 
-1. Read `mirror-factory/CHECKPOINT.md` for current status
-2. Read `mirror-factory/sprints/CURRENT-SPRINT.md` or `SPRINT-001.md` for active tasks
+### Testing Strategy
 
-### After Completing Work (MANDATORY)
+- **Unit tests**: Vitest in `packages/@layers/*/` (e.g., `__tests__/*.test.ts`)
+- **Integration tests**: Live API calls in `packages/@layers/models/__tests__/integration/`
+- Tests use `vitest` with TypeScript, no special config needed
 
-When you finish a significant task (tests passing, feature complete, bug fixed), you MUST:
+## Environment Variables
 
-1. **Update CHECKPOINT.md** in mirror-factory:
-   ```
-   /home/dev/repos/mirror-factory/CHECKPOINT.md
-   ```
-   - Add your results to "Latest Test Results" or appropriate section
-   - Add entry to "Update Log" with date, session type, and what you did
+Required for `apps/web`:
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+VERCEL_AI_GATEWAY_KEY=vai_...
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+```
 
-2. **Update the Sprint File**:
-   ```
-   /home/dev/repos/mirror-factory/sprints/SPRINT-001.md
-   ```
-   - Mark tasks as ✅ Done
-   - Add entry to "Progress Log"
+## Multi-Session Coordination
 
-3. **Format for Updates**:
-   ```markdown
-   ## Update Log
-   | Date | Session | Update |
-   |------|---------|--------|
-   | 2026-01-15 | VS Code | Completed X tests, fixed Y issues |
-   ```
+This repo is worked on by multiple Claude sessions. **Update shared state after significant work:**
 
-### Why This Matters
+1. **Read before starting**: `/home/dev/repos/mirror-factory/CHECKPOINT.md`
+2. **Update after completing**: Add results to CHECKPOINT.md and sprint file
+3. **Sprint tracking**: `/home/dev/repos/mirror-factory/sprints/SPRINT-001.md`
 
-Other Claude sessions (terminal, VS Code, etc.) can't communicate directly. The shared files ARE the communication channel. If you don't update them, your work is invisible to other sessions.
+## Useful Slash Commands
 
-### Session Types
+| Command | Purpose |
+|---------|---------|
+| `/sync` | Read what other sessions did |
+| `/checkpoint` | Save your progress |
+| `/standup` | Show done/doing/blocked |
+| `/commit` | Create structured commit |
 
-- **Terminal** - `ssh dev@...` then `claude`
-- **VS Code** - Claude extension in VS Code Server
-- **Subagent** - Spawned via Task tool (these report to parent automatically)
+## Dev Server URLs
 
----
+| Port | URL | Service |
+|------|-----|---------|
+| 3006 | https://local.hustletogether.com | Web app |
+| 3001 | https://local2.hustletogether.com | Docs |
 
-*Layers-Dev • Mirror Factory R&D • 2026*
+## Related Repositories
+
+- **mirror-factory** (`/home/dev/repos/mirror-factory/`): Strategy, MFDRs (architecture decisions), sprint tracking
+- Decision records: `mirror-factory/process/decisions/`

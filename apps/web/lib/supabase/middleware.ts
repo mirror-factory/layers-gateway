@@ -6,6 +6,20 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
+  // Allow test docs without auth (public documentation)
+  const publicPaths = ['/dashboard/tests/docs', '/dashboard/tests/runner'];
+  const isPublicPath = publicPaths.some((path) =>
+    request.nextUrl.pathname.startsWith(path)
+  );
+  if (isPublicPath) {
+    return supabaseResponse;
+  }
+
+  // Skip Supabase if credentials not configured
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return supabaseResponse;
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
