@@ -141,10 +141,16 @@ export default function TestDashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/docs">
+            <Link href="/dashboard/tests/docs">
               <Button variant="outline" size="sm">
                 <BookOpen className="h-4 w-4 mr-2" />
-                Docs
+                Documentation
+              </Button>
+            </Link>
+            <Link href="/dashboard/tests/runner">
+              <Button size="sm">
+                <Zap className="h-4 w-4 mr-2" />
+                Run Tests
               </Button>
             </Link>
           </div>
