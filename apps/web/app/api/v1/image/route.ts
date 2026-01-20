@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
       model: model,
       prompt: prompt,
       n: n,
-      aspectRatio: aspectRatio,
+      aspectRatio: aspectRatio as `${number}:${number}` | undefined,
     });
 
     const latencyMs = Date.now() - startTime;

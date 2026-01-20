@@ -14,7 +14,7 @@ import { CapabilitiesPanel, DEFAULT_CAPABILITY_SETTINGS, type CapabilitySettings
 import { CodeExport } from '@/components/playground/code-export';
 import { useLayersChat, type ChatSettings } from '@/hooks/use-layers-chat';
 import { ExternalLink, Github, Settings, Code, MessageSquare, Zap, Sparkles, LayoutDashboard, BookOpen } from 'lucide-react';
-import { getModelSafe, type Capability } from '@/lib/models-src';
+import { getModelSafe, type Capability } from '@/lib/models';
 import Link from 'next/link';
 
 const DEFAULT_SETTINGS: ChatSettings = {

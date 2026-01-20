@@ -67,7 +67,7 @@ layers-dev/
 │           ├── gateway/        # Vercel AI SDK gateway client
 │           ├── middleware/     # Auth, credits, rate-limit
 │           ├── layers-client.ts # Playground API client
-│           └── models-src/     # Local model registry
+│           └── models.ts       # Model registry re-exports from @layers/models
 ├── packages/@layers/
 │   ├── models/                 # AI model registry (24 models, 5 providers)
 │   └── credits/                # Credit calculation with margin config
