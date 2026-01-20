@@ -6,29 +6,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Layers is an AI Gateway platform that provides unified access to multiple AI providers (Anthropic, OpenAI, Google, Perplexity, Morph) with built-in credit management, rate limiting, and usage tracking. Part of Mirror Factory R&D.
 
+**Live URL:** https://layers.hustletogether.com
+
 ## Development Commands
 
 ```bash
 # Install dependencies
-bun install          # or pnpm install
+pnpm install
 
-# Development
-bun dev              # Start all apps (web on 3006, docs on 3001)
-bun dev --filter=@layers/web     # Start web app only
-bun dev --filter=@layers/docs    # Start docs only
+# Development (port 3700)
+pnpm dev --filter=@layers/web -- -p 3700
 
 # Testing
-bun test                              # Run all tests via Turborepo
-bun test --filter=@layers/models      # Test specific package
-cd packages/@layers/models && bun test --watch  # Watch mode for package
+pnpm test                              # Run all tests via Turborepo
+pnpm test --filter=@layers/models      # Test specific package
+
+# Integration tests with filtering
+cd packages/@layers/models
+FILTER_PROVIDER=anthropic pnpm test    # Test one provider
+FILTER_CAPABILITY=vision pnpm test     # Test one capability
 
 # Build & Type Check
-bun build            # Build all packages
-bun typecheck        # Type check all packages
-bun lint             # Lint all packages
-
-# Documentation
-bun docs:generate    # Generate TypeDoc API docs
+pnpm build            # Build all packages
+pnpm typecheck        # Type check all packages
+pnpm lint             # Lint all packages
 ```
 
 ## Architecture
@@ -36,23 +37,43 @@ bun docs:generate    # Generate TypeDoc API docs
 ### Monorepo Structure (Turborepo + pnpm)
 
 ```
-apps/
-  web/                    # Next.js 14 - Main API Gateway application
-    app/api/v1/chat/      # OpenAI-compatible chat endpoint
-    app/api/keys/         # API key management
-    app/api/stripe/       # Billing integration
-    lib/gateway/          # Vercel AI SDK gateway client
-    lib/middleware/       # Auth, credits, rate-limit middleware
-
-  docs/                   # Fumadocs documentation site
-
-packages/@layers/
-  models/                 # AI model registry (24 models, 5 providers)
-  credits/                # Credit calculation with margin config
-  core/                   # Shared utilities (placeholder)
-  ui/                     # React component library (placeholder)
-  hooks/                  # React hooks (placeholder)
+layers-dev/
+├── apps/
+│   └── web/                    # Single unified Next.js application
+│       ├── app/
+│       │   ├── api/v1/         # Layers API (chat, image)
+│       │   ├── api/playground/ # Playground proxy API
+│       │   ├── api/keys/       # API key management
+│       │   ├── api/stripe/     # Billing integration
+│       │   ├── docs/           # Documentation (Fumadocs)
+│       │   ├── playground/     # Interactive API playground
+│       │   └── dashboard/      # User dashboard
+│       ├── components/
+│       │   ├── ui/             # shadcn components
+│       │   └── playground/     # Playground components
+│       ├── content/docs/       # MDX documentation
+│       ├── hooks/              # React hooks (use-layers-chat)
+│       └── lib/
+│           ├── gateway/        # Vercel AI SDK gateway client
+│           ├── middleware/     # Auth, credits, rate-limit
+│           ├── layers-client.ts # Playground API client
+│           └── models-src/     # Local model registry
+├── packages/@layers/
+│   ├── models/                 # AI model registry (24 models, 5 providers)
+│   └── credits/                # Credit calculation with margin config
+└── turbo.json
 ```
+
+### Routes
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Landing page |
+| `/docs/*` | Documentation (Fumadocs) |
+| `/playground` | Interactive API playground |
+| `/dashboard` | User dashboard, API keys, billing |
+| `/api/v1/chat` | OpenAI-compatible chat endpoint |
+| `/api/v1/image` | Image generation endpoint |
 
 ### Key Architectural Patterns
 
@@ -82,8 +103,10 @@ Tables: `users`, `api_keys`, `credit_transactions`, `usage_logs`
 ### Testing Strategy
 
 - **Unit tests**: Vitest in `packages/@layers/*/` (e.g., `__tests__/*.test.ts`)
-- **Integration tests**: Live API calls in `packages/@layers/models/__tests__/integration/`
-- Tests use `vitest` with TypeScript, no special config needed
+- **Integration tests**: `packages/@layers/models/__tests__/integration/layers-api.test.ts`
+  - Single comprehensive test file (~123 tests)
+  - Tests every model with all its supported capabilities
+  - Filtering via `FILTER_PROVIDER` and `FILTER_CAPABILITY` env vars
 
 ## Environment Variables
 
@@ -95,7 +118,18 @@ SUPABASE_SERVICE_ROLE_KEY=
 VERCEL_AI_GATEWAY_KEY=vai_...
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
+LAYERS_API_KEY=                # For playground
 ```
+
+## URLs
+
+| Service | URL |
+|---------|-----|
+| **Production** | https://layers.hustletogether.com |
+| **Local Dev** | http://localhost:3700 |
+| **Playground** | https://layers.hustletogether.com/playground |
+| **Docs** | https://layers.hustletogether.com/docs |
+| **Dashboard** | https://layers.hustletogether.com/dashboard |
 
 ## Multi-Session Coordination
 
@@ -113,13 +147,6 @@ This repo is worked on by multiple Claude sessions. **Update shared state after 
 | `/checkpoint` | Save your progress |
 | `/standup` | Show done/doing/blocked |
 | `/commit` | Create structured commit |
-
-## Dev Server URLs
-
-| Port | URL | Service |
-|------|-----|---------|
-| 3006 | https://local.hustletogether.com | Web app |
-| 3001 | https://local2.hustletogether.com | Docs |
 
 ## Related Repositories
 
