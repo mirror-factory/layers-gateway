@@ -1,21 +1,21 @@
 /**
  * Model registry types and utilities
  *
- * Imports from local models source (bundled for standalone deployment)
+ * Imports from @layers/models package
  *
  * DO NOT hardcode models here - use the registry instead.
  */
 
-// Re-export types from local models
+// Re-export types from @layers/models
 export type {
   Provider,
   Capability,
   ModelType,
   ModelPricing,
   ModelDefinition,
-} from './models-src';
+} from '@layers/models';
 
-// Import registry and helpers from local models
+// Import registry and helpers from @layers/models
 import {
   MODEL_REGISTRY,
   MODEL_IDS,
@@ -29,7 +29,7 @@ import {
   type ModelDefinition,
   type Provider,
   type Capability,
-} from './models-src';
+} from '@layers/models';
 
 // Re-export everything we need
 export {

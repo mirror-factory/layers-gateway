@@ -42,6 +42,7 @@ storybook-static/
 
 # Misc
 *.tsbuildinfo
+*.bundled_*.mjs
 .eslintcache
 .cache/
 
