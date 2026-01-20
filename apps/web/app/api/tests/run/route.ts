@@ -54,9 +54,11 @@ export async function POST(request: NextRequest) {
 
     // Get API key from header or environment
     const apiKey = request.headers.get('X-Layers-API-Key') ||
-                   process.env.LAYERS_API_KEY;
+                   process.env.LAYERS_API_KEY ||
+                   'lyr_live_demo'; // Demo key for local testing
     const gatewayKey = process.env.AI_GATEWAY_API_KEY;
-    const apiUrl = process.env.LAYERS_API_URL || 'https://web-nine-sage-13.vercel.app';
+    // Default to localhost for local development
+    const apiUrl = process.env.LAYERS_API_URL || 'http://localhost:3700';
 
     // Validate mode and target
     if (mode === 'file' && !target) {
@@ -257,7 +259,8 @@ export async function GET() {
     environment: {
       hasApiKey: !!process.env.LAYERS_API_KEY,
       hasGatewayKey: !!process.env.AI_GATEWAY_API_KEY,
-      apiUrl: process.env.LAYERS_API_URL || 'https://web-nine-sage-13.vercel.app',
+      apiUrl: process.env.LAYERS_API_URL || 'http://localhost:3700',
+      demoMode: !process.env.LAYERS_API_KEY, // Using demo key
     },
   });
 }
