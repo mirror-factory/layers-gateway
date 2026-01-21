@@ -4,7 +4,7 @@
  * Types for managing AI usage credits, margins, and billing.
  */
 
-import type { ModelId } from '@layers/models';
+import type { ModelId } from '../models/index';
 
 /**
  * Margin configuration
