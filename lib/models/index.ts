@@ -20,8 +20,12 @@ export {
   MODEL_REGISTRY,
   MODEL_IDS,
   MODEL_COUNT,
-  type ModelId,
+  MODELS_BY_PROVIDER,
+  PROVIDER_MODEL_COUNTS,
+  REASONING_ONLY_MODELS,
+  IMAGE_GEN_MODELS,
 } from './registry';
+export type { ModelId } from './registry';
 
 // Helpers
 export {
