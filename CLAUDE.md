@@ -25,53 +25,57 @@ Layers is an AI Gateway platform that provides unified access to multiple AI pro
 pnpm install
 
 # Development (port 3700)
-pnpm dev --filter=@layers/web -- -p 3700
+pnpm dev
 
 # Testing
-pnpm test                              # Run all tests via Turborepo
-pnpm test --filter=@layers/models      # Test specific package
+pnpm test                              # Run all tests
+pnpm test:unit                         # Unit tests only
+pnpm test:integration                  # Integration tests only
 
 # Integration tests with filtering
-cd packages/@layers/models
 FILTER_PROVIDER=anthropic pnpm test    # Test one provider
 FILTER_CAPABILITY=vision pnpm test     # Test one capability
 
 # Build & Type Check
-pnpm build            # Build all packages
-pnpm typecheck        # Type check all packages
-pnpm lint             # Lint all packages
+pnpm build            # Build for production
+pnpm typecheck        # Type check
+pnpm lint             # Lint
 ```
 
 ## Architecture
 
-### Monorepo Structure (Turborepo + pnpm)
+### Project Structure
 
 ```
 layers-dev/
-├── apps/
-│   └── web/                    # Single unified Next.js application
-│       ├── app/
-│       │   ├── api/v1/         # Layers API (chat, image)
-│       │   ├── api/playground/ # Playground proxy API
-│       │   ├── api/keys/       # API key management
-│       │   ├── api/stripe/     # Billing integration
-│       │   ├── docs/           # Documentation (Fumadocs)
-│       │   ├── playground/     # Interactive API playground
-│       │   └── dashboard/      # User dashboard
-│       ├── components/
-│       │   ├── ui/             # shadcn components
-│       │   └── playground/     # Playground components
-│       ├── content/docs/       # MDX documentation
-│       ├── hooks/              # React hooks (use-layers-chat)
-│       └── lib/
-│           ├── gateway/        # Vercel AI SDK gateway client
-│           ├── middleware/     # Auth, credits, rate-limit
-│           ├── layers-client.ts # Playground API client
-│           └── models.ts       # Model registry re-exports from @layers/models
-├── packages/@layers/
+├── app/                        # Next.js App Router
+│   ├── api/v1/                 # Layers API (chat, image)
+│   ├── api/playground/         # Playground proxy API
+│   ├── api/keys/               # API key management
+│   ├── api/stripe/             # Billing integration
+│   ├── docs/                   # Documentation (Fumadocs)
+│   ├── playground/             # Interactive API playground
+│   └── dashboard/              # User dashboard
+├── components/
+│   ├── ui/                     # shadcn components
+│   └── playground/             # Playground components
+├── content/docs/               # MDX documentation
+├── hooks/                      # React hooks
+├── lib/
 │   ├── models/                 # AI model registry (24 models, 5 providers)
-│   └── credits/                # Credit calculation with margin config
-└── turbo.json
+│   │   ├── registry.ts         # Model definitions
+│   │   ├── types.ts            # Types
+│   │   └── helpers.ts          # Helper functions
+│   ├── credits/                # Credit calculation
+│   │   ├── calculator.ts       # Calculation logic
+│   │   └── types.ts            # Types
+│   ├── gateway/                # Vercel AI SDK gateway client
+│   ├── middleware/             # Auth, credits, rate-limit
+│   └── supabase/               # Supabase client
+├── __tests__/                  # Test files
+│   └── models/                 # Model registry tests
+├── docs/                       # Developer documentation
+└── package.json
 ```
 
 ### Routes
@@ -87,19 +91,19 @@ layers-dev/
 
 ### Key Architectural Patterns
 
-**AI Gateway Flow** ([apps/web/app/api/v1/chat/route.ts](apps/web/app/api/v1/chat/route.ts)):
+**AI Gateway Flow** ([app/api/v1/chat/route.ts](app/api/v1/chat/route.ts)):
 1. Authenticate via `lyr_live_*` or `lyr_test_*` API key
 2. Check rate limits (tier-based)
 3. Pre-flight credit check (estimate)
-4. Route to Vercel AI Gateway ([apps/web/lib/gateway/client.ts](apps/web/lib/gateway/client.ts))
+4. Route to Vercel AI Gateway ([lib/gateway/client.ts](lib/gateway/client.ts))
 5. Calculate actual credits used
 6. Log usage and deduct credits
 
-**Model Registry** ([packages/@layers/models/src/registry.ts](packages/@layers/models/src/registry.ts)):
+**Model Registry** ([lib/models/registry.ts](lib/models/registry.ts)):
 - 24 models across 5 providers with capabilities, pricing, context windows
 - Helper functions for filtering by capability (`vision`, `tools`, `json`, `thinking`, etc.)
 
-**Credit System** ([packages/@layers/credits/src/calculator.ts](packages/@layers/credits/src/calculator.ts)):
+**Credit System** ([lib/credits/calculator.ts](lib/credits/calculator.ts)):
 - Cost calculation with configurable margin (default 60%)
 - Per-model overrides supported
 - 1 credit = $0.01 USD
@@ -107,25 +111,25 @@ layers-dev/
 ### Database (Supabase)
 
 Tables: `users`, `api_keys`, `credit_transactions`, `usage_logs`
-- Auth handled via Supabase SSR ([apps/web/lib/supabase/](apps/web/lib/supabase/))
+- Auth handled via Supabase SSR ([lib/supabase/](lib/supabase/))
 - Credits stored in `users.credit_balance`
 
 ### Testing Strategy
 
-- **Unit tests**: Vitest in `packages/@layers/*/` (e.g., `__tests__/*.test.ts`)
-- **Integration tests**: `packages/@layers/models/__tests__/integration/layers-api.test.ts`
+- **Unit tests**: Vitest in `__tests__/models/` (e.g., `*.test.ts`)
+- **Integration tests**: `__tests__/models/integration/layers-api.test.ts`
   - Single comprehensive test file (~123 tests)
   - Tests every model with all its supported capabilities
   - Filtering via `FILTER_PROVIDER` and `FILTER_CAPABILITY` env vars
 
 ## Environment Variables
 
-Required for `apps/web`:
+Required:
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
-VERCEL_AI_GATEWAY_KEY=vai_...
+AI_GATEWAY_API_KEY=vck_...
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 LAYERS_API_KEY=                # For playground
