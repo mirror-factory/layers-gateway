@@ -13,8 +13,8 @@ import {
   PROVIDER_MODEL_COUNTS,
   REASONING_ONLY_MODELS,
   IMAGE_GEN_MODELS,
-} from '../src/registry';
-import type { ModelDefinition, Capability, Provider } from '../src/types';
+} from '@/lib/models/registry';
+import type { ModelDefinition, Capability, Provider } from '@/lib/models/types';
 
 describe('MODEL_REGISTRY', () => {
   it('should contain 23 models', () => {

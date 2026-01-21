@@ -24,7 +24,7 @@
  *   Then: LAYERS_API_URL=http://localhost:3006 LAYERS_API_KEY=lyr_live_test bun test layers-api
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { MODEL_REGISTRY, MODEL_IDS, type ModelId } from '../../src/registry';
+import { MODEL_REGISTRY, MODEL_IDS, type ModelId } from '@/lib/models/registry';
 
 // =============================================================================
 // CONFIGURATION

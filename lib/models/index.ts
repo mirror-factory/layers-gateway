@@ -1,9 +1,44 @@
 /**
  * AI Model Registry for Layers Platform
  *
- * Re-exports all types, registry, and helper functions.
+ * Contains all supported models across providers with capabilities and pricing.
  */
 
-export * from './types';
-export { MODEL_REGISTRY, MODEL_IDS, MODEL_COUNT, type ModelId } from './registry';
-export * from './helpers';
+// Types
+export type {
+  Provider,
+  Capability,
+  ModelType,
+  ModelPricing,
+  ModelDefinition,
+  ModelRegistry,
+  ModelFilterOptions,
+} from './types';
+
+// Registry
+export {
+  MODEL_REGISTRY,
+  MODEL_IDS,
+  MODEL_COUNT,
+  type ModelId,
+} from './registry';
+
+// Helpers
+export {
+  getModel,
+  getModelSafe,
+  isValidModelId,
+  getAllModels,
+  getModelsByProvider,
+  getModelsWithCapability,
+  getModelsWithCapabilities,
+  getModelsWithAnyCapability,
+  filterModels,
+  getProviders,
+  getAllCapabilities,
+  calculateCost,
+  calculateCredits,
+  getCheapestModel,
+  getLargestContextModel,
+  sortModels,
+} from './helpers';

@@ -4,7 +4,7 @@
  * Core calculation logic for converting AI usage to credits.
  */
 
-import { getModel, getModelSafe, type ModelId } from '@layers/models';
+import { getModel, getModelSafe, type ModelId } from '../models';
 import type { MarginConfig } from './types';
 import { DEFAULT_MARGIN_CONFIG } from './types';
 

@@ -22,8 +22,8 @@ import {
   getCheapestModel,
   getLargestContextModel,
   sortModels,
-} from '../src/helpers';
-import { MODEL_COUNT } from '../src/registry';
+} from '@/lib/models/helpers';
+import { MODEL_COUNT } from '@/lib/models/registry';
 
 describe('getModel', () => {
   it('should return a model by ID', () => {
