@@ -1,28 +1,33 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["dom", "dom.iterable", "ES2022"],
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
-    "esModuleInterop": true,
+    "incremental": true,
     "module": "esnext",
+    "esModuleInterop": true,
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@layers/core": ["packages/@layers/core/src"],
-      "@layers/core/*": ["packages/@layers/core/src/*"],
-      "@layers/ui": ["packages/@layers/ui/src"],
-      "@layers/ui/*": ["packages/@layers/ui/src/*"],
-      "@layers/hooks": ["packages/@layers/hooks/src"],
-      "@layers/hooks/*": ["packages/@layers/hooks/src/*"]
-    }
+      "@/*": ["./*"]
+    },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": [
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    "**/*.ts",
+    "**/*.tsx"
+  ],
   "exclude": ["node_modules", "dist", ".next", "out"]
 }
