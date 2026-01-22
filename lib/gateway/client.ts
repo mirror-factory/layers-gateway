@@ -269,10 +269,16 @@ export async function callGateway(
     const result = await generateText(generateOptions);
 
     // Build response in OpenAI-compatible format
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const usage = result.usage as any;
-    const promptTokens = usage?.promptTokens ?? usage?.prompt_tokens ?? 0;
-    const completionTokens = usage?.completionTokens ?? usage?.completion_tokens ?? 0;
+    // Debug: Log the full result structure to understand token extraction
+    console.log('[Gateway] Full result keys:', Object.keys(result));
+    console.log('[Gateway] result.usage:', JSON.stringify(result.usage, null, 2));
+
+    // The AI SDK returns usage with camelCase properties
+    const usage = result.usage;
+    const promptTokens = usage?.promptTokens ?? 0;
+    const completionTokens = usage?.completionTokens ?? 0;
+
+    console.log('[Gateway] Extracted tokens - prompt:', promptTokens, 'completion:', completionTokens);
 
     // Extract tool calls if present
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

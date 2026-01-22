@@ -23,7 +23,6 @@ import {
   Loader2,
   LogOut,
   ExternalLink,
-  BarChart3,
   Eye,
   EyeOff,
   BookOpen,
@@ -32,6 +31,21 @@ import {
   Activity,
 } from 'lucide-react';
 import Link from 'next/link';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  Legend,
+} from 'recharts';
 
 interface ApiKey {
   id: string;
@@ -47,12 +61,61 @@ interface CreditBalance {
   tier: string;
 }
 
+interface ProviderStats {
+  provider: string;
+  requests: number;
+  credits: number;
+  tokens: number;
+}
+
+interface ModelStats {
+  model: string;
+  requests: number;
+  credits: number;
+  tokens: number;
+}
+
+interface DayStats {
+  date: string;
+  requests: number;
+  credits: number;
+  tokens: number;
+}
+
+interface RecentLog {
+  id: string;
+  model: string;
+  provider: string;
+  input_tokens: number;
+  output_tokens: number;
+  credits_used: number;
+  latency_ms: number;
+  status: string;
+  created_at: string;
+}
+
 interface UsageStats {
   total_requests: number;
   total_credits_used: number;
   this_month_requests: number;
   this_month_credits: number;
+  by_provider: ProviderStats[];
+  by_model: ModelStats[];
+  by_day: DayStats[];
+  recent_logs: RecentLog[];
 }
+
+// Chart colors for different providers
+const PROVIDER_COLORS: Record<string, string> = {
+  anthropic: '#D97706',
+  openai: '#10B981',
+  google: '#3B82F6',
+  perplexity: '#8B5CF6',
+  morph: '#EC4899',
+  unknown: '#6B7280',
+};
+
+const CHART_COLORS = ['#D97706', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280'];
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
@@ -292,6 +355,149 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Usage Analytics Charts */}
+        {usage && (usage.by_provider?.length > 0 || usage.by_day?.length > 0) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Daily Usage Trend */}
+            {usage.by_day?.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Daily Usage (Last 30 Days)</CardTitle>
+                  <CardDescription>Requests and credits over time</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={usage.by_day}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fontSize: 12 }}
+                          tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        />
+                        <YAxis tick={{ fontSize: 12 }} />
+                        <Tooltip
+                          labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                          contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                        />
+                        <Legend />
+                        <Line type="monotone" dataKey="requests" stroke="#3B82F6" name="Requests" strokeWidth={2} />
+                        <Line type="monotone" dataKey="credits" stroke="#D97706" name="Credits" strokeWidth={2} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Usage by Provider (Pie Chart) */}
+            {usage.by_provider?.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Usage by Provider</CardTitle>
+                  <CardDescription>Request distribution across AI providers</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={usage.by_provider}
+                          dataKey="requests"
+                          nameKey="provider"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          label={({ provider, percent }) => `${provider} ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {usage.by_provider.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={PROVIDER_COLORS[entry.provider] || CHART_COLORS[index % CHART_COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                          formatter={(value: number, name: string) => [value, name === 'requests' ? 'Requests' : name]}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Top Models (Bar Chart) */}
+            {usage.by_model?.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Top Models</CardTitle>
+                  <CardDescription>Most used AI models</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={usage.by_model.slice(0, 5)} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis type="number" tick={{ fontSize: 12 }} />
+                        <YAxis
+                          dataKey="model"
+                          type="category"
+                          width={150}
+                          tick={{ fontSize: 11 }}
+                          tickFormatter={(value) => value.split('/').pop() || value}
+                        />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                        />
+                        <Bar dataKey="requests" fill="#3B82F6" name="Requests" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Recent Requests */}
+            {usage.recent_logs?.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Recent Requests</CardTitle>
+                  <CardDescription>Latest API calls</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-[250px] overflow-y-auto">
+                    {usage.recent_logs.slice(0, 8).map((log) => (
+                      <div
+                        key={log.id}
+                        className="flex items-center justify-between p-2 text-sm border rounded-lg"
+                      >
+                        <div className="space-y-0.5">
+                          <p className="font-medium text-xs">
+                            {log.model.split('/').pop()}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {log.input_tokens + log.output_tokens} tokens · {log.latency_ms}ms
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-xs font-medium ${log.status === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+                            {log.status}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {log.credits_used.toFixed(2)} credits
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
 
         {/* New Key Alert */}
         {newKey && (
