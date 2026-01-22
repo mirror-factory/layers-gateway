@@ -204,6 +204,341 @@ const result = await generateText({
 });
 ```
 
+---
+
+## Gateway Internals (Mirror Factory Integration)
+
+This section provides detailed documentation of the internal modules for Mirror Factory and other integrations.
+
+### Gateway Client (`lib/gateway/client.ts`)
+
+The main AI SDK wrapper that communicates with Vercel AI Gateway.
+
+**Key Exports:**
+- `callGateway(request)` - Non-streaming completions
+- `callGatewayStream(request)` - SSE streaming
+- `GatewayRequest` / `GatewayResponse` - Type definitions
+- `parseProvider(model)` - Extract provider from model ID
+
+**Features:**
+- Converts OpenAI-style messages to AI SDK format
+- Handles multimodal content (text, images, base64)
+- Converts tool definitions between OpenAI and AI SDK formats
+- Extracts token usage from various response formats
+- Passes through Perplexity sources/citations
+- Provider-specific options (anthropic, openai, google)
+
+**Data Flow:**
+```
+Request → convertContentParts() → convertTools() → generateText/streamText → Response
+```
+
+**Request Format:**
+```typescript
+interface GatewayRequest {
+  model: string;              // "anthropic/claude-sonnet-4-20250514"
+  messages: GatewayMessage[];
+  max_tokens?: number;
+  temperature?: number;
+  stream?: boolean;
+  tools?: ToolDefinition[];   // OpenAI format
+  tool_choice?: string | object;
+  response_format?: { type: 'json_object' | 'text' };
+  web_search?: boolean;       // For Perplexity
+  cache?: boolean;            // Enable prompt caching
+  anthropic?: object;         // Provider-specific options
+  openai?: object;
+  google?: object;
+}
+```
+
+**Response Format:**
+```typescript
+interface GatewayResponse {
+  id: string;
+  object: string;
+  created: number;
+  model: string;
+  text: string;
+  usage: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+  tool_calls?: ToolCall[];
+  reasoning?: unknown;         // For thinking models
+  sources?: Source[];          // For Perplexity
+  provider_metadata?: object;  // Raw provider response
+}
+```
+
+---
+
+### Auth Middleware (`lib/middleware/auth.ts`)
+
+API key validation and user authentication.
+
+**Key Exports:**
+- `validateApiKey(authHeader, headers)` - Validate and return user info
+- `authErrorResponse(result)` - Create error response
+- `AuthenticatedUser` - User type with tier, balance
+
+**Authentication Flow:**
+1. Check test mode (bypass for integration tests)
+2. Validate `lyr_live_*` format
+3. Hash key and lookup in Supabase `api_keys` table
+4. Check active status and expiration
+5. Fetch credit balance and tier from `credit_balances`
+6. Return authenticated user object
+
+**Test Mode:**
+- Header: `X-Layers-Test-Mode: layers-integration-test-2026`
+- Environment: `NODE_ENV=test` or `LAYERS_TEST_MODE=true`
+- Returns test user with 1000 credits, `free` tier
+
+**Authenticated User:**
+```typescript
+interface AuthenticatedUser {
+  userId: string;
+  apiKeyId: string;
+  tier: 'free' | 'starter' | 'pro' | 'team';
+  balance: number;  // Credits remaining
+}
+```
+
+---
+
+### Credits Middleware (`lib/middleware/credits.ts`)
+
+Credit calculation, estimation, and deduction.
+
+**Key Exports:**
+- `calculateCredits(model, usage)` - Calculate actual cost
+- `estimateCredits(model, inputTokens)` - Pre-flight estimate
+- `checkCredits(userId, estimate)` - Verify sufficient balance
+- `deductCredits(userId, amount)` - Deduct from balance
+- `logUsage(params)` - Write to usage_logs table
+
+**Pricing Model:**
+- 1 credit = $0.01 USD
+- 60% margin applied to provider costs
+- Per-model pricing from `MODEL_PRICING` map
+
+**Credit Flow:**
+```
+Request → estimateCredits() → checkCredits() → [API Call] → calculateCredits() → deductCredits() → logUsage()
+```
+
+**Model Pricing Example (per 1M tokens):**
+| Model | Input | Output |
+|-------|-------|--------|
+| claude-sonnet-4 | $3 | $15 |
+| gpt-4o | $2.50 | $10 |
+| gemini-2.0-flash | $0.10 | $0.40 |
+
+---
+
+### Rate Limit Middleware (`lib/middleware/rate-limit.ts`)
+
+Tier-based request rate limiting.
+
+**Key Exports:**
+- `checkRateLimit(userId, tier)` - Check and increment
+- `RateLimitResult` - Success/failure with reset time
+
+**Rate Limits by Tier:**
+| Tier | Requests/Minute |
+|------|-----------------|
+| free | 10 |
+| starter | 60 |
+| pro | 300 |
+| team | 1000 |
+
+**Implementation:**
+- In-memory sliding window store
+- Auto-cleanup of expired entries
+- Returns `X-RateLimit-*` headers
+
+---
+
+### Model Registry (`lib/models/registry.ts`)
+
+Central registry of all supported AI models.
+
+**Key Exports:**
+- `MODEL_REGISTRY` - Full model definitions
+- `getModel(modelId)` - Get single model
+- `getAllModels()` - List all models
+
+**Model Definition:**
+```typescript
+interface ModelDefinition {
+  id: string;                    // "anthropic/claude-sonnet-4-20250514"
+  name: string;                  // "Claude Sonnet 4"
+  provider: Provider;            // "anthropic"
+  capabilities: Capability[];    // ["text", "vision", "tools", "json", "stream"]
+  contextWindow: number;         // 200000
+  maxOutput: number;             // 8192
+  pricing: { input: number; output: number };  // per 1M tokens
+}
+```
+
+**Supported Capabilities:**
+- `text` - Basic text generation
+- `vision` - Image understanding
+- `tools` - Function calling
+- `json` - Structured output mode
+- `stream` - Streaming responses
+- `cache` - Prompt caching
+- `thinking` - Extended reasoning
+- `web` - Web search (Perplexity)
+
+**Supported Providers:**
+- Anthropic (6 models): Claude Opus 4, Sonnet 4, Haiku 3.5, Sonnet 3.5, Haiku 3
+- OpenAI (7 models): GPT-4o, GPT-4o-mini, o1, o1-mini, o3-mini
+- Google (4 models): Gemini 2.0 Flash, 1.5 Pro, 1.5 Flash
+- Perplexity (4 models): Sonar Pro, Sonar, Sonar Deep Research
+- Morph (3 models): Morph v2, Preview Fast
+
+---
+
+### Model Helpers (`lib/models/helpers.ts`)
+
+Query and filter functions for models.
+
+**Key Exports:**
+- `getModelsByProvider(provider)` - Filter by provider
+- `getModelsByCapability(capability)` - Filter by capability
+- `hasCapability(modelId, capability)` - Check capability
+- `getContextWindow(modelId)` - Get context size
+- `getCapabilities(modelId)` - List all capabilities
+- `parseModelId(id)` - Extract provider/name
+- `isValidModel(id)` - Validate model exists
+
+**Example Usage:**
+```typescript
+// Get all models with vision capability
+const visionModels = getModelsByCapability('vision');
+
+// Check if model supports tools
+if (hasCapability('anthropic/claude-sonnet-4', 'tools')) {
+  // Enable tool calling
+}
+```
+
+---
+
+### Supabase Clients (`lib/supabase/`)
+
+Database access for API routes and dashboard.
+
+**Server Client** (`client.ts`):
+- `createServerClient()` - Service role client for API routes
+- `hashApiKey(key)` - SHA-256 hash for storage
+- `isSupabaseConfigured()` - Check env vars
+
+**Browser Client** (`browser.ts`):
+- `createBrowserClient()` - Anon key client for dashboard
+
+**Type Definitions:**
+```typescript
+interface ApiKey {
+  id: string;
+  user_id: string;
+  key_hash: string;
+  key_prefix: string;
+  name: string;
+  is_active: boolean;
+  expires_at: string | null;
+  created_at: string;
+  last_used_at: string | null;
+}
+
+interface CreditBalance {
+  id: string;
+  user_id: string;
+  balance: string;  // Decimal as string
+  tier: 'free' | 'starter' | 'pro' | 'team';
+  updated_at: string;
+}
+```
+
+---
+
+### Stripe Integration (`lib/stripe/`)
+
+Subscription management and billing.
+
+**Client** (`client.ts`):
+- `stripe` - Stripe instance
+- `TIER_CONFIGS` - Subscription tier definitions
+
+**Server Actions** (`actions.ts`):
+- `createCheckoutSession()` - Start subscription
+- `createPortalSession()` - Manage subscription
+- `getCurrentSubscription()` - Get user's plan
+
+**Tier Configuration:**
+| Tier | Monthly Price | Credits | Rate Limit |
+|------|---------------|---------|------------|
+| Starter | $19 | 2,000 | 60/min |
+| Pro | $49 | 6,000 | 300/min |
+| Team | $149 | 20,000 | 1000/min |
+
+---
+
+### API Routes Summary
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/v1/chat` | POST | OpenAI-compatible chat completions |
+| `/api/v1/chat/completions` | POST | Alias for SDK compatibility |
+| `/api/v1/image` | POST | Image generation |
+| `/api/keys` | GET/POST | List and create API keys |
+| `/api/keys/[id]` | DELETE | Delete an API key |
+| `/api/balance` | GET | Get credit balance |
+| `/api/usage` | GET | Usage statistics |
+| `/api/stripe/checkout` | POST | Create checkout session |
+| `/api/stripe/portal` | POST | Billing portal |
+| `/api/webhooks/stripe` | POST | Stripe webhooks |
+
+---
+
+## Using with Mirror Factory
+
+Mirror Factory can integrate with Layers using the OpenAI-compatible SDK:
+
+```typescript
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+// Create Layers client
+const layers = createOpenAI({
+  apiKey: process.env.LAYERS_API_KEY,  // lyr_live_xxxxx
+  baseURL: 'https://layers.hustletogether.com/api/v1',
+});
+
+// Use any model from any provider
+const result = await generateText({
+  model: layers('anthropic/claude-sonnet-4-20250514'),
+  prompt: 'Hello from Mirror Factory!',
+});
+
+// Works with tools, vision, streaming, etc.
+const toolResult = await generateText({
+  model: layers('openai/gpt-4o'),
+  tools: { calculator: calculatorTool },
+  prompt: 'What is 42 * 17?',
+});
+
+// Get Perplexity sources
+const searchResult = await generateText({
+  model: layers('perplexity/sonar-pro'),
+  prompt: 'Latest news about AI',
+});
+// searchResult.experimental_providerMetadata?.perplexity?.citations
+```
+
 ## Next Steps
 
 - [Authentication](/docs/authentication) - API key management
