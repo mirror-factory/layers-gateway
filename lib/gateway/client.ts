@@ -267,20 +267,27 @@ export async function callGateway(
       providerOptions.google = request.google;
     }
 
+    // Track if JSON mode requested for OpenAI (which needs special handling)
+    let openaiJsonMode = false;
+
     // Add JSON mode if requested
     // Different providers handle JSON mode differently:
     // - Anthropic/Google/Perplexity: Output.object() with z.record() works well
     // - OpenAI: z.record() generates 'propertyNames' which OpenAI rejects
-    //   We use z.object({}).catchall(z.unknown()) instead which is more compatible
+    //   For OpenAI, we skip Output.object and rely on system message + response parsing
     if (request.response_format?.type === 'json_object') {
       const provider = request.model.split('/')[0];
 
       if (provider === 'openai') {
-        // OpenAI: Use a more compatible schema that doesn't generate propertyNames
-        // z.object({}).catchall() creates additionalProperties instead of propertyNames
-        generateOptions.output = Output.object({
-          schema: z.object({}).catchall(z.unknown()),
-        });
+        // OpenAI: Don't use Output.object() as it generates incompatible schemas
+        // Instead, add a strong system instruction for JSON output
+        openaiJsonMode = true;
+        const jsonInstruction = '\n\nCRITICAL: You MUST respond with ONLY valid JSON. No markdown code blocks, no explanations, no other text - just the raw JSON object starting with { and ending with }.';
+        if (generateOptions.system) {
+          generateOptions.system = generateOptions.system + jsonInstruction;
+        } else {
+          generateOptions.system = 'You are a helpful assistant that responds in JSON format.' + jsonInstruction;
+        }
       } else {
         // Anthropic, Google, Perplexity: Use Output.object with z.record()
         generateOptions.output = Output.object({
