@@ -274,9 +274,11 @@ export async function callGateway(
     console.log('[Gateway] result.usage:', JSON.stringify(result.usage, null, 2));
 
     // The AI SDK returns usage with camelCase properties
-    const usage = result.usage;
-    const promptTokens = usage?.promptTokens ?? 0;
-    const completionTokens = usage?.completionTokens ?? 0;
+    // Cast to any to access properties that may not be in the type definition
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const usageData = result.usage as any;
+    const promptTokens = usageData?.promptTokens ?? usageData?.prompt_tokens ?? 0;
+    const completionTokens = usageData?.completionTokens ?? usageData?.completion_tokens ?? 0;
 
     console.log('[Gateway] Extracted tokens - prompt:', promptTokens, 'completion:', completionTokens);
 

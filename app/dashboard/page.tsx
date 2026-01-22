@@ -409,7 +409,7 @@ export default function DashboardPage() {
                           cx="50%"
                           cy="50%"
                           outerRadius={80}
-                          label={({ provider, percent }) => `${provider} ${(percent * 100).toFixed(0)}%`}
+                          label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                         >
                           {usage.by_provider.map((entry, index) => (
                             <Cell
@@ -420,7 +420,6 @@ export default function DashboardPage() {
                         </Pie>
                         <Tooltip
                           contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
-                          formatter={(value: number, name: string) => [value, name === 'requests' ? 'Requests' : name]}
                         />
                       </PieChart>
                     </ResponsiveContainer>
