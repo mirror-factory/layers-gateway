@@ -172,11 +172,12 @@ export default function DashboardPage() {
           </Link>
 
           {/* Right side */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground hidden md:inline">{user?.email}</span>
             <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
               <LogOut className="h-4 w-4" />
             </Button>
+            <div className="w-px h-5 bg-border/50 mx-1" />
             <ThemeToggle />
           </div>
         </div>
