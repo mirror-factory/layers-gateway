@@ -220,14 +220,9 @@ export async function POST(request: NextRequest) {
     const latencyMs = Date.now() - startTime;
 
     // 7. Calculate actual credits used
-    // Debug: Log usage data received from gateway
-    console.log('[Chat Route] Gateway response usage:', JSON.stringify(data.usage, null, 2));
-
     const inputTokens = data.usage.prompt_tokens || 0;
     const outputTokens = data.usage.completion_tokens || 0;
     const creditsUsed = calculateCredits(model, inputTokens, outputTokens);
-
-    console.log('[Chat Route] Tokens - input:', inputTokens, 'output:', outputTokens, 'credits:', creditsUsed);
     const provider = parseProvider(model);
 
     // 8. Log usage and deduct credits
