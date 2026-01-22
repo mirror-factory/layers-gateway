@@ -329,12 +329,30 @@ export async function callGateway(
       responseText = JSON.stringify(resultAny.output);
     }
 
-    // Extract sources (Perplexity) - check both result.sources and response.body
-    const sources = resultAny.sources as Source[] | undefined;
+    // Extract sources (Perplexity) - check multiple locations
+    // AI SDK may put them in result.sources or in providerMetadata.perplexity.sources
+    let sources = resultAny.sources as Source[] | undefined;
 
-    // Extract provider metadata for pass-through
-    // Includes gateway routing info, cost, and provider-specific metadata
-    const providerMetadata = responseBody?.providerMetadata ?? result.providerMetadata;
+    // Also check providerMetadata for sources (AI SDK format)
+    const providerMetadataRaw = responseBody?.providerMetadata ?? result.providerMetadata ?? {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const perplexityMeta = (providerMetadataRaw as any)?.perplexity;
+    if (!sources && perplexityMeta?.sources) {
+      sources = perplexityMeta.sources as Source[];
+    }
+
+    // Build provider metadata for pass-through, including sources for OpenAI-compatible consumers
+    // Include sources in perplexity metadata so consuming apps can access them
+    const providerMetadata = {
+      ...providerMetadataRaw,
+      // Ensure sources are also in provider metadata for compatibility
+      ...(sources && sources.length > 0 && {
+        perplexity: {
+          ...(perplexityMeta || {}),
+          sources,
+        },
+      }),
+    };
 
     // Extract response ID from provider metadata when available
     const providerResponseId =
