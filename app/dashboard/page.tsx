@@ -399,7 +399,7 @@ export default function DashboardPage() {
             )}
 
             {/* Recent Activity */}
-            {usage?.recent_logs?.length > 0 && (
+            {usage?.recent_logs && usage.recent_logs.length > 0 && (
               <Card className="border-border/50">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
@@ -411,7 +411,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-1">
-                    {usage.recent_logs.slice(0, 8).map((log) => (
+                    {usage?.recent_logs?.slice(0, 8).map((log) => (
                       <div
                         key={log.id}
                         className="flex items-center justify-between py-3 border-b border-border/30 last:border-0"
