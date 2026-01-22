@@ -49,6 +49,20 @@ export interface AuthError {
  * @param headers - Full request headers (used for test mode detection)
  */
 export async function validateApiKey(authHeader: string | null, headers?: Headers): Promise<AuthResult | AuthError> {
+  // Test mode - bypass all validation for integration tests
+  if (isTestMode(headers)) {
+    console.log('Auth: Running in test mode - using test user');
+    return {
+      success: true,
+      user: {
+        userId: 'test-user',
+        apiKeyId: 'test-key',
+        tier: 'free',  // Tests should use getEffectiveTier for test tier rate limits
+        balance: 1000,
+      },
+    };
+  }
+
   // Check if auth header exists and has correct format
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return {
@@ -66,20 +80,6 @@ export async function validateApiKey(authHeader: string | null, headers?: Header
       success: false,
       error: 'Invalid API key format. Keys must start with lyr_live_',
       status: 401,
-    };
-  }
-
-  // Test mode - return test user for integration tests
-  if (isTestMode(headers)) {
-    console.log('Auth: Running in test mode - using test user');
-    return {
-      success: true,
-      user: {
-        userId: 'test-user',
-        apiKeyId: 'test-key',
-        tier: 'free',  // Tests should use getEffectiveTier for test tier rate limits
-        balance: 1000,
-      },
     };
   }
 
