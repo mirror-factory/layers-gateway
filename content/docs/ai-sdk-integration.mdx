@@ -1,0 +1,388 @@
+---
+title: AI SDK Integration
+description: Using Layers with Vercel AI SDK and the response.body pattern
+---
+
+# AI SDK Integration
+
+This guide covers using Layers with the Vercel AI SDK, including important patterns for accessing custom response fields.
+
+## Quick Start
+
+```typescript
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+// Create a Layers provider using OpenAI adapter
+const layers = createOpenAI({
+  baseURL: 'https://layers.hustletogether.com/api/v1',
+  apiKey: process.env.LAYERS_API_KEY,
+});
+
+// Use any Layers model
+const result = await generateText({
+  model: layers('anthropic/claude-sonnet-4.5'),
+  prompt: 'Hello, how are you?',
+});
+
+console.log(result.text);
+```
+
+---
+
+## The response.body Pattern
+
+**Important:** When using `createOpenAI()` with a custom baseURL (like Layers), custom response fields are stored in `result.response.body`, not at the top level.
+
+This is because AI SDK's OpenAI adapter only maps standard OpenAI fields to the result object. Custom fields from Layers (like `sources`, `experimental_providerMetadata`, `layers`) are preserved in the raw response body.
+
+### Accessing Custom Fields
+
+```typescript
+const result = await generateText({
+  model: layers('perplexity/sonar-pro'),
+  prompt: 'What is the latest AI news?',
+});
+
+// Standard fields - available at top level
+console.log(result.text);              // Response text
+console.log(result.usage);             // Token usage
+
+// Custom fields - must access via response.body
+const body = result.response?.body;
+
+// Perplexity sources/citations
+const sources = body?.sources || [];
+
+// Provider metadata (thinking, reasoning, etc.)
+const metadata = body?.experimental_providerMetadata;
+
+// Layers-specific data
+const creditsUsed = body?.layers?.credits_used;
+const latencyMs = body?.layers?.latency_ms;
+const reasoning = body?.layers?.reasoning;
+```
+
+---
+
+## Perplexity Web Search
+
+Perplexity models include sources/citations in their responses. These are available in two locations:
+
+```typescript
+const result = await generateText({
+  model: layers('perplexity/sonar-pro'),
+  prompt: 'What are the top AI companies in 2026?',
+});
+
+// Access sources from response.body
+const sources = result.response?.body?.sources || [];
+
+// Or from experimental_providerMetadata
+const metadata = result.response?.body?.experimental_providerMetadata;
+const sourcesAlt = metadata?.perplexity?.sources || [];
+
+// Sources format
+interface Source {
+  type: 'source';
+  sourceType: 'url';
+  id: string;
+  url: string;
+  title?: string;
+}
+```
+
+### Complete Example with Sources
+
+```typescript
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const layers = createOpenAI({
+  baseURL: 'https://layers.hustletogether.com/api/v1',
+  apiKey: process.env.LAYERS_API_KEY,
+});
+
+async function searchWithSources(query: string) {
+  const result = await generateText({
+    model: layers('perplexity/sonar-pro'),
+    prompt: query,
+  });
+
+  // Extract sources from response body
+  const sources = result.response?.body?.sources || [];
+
+  return {
+    answer: result.text,
+    sources: sources.map(s => ({
+      title: s.title || 'Untitled',
+      url: s.url,
+    })),
+    creditsUsed: result.response?.body?.layers?.credits_used || 0,
+  };
+}
+
+const result = await searchWithSources('Latest developments in quantum computing');
+console.log(result.answer);
+console.log('Sources:', result.sources);
+```
+
+---
+
+## Extended Thinking (Anthropic)
+
+Claude models support extended thinking/reasoning. Access the reasoning output via response.body:
+
+```typescript
+const result = await generateText({
+  model: layers('anthropic/claude-sonnet-4.5'),
+  prompt: 'Solve this complex problem step by step...',
+  providerOptions: {
+    anthropic: {
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 10000,
+      },
+    },
+  },
+});
+
+// Response text
+console.log(result.text);
+
+// Reasoning/thinking process
+const reasoning = result.response?.body?.layers?.reasoning;
+if (reasoning) {
+  console.log('Model reasoning:', reasoning);
+}
+```
+
+---
+
+## Structured Output (JSON Mode)
+
+### Supported: `json_object` Mode
+
+Layers supports `json_object` mode which returns clean JSON:
+
+```typescript
+const result = await generateText({
+  model: layers('anthropic/claude-haiku-4.5'),
+  prompt: `Return a JSON object with these fields:
+- name (string)
+- age (number)
+- active (boolean)
+
+For a user named John who is 30 and active.`,
+});
+
+// Parse from response body
+const content = result.response?.body?.choices?.[0]?.message?.content || result.text;
+const parsed = JSON.parse(content);
+// { name: "John", age: 30, active: true }
+```
+
+### Direct API Call (Recommended for JSON)
+
+For JSON mode, using fetch directly gives you more control:
+
+```typescript
+const response = await fetch('https://layers.hustletogether.com/api/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${process.env.LAYERS_API_KEY}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'anthropic/claude-haiku-4.5',
+    messages: [{
+      role: 'user',
+      content: 'Return JSON: { "name": string, "age": number }'
+    }],
+    response_format: { type: 'json_object' },  // Top-level, not in providerOptions
+  }),
+});
+
+const data = await response.json();
+const parsed = JSON.parse(data.choices[0].message.content);
+```
+
+### Not Supported: `json_schema` Mode
+
+**Important:** Layers currently does NOT support `json_schema` mode with full schema validation.
+
+When you send:
+```json
+{
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": { "name": "event", "schema": {...} }
+  }
+}
+```
+
+Layers ignores the schema and returns plain text. Use `json_object` mode instead.
+
+### AI SDK's `Output.object()` Limitation
+
+AI SDK's `Output.object()` uses `json_schema` mode internally, which Layers doesn't fully support yet. Use the manual JSON parsing pattern above instead.
+
+---
+
+## Tool Calling / Function Calling
+
+Tool calls work with the response.body pattern:
+
+```typescript
+const result = await generateText({
+  model: layers('anthropic/claude-sonnet-4.5'),
+  prompt: 'What is 15 + 27?',
+  tools: {
+    calculator: {
+      description: 'Performs arithmetic',
+      parameters: z.object({
+        a: z.number(),
+        b: z.number(),
+        operation: z.enum(['add', 'subtract', 'multiply', 'divide']),
+      }),
+    },
+  },
+});
+
+// Tool calls are available at top level in AI SDK
+if (result.toolCalls?.length) {
+  for (const call of result.toolCalls) {
+    console.log(`Tool: ${call.toolName}`);
+    console.log(`Args: ${JSON.stringify(call.input)}`);
+  }
+}
+```
+
+---
+
+## Complete Integration Example
+
+```typescript
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText, streamText } from 'ai';
+
+// Initialize Layers provider
+const layers = createOpenAI({
+  baseURL: 'https://layers.hustletogether.com/api/v1',
+  apiKey: process.env.LAYERS_API_KEY,
+});
+
+// Helper to extract custom fields
+function extractLayersData(result: any) {
+  const body = result.response?.body;
+  return {
+    text: result.text,
+    usage: result.usage,
+    // Custom Layers fields
+    sources: body?.sources || [],
+    providerMetadata: body?.experimental_providerMetadata,
+    layers: {
+      creditsUsed: body?.layers?.credits_used || 0,
+      latencyMs: body?.layers?.latency_ms || 0,
+      reasoning: body?.layers?.reasoning,
+    },
+  };
+}
+
+// Usage
+async function main() {
+  // Regular chat
+  const chat = await generateText({
+    model: layers('anthropic/claude-sonnet-4.5'),
+    prompt: 'Hello!',
+  });
+  console.log(extractLayersData(chat));
+
+  // Web search with sources
+  const search = await generateText({
+    model: layers('perplexity/sonar-pro'),
+    prompt: 'Latest AI news',
+  });
+  const searchData = extractLayersData(search);
+  console.log('Sources:', searchData.sources.length);
+
+  // Streaming
+  const stream = await streamText({
+    model: layers('anthropic/claude-sonnet-4.5'),
+    prompt: 'Write a short story',
+  });
+  for await (const chunk of stream.textStream) {
+    process.stdout.write(chunk);
+  }
+}
+```
+
+---
+
+## Summary: What's Available Where
+
+| Field | Top-Level (`result.x`) | Response Body (`result.response.body.x`) |
+|-------|------------------------|------------------------------------------|
+| `text` | Yes | Yes (in `choices[0].message.content`) |
+| `usage` | Yes | Yes |
+| `toolCalls` | Yes | Yes |
+| `sources` (Perplexity) | No | Yes |
+| `experimental_providerMetadata` | No | Yes |
+| `layers.credits_used` | No | Yes |
+| `layers.latency_ms` | No | Yes |
+| `layers.reasoning` | No | Yes |
+
+---
+
+## Troubleshooting
+
+### Sources Not Appearing
+
+**Problem:** Perplexity sources are empty.
+
+**Solution:** Access via `result.response.body.sources`:
+```typescript
+const sources = result.response?.body?.sources || [];
+```
+
+### JSON Mode Returns Plain Text
+
+**Problem:** `response_format: { type: 'json_object' }` returns plain text.
+
+**Solution:** Make sure you're passing it at the top level, not in providerOptions:
+```typescript
+// Correct - direct API call
+body: JSON.stringify({
+  model: 'anthropic/claude-haiku-4.5',
+  messages: [...],
+  response_format: { type: 'json_object' },  // Top level
+})
+```
+
+### Output.object() Fails
+
+**Problem:** AI SDK's `Output.object()` throws parsing errors.
+
+**Solution:** Layers doesn't support `json_schema` mode yet. Use manual JSON parsing:
+```typescript
+const content = result.response?.body?.choices?.[0]?.message?.content;
+const parsed = JSON.parse(content);
+```
+
+### Credits/Latency Not Available
+
+**Problem:** Can't find credits used or latency.
+
+**Solution:** Access via `result.response.body.layers`:
+```typescript
+const credits = result.response?.body?.layers?.credits_used;
+const latency = result.response?.body?.layers?.latency_ms;
+```
+
+---
+
+## Next Steps
+
+- [API Reference](/docs/api/reference) - Complete API documentation
+- [Models](/docs/models) - Available models and capabilities
+- [Credits](/docs/credits) - Pricing and credit system

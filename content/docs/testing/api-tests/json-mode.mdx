@@ -132,44 +132,39 @@ it('should return JSON with GPT-4o via API', async () => {
 }
 ```
 
-## JSON Schema (OpenAI)
+## JSON Schema Mode (Not Supported)
 
-For GPT models, you can specify a schema:
+**Note:** Layers currently only supports `json_object` mode. The `json_schema` mode with full schema validation is not yet implemented.
+
+When you send a `json_schema` request, Layers ignores the schema and returns plain text. Use `json_object` mode instead and describe your expected structure in the prompt.
 
 ```json
+// ❌ NOT SUPPORTED - will be ignored
 {
-  "model": "openai/gpt-4o",
-  "messages": [
-    { "role": "user", "content": "Generate a user profile." }
-  ],
   "response_format": {
     "type": "json_schema",
-    "json_schema": {
-      "name": "user_profile",
-      "schema": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string" },
-          "age": { "type": "integer" },
-          "email": { "type": "string", "format": "email" }
-        },
-        "required": ["name", "age"]
-      }
-    }
+    "json_schema": { "name": "event", "schema": {...} }
   }
+}
+
+// ✅ SUPPORTED - use this instead
+{
+  "response_format": { "type": "json_object" }
 }
 ```
 
 ## Supported Models
 
-| Model | JSON Mode | JSON Schema |
-|-------|-----------|-------------|
-| anthropic/claude-* | Yes | No |
-| openai/gpt-4o | Yes | Yes |
-| openai/gpt-4o-mini | Yes | Yes |
-| google/gemini-* | Yes | Limited |
-| perplexity/sonar | Limited | No |
-| morph/morph-* | No | No |
+| Model | JSON Mode (`json_object`) | JSON Schema |
+|-------|---------------------------|-------------|
+| anthropic/claude-* | Yes | Not supported |
+| openai/gpt-4o | Limited* | Not supported |
+| openai/gpt-4o-mini | Limited* | Not supported |
+| google/gemini-* | Yes | Not supported |
+| perplexity/sonar-* | Yes | Not supported |
+| morph/morph-* | No | Not supported |
+
+*OpenAI models may return schema validation errors with `json_object` mode in some cases. Use Anthropic or Google models for most reliable JSON output.
 
 ## Usage Example
 

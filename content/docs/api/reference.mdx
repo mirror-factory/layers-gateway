@@ -132,11 +132,32 @@ interface Tool {
     completion_tokens: number;
     total_tokens: number;
   };
-  layers: {             // Layers-specific metadata
+
+  // Perplexity sources (only for Perplexity models with web search)
+  sources?: Source[];
+
+  // AI SDK compatible metadata (for createOpenAI consumers)
+  experimental_providerMetadata?: {
+    perplexity?: {
+      sources: Source[];
+    };
+  };
+
+  // Layers-specific metadata
+  layers: {
     credits_used: number;
     latency_ms: number;
     reasoning?: object; // Extended thinking output (if enabled)
   };
+}
+
+// Perplexity source/citation format
+interface Source {
+  type: "source";
+  sourceType: "url";
+  id: string;
+  url: string;
+  title?: string;
 }
 ```
 
@@ -430,7 +451,7 @@ const response = await fetch('/api/v1/chat', {
 
 ### JSON Mode / Structured Output
 
-Get structured JSON responses:
+Get structured JSON responses using `json_object` mode:
 
 ```typescript
 const response = await fetch('/api/v1/chat', {
@@ -442,8 +463,16 @@ const response = await fetch('/api/v1/chat', {
     response_format: { type: 'json_object' },
   }),
 });
-// Response: { "colors": ["red", "blue", "green"] }
+
+const data = await response.json();
+// content is a JSON string - parse it
+const parsed = JSON.parse(data.choices[0].message.content);
+// { "colors": ["red", "blue", "green"] }
 ```
+
+**Note:** Only `json_object` mode is supported. The `json_schema` mode with full schema validation is not yet implemented. If you need structured output, describe your expected format in the prompt and parse the JSON response.
+
+**Supported models for JSON mode:** Anthropic Claude, Google Gemini, Perplexity Sonar
 
 ### Extended Thinking (Anthropic)
 
@@ -467,7 +496,7 @@ const response = await fetch('/api/v1/chat', {
 
 ### Web Search (Perplexity)
 
-Enable real-time web search:
+Enable real-time web search with citations:
 
 ```typescript
 const response = await fetch('/api/v1/chat', {
@@ -480,6 +509,31 @@ const response = await fetch('/api/v1/chat', {
     search_domains: ['techcrunch.com', 'theverge.com'],  // Optional: limit domains
   }),
 });
+
+const data = await response.json();
+
+// Response text
+console.log(data.choices[0].message.content);
+
+// Web search sources/citations (Perplexity models only)
+const sources = data.sources || [];
+sources.forEach(source => {
+  console.log(`${source.title}: ${source.url}`);
+});
+
+// Also available in experimental_providerMetadata for AI SDK compatibility
+const metadata = data.experimental_providerMetadata?.perplexity;
+```
+
+**Source format:**
+```typescript
+interface Source {
+  type: "source";
+  sourceType: "url";
+  id: string;
+  url: string;
+  title?: string;
+}
 ```
 
 ### Streaming
