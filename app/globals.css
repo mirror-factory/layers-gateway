@@ -98,6 +98,12 @@
   }
 }
 
+@theme inline {
+  --font-sans: var(--font-sans), 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), 'JetBrains Mono', ui-monospace, monospace;
+  --font-serif: var(--font-serif), 'Cormorant Garamond', Georgia, serif;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -109,13 +115,12 @@
 
   /* Serif font for headings */
   h1, h2, h3,
-  [data-slot="card-title"],
-  .font-serif {
-    font-family: 'Cormorant Garamond', Georgia, serif;
+  [data-slot="card-title"] {
+    font-family: var(--font-serif), 'Cormorant Garamond', Georgia, serif;
   }
 }
 
-/* Utility classes */
+/* Utility class for serif font */
 .font-serif {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: var(--font-serif), 'Cormorant Garamond', Georgia, serif;
 }

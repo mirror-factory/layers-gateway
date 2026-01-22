@@ -27,6 +27,13 @@ import {
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   BarChart,
   Bar,
   XAxis,
@@ -164,28 +171,33 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Top Header Bar */}
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center justify-between px-6">
-          {/* Logo - just text, bigger */}
-          <Link href="/" className="flex items-center">
-            <span className="font-serif text-2xl font-semibold tracking-tight">Layers</span>
-          </Link>
+      <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-4 md:h-16 md:px-6">
+          {/* Logo and tagline */}
+          <div className="flex items-center gap-2 md:gap-3">
+            <Link href="/" className="flex items-center">
+              <span className="font-serif text-base font-bold md:text-lg">Layers</span>
+            </Link>
+            <p className="hidden text-xs text-muted-foreground md:block">
+              Unified AI Gateway for all providers
+            </p>
+          </div>
 
           {/* Right side */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground hidden md:inline">{user?.email}</span>
+          <div className="flex items-center gap-2 md:gap-3">
+            <span className="hidden rounded-full bg-primary/10 px-2 py-1 font-mono text-xs text-primary sm:inline-block md:px-3">
+              {user?.email}
+            </span>
             <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
               <LogOut className="h-4 w-4" />
             </Button>
             <div className="w-px h-5 bg-border/50 mx-1" />
             <ThemeToggle />
           </div>
-        </div>
       </header>
 
       <div className="flex">
         {/* Sidebar */}
-        <aside className="hidden lg:flex w-56 flex-col border-r border-border/50 bg-sidebar min-h-[calc(100vh-3.5rem)]">
+        <aside className="hidden w-64 shrink-0 border-r bg-card md:flex flex-col min-h-[calc(100vh-3.5rem)]">
           {/* Credits - at top */}
           <div className="p-4 border-b border-border/50">
             <div className="rounded-lg bg-primary/5 p-3">
@@ -223,8 +235,24 @@ export default function DashboardPage() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 min-h-[calc(100vh-3.5rem)]">
-          <div className="p-6 max-w-6xl mx-auto space-y-6">
+        <main className="flex-1 overflow-auto">
+          {/* Mobile Navigation Dropdown */}
+          <div className="md:hidden border-b bg-card p-4">
+            <Select value="/dashboard" onValueChange={(value) => router.push(value)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Navigate to..." />
+              </SelectTrigger>
+              <SelectContent>
+                {sidebarNav.map((item) => (
+                  <SelectItem key={item.href} value={item.href}>
+                    {item.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
             {/* Page Header */}
             <div className="flex items-center justify-between">
               <div>

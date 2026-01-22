@@ -8,21 +8,22 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border/50 bg-card">
-        <div className="container mx-auto px-4 flex h-14 items-center justify-between md:h-16 md:px-6">
-          <div className="flex items-center gap-2">
-            <span className="font-serif text-xl font-bold md:text-2xl">Layers</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" asChild>
-              <Link href="/login">Sign in</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/signup">Get Started</Link>
-            </Button>
-            <div className="w-px h-5 bg-border/50 mx-1 hidden sm:block" />
-            <ThemeToggle />
-          </div>
+      <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-4 md:h-16 md:px-6">
+        <div className="flex items-center gap-2 md:gap-3">
+          <span className="font-serif text-base font-bold md:text-lg">Layers</span>
+          <p className="hidden text-xs text-muted-foreground md:block">
+            Unified AI Gateway
+          </p>
+        </div>
+        <div className="flex items-center gap-2 md:gap-3">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/login">Sign in</Link>
+          </Button>
+          <Button size="sm" asChild>
+            <Link href="/signup">Get Started</Link>
+          </Button>
+          <div className="w-px h-5 bg-border/50 mx-1 hidden sm:block" />
+          <ThemeToggle />
         </div>
       </header>
 
