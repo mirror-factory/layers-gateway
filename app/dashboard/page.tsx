@@ -153,14 +153,29 @@ export default function DashboardPage() {
   };
 
   const openCheckout = async (tier: string) => {
-    const res = await fetch('/api/stripe/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tier }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      window.location.href = data.url;
+    if (!user) {
+      console.error('No user logged in');
+      return;
+    }
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier, userId: user.id }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+        }
+      } else {
+        const error = await res.json();
+        console.error('Checkout error:', error);
+        alert(error.error || 'Failed to start checkout');
+      }
+    } catch (err) {
+      console.error('Checkout failed:', err);
+      alert('Failed to start checkout. Please try again.');
     }
   };
 
