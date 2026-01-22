@@ -255,16 +255,6 @@ export async function callGateway(
       }
     }
 
-    // Add JSON mode if requested
-    if (request.response_format?.type === 'json_object') {
-      // Use Output.object with a permissive schema for JSON mode
-      // Note: z.record() generates propertyNames which OpenAI doesn't support
-      // Use z.object({}).passthrough() for broader compatibility
-      generateOptions.output = Output.object({
-        schema: z.object({}).passthrough(),
-      });
-    }
-
     // Add provider-specific options
     const providerOptions: Record<string, unknown> = {};
     if (request.anthropic) {
@@ -276,6 +266,30 @@ export async function callGateway(
     if (request.google) {
       providerOptions.google = request.google;
     }
+
+    // Add JSON mode if requested
+    // Different providers handle JSON mode differently:
+    // - Anthropic/Google: Output.object() with z.record() works well
+    // - OpenAI: z.record() generates 'propertyNames' which OpenAI rejects
+    // - Perplexity: Basic JSON mode works
+    if (request.response_format?.type === 'json_object') {
+      const provider = request.model.split('/')[0];
+
+      if (provider === 'openai') {
+        // OpenAI: Pass response_format directly through provider options
+        // Don't use Output.object() as it generates incompatible schemas
+        providerOptions.openai = {
+          ...providerOptions.openai,
+          response_format: { type: 'json_object' },
+        };
+      } else {
+        // Anthropic, Google, Perplexity: Use Output.object with permissive schema
+        generateOptions.output = Output.object({
+          schema: z.record(z.string(), z.unknown()),
+        });
+      }
+    }
+
     if (Object.keys(providerOptions).length > 0) {
       generateOptions.providerOptions = providerOptions;
     }
