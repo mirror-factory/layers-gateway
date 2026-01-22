@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/browser';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Card,
   CardContent,
@@ -15,15 +14,8 @@ import {
 import {
   Key,
   CreditCard,
-  Copy,
-  Check,
-  Plus,
-  Trash2,
   Loader2,
   LogOut,
-  ExternalLink,
-  Eye,
-  EyeOff,
   BookOpen,
   RefreshCw,
   TrendingUp,
@@ -32,6 +24,7 @@ import {
   Settings,
   Code,
   ChevronRight,
+  ArrowUpRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -108,9 +101,7 @@ interface UsageStats {
 // Sidebar navigation items
 const sidebarNav = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard, active: true },
-  { name: 'API Keys', href: '/dashboard#keys', icon: Key },
-  { name: 'Usage', href: '/dashboard#usage', icon: Activity },
-  { name: 'Billing', href: '/dashboard#billing', icon: CreditCard },
+  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   { name: 'Documentation', href: '/docs', icon: BookOpen },
   { name: 'Playground', href: '/playground', icon: Code },
 ];
@@ -120,13 +111,7 @@ export default function DashboardPage() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [balance, setBalance] = useState<CreditBalance | null>(null);
   const [usage, setUsage] = useState<UsageStats | null>(null);
-  const [newKeyName, setNewKeyName] = useState('');
-  const [newKey, setNewKey] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [showKey, setShowKey] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState('overview');
   const router = useRouter();
 
   const loadData = useCallback(async () => {
@@ -164,78 +149,11 @@ export default function DashboardPage() {
     loadData();
   }, [loadData]);
 
-  const createApiKey = async () => {
-    if (!newKeyName.trim()) return;
-    setIsCreating(true);
-
-    try {
-      const res = await fetch('/api/keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newKeyName }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setNewKey(data.key);
-        setNewKeyName('');
-        loadData();
-      }
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  const deleteApiKey = async (keyId: string) => {
-    await fetch(`/api/keys/${keyId}`, { method: 'DELETE' });
-    loadData();
-  };
-
-  const copyToClipboard = async (text: string, id: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
-  };
-
-  const openBillingPortal = async () => {
-    const res = await fetch('/api/stripe/portal', { method: 'POST' });
-    if (res.ok) {
-      const data = await res.json();
-      window.location.href = data.url;
-    }
-  };
-
-  const openCheckout = async (tier: string) => {
-    if (!user) return;
-    try {
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier, userId: user.id }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.url) window.location.href = data.url;
-      }
-    } catch (err) {
-      console.error('Checkout failed:', err);
-    }
-  };
-
-  const syncSubscription = async () => {
-    try {
-      const res = await fetch('/api/stripe/sync', { method: 'POST' });
-      if (res.ok) loadData();
-    } catch (err) {
-      console.error('Sync failed:', err);
-    }
   };
 
   if (isLoading) {
@@ -251,12 +169,9 @@ export default function DashboardPage() {
       {/* Top Header Bar */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center justify-between px-6">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <span className="font-serif text-lg font-semibold text-primary">L</span>
-            </div>
-            <span className="font-serif text-xl font-semibold tracking-tight">Layers</span>
+          {/* Logo - just text, bigger */}
+          <Link href="/" className="flex items-center">
+            <span className="font-serif text-2xl font-semibold tracking-tight">Layers</span>
           </Link>
 
           {/* Right side */}
@@ -321,7 +236,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-serif font-semibold">Dashboard</h1>
-                <p className="text-sm text-muted-foreground mt-1">Monitor your API usage and manage your account</p>
+                <p className="text-sm text-muted-foreground mt-1">Monitor your API usage and performance</p>
               </div>
               <Button variant="outline" size="sm" onClick={() => loadData()}>
                 <RefreshCw className="h-3.5 w-3.5 mr-2" />
@@ -402,7 +317,7 @@ export default function DashboardPage() {
                       <CardDescription className="text-xs">Last 30 days</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-[180px]">
+                      <div className="h-[200px]">
                         <ResponsiveContainer width="100%" height="100%">
                           <AreaChart data={usage.by_day}>
                             <defs>
@@ -422,8 +337,8 @@ export default function DashboardPage() {
                             <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={30} />
                             <Tooltip
                               contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
-                                border: '1px solid hsl(var(--border))',
+                                backgroundColor: 'var(--card)',
+                                border: '1px solid var(--border)',
                                 borderRadius: '8px',
                                 fontSize: '12px'
                               }}
@@ -451,9 +366,9 @@ export default function DashboardPage() {
                       <CardDescription className="text-xs">By request count</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-[180px]">
+                      <div className="h-[200px]">
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={usage.by_model.slice(0, 4)} layout="vertical">
+                          <BarChart data={usage.by_model.slice(0, 5)} layout="vertical">
                             <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" horizontal={false} />
                             <XAxis type="number" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
                             <YAxis
@@ -467,8 +382,8 @@ export default function DashboardPage() {
                             />
                             <Tooltip
                               contentStyle={{
-                                backgroundColor: 'hsl(var(--card))',
-                                border: '1px solid hsl(var(--border))',
+                                backgroundColor: 'var(--card)',
+                                border: '1px solid var(--border)',
                                 borderRadius: '8px',
                                 fontSize: '12px'
                               }}
@@ -483,209 +398,82 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Recent Activity & API Keys side by side */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Recent Requests */}
-              {usage?.recent_logs?.length > 0 && (
-                <Card className="border-border/50">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm font-medium">Recent Requests</CardTitle>
-                      <Button variant="ghost" size="sm" className="text-xs h-7 text-muted-foreground">
-                        View all <ChevronRight className="h-3 w-3 ml-1" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {usage.recent_logs.slice(0, 5).map((log) => (
-                        <div
-                          key={log.id}
-                          className="flex items-center justify-between py-2 border-b border-border/30 last:border-0"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-1.5 h-1.5 rounded-full ${log.status === 'success' ? 'bg-primary' : 'bg-destructive'}`} />
-                            <div>
-                              <p className="text-xs font-medium">{log.model.split('/').pop()}</p>
-                              <p className="text-[10px] text-muted-foreground">
-                                {log.input_tokens + log.output_tokens} tokens
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs font-medium">{log.credits_used.toFixed(3)}</p>
-                            <p className="text-[10px] text-muted-foreground">{log.latency_ms}ms</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* API Keys - Compact */}
-              <Card className="border-border/50" id="keys">
+            {/* Recent Activity */}
+            {usage?.recent_logs?.length > 0 && (
+              <Card className="border-border/50">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium">API Keys</CardTitle>
-                    <span className="text-xs text-muted-foreground">{apiKeys.length} keys</span>
+                    <div>
+                      <CardTitle className="text-sm font-medium">Recent Requests</CardTitle>
+                      <CardDescription className="text-xs">Latest API calls</CardDescription>
+                    </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  {/* Create new key - inline */}
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Key name..."
-                      value={newKeyName}
-                      onChange={(e) => setNewKeyName(e.target.value)}
-                      className="h-8 text-sm"
-                    />
-                    <Button size="sm" className="h-8" onClick={createApiKey} disabled={isCreating || !newKeyName.trim()}>
-                      {isCreating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
-                    </Button>
-                  </div>
-
-                  {/* New key alert */}
-                  {newKey && (
-                    <div className="p-3 rounded-lg border border-primary/30 bg-primary/5">
-                      <p className="text-xs font-medium mb-2">New key created - copy now!</p>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type={showKey ? 'text' : 'password'}
-                          value={newKey}
-                          readOnly
-                          className="h-7 text-xs font-mono"
-                        />
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setShowKey(!showKey)}>
-                          {showKey ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => copyToClipboard(newKey, 'new')}>
-                          {copiedId === 'new' ? <Check className="h-3 w-3 text-primary" /> : <Copy className="h-3 w-3" />}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Key list */}
+                <CardContent>
                   <div className="space-y-1">
-                    {apiKeys.length === 0 ? (
-                      <p className="text-xs text-muted-foreground text-center py-4">No API keys yet</p>
-                    ) : (
-                      apiKeys.slice(0, 4).map((key) => (
-                        <div key={key.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
+                    {usage.recent_logs.slice(0, 8).map((log) => (
+                      <div
+                        key={log.id}
+                        className="flex items-center justify-between py-3 border-b border-border/30 last:border-0"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`w-2 h-2 rounded-full ${log.status === 'success' ? 'bg-primary' : 'bg-destructive'}`} />
                           <div>
-                            <p className="text-xs font-medium">{key.name}</p>
-                            <p className="text-[10px] text-muted-foreground font-mono">{key.prefix}...</p>
+                            <p className="text-sm font-medium">{log.model.split('/').pop()}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {log.input_tokens + log.output_tokens} tokens · {log.latency_ms}ms
+                            </p>
                           </div>
-                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={() => deleteApiKey(key.id)}>
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
                         </div>
-                      ))
-                    )}
+                        <div className="text-right">
+                          <p className="text-sm font-medium">{log.credits_used.toFixed(3)} credits</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(log.created_at).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Link href="/dashboard/settings">
+                <Card className="border-border/50 hover:border-primary/50 transition-colors cursor-pointer group">
+                  <CardContent className="p-5 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Key className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">API Keys & Billing</p>
+                        <p className="text-sm text-muted-foreground">Manage keys and subscription</p>
+                      </div>
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/playground">
+                <Card className="border-border/50 hover:border-primary/50 transition-colors cursor-pointer group">
+                  <CardContent className="p-5 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Code className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Playground</p>
+                        <p className="text-sm text-muted-foreground">Test models interactively</p>
+                      </div>
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </CardContent>
+                </Card>
+              </Link>
             </div>
-
-            {/* Billing Section - Compact horizontal cards */}
-            <Card className="border-border/50" id="billing">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-sm font-medium">Plans</CardTitle>
-                    <CardDescription className="text-xs">Choose the plan that fits your needs</CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    {balance?.tier && balance.tier !== 'free' && (
-                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={openBillingPortal}>
-                        <ExternalLink className="h-3 w-3 mr-1" />
-                        Manage
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={syncSubscription}>
-                      <RefreshCw className="h-3 w-3 mr-1" />
-                      Sync
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {/* Starter */}
-                  <div className={`p-4 rounded-lg border ${balance?.tier === 'starter' ? 'border-primary bg-primary/5' : 'border-border/50'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-medium text-sm">Starter</h3>
-                      {balance?.tier === 'starter' && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded">Current</span>}
-                    </div>
-                    <div className="mb-3">
-                      <span className="text-xl font-semibold font-serif">$20</span>
-                      <span className="text-xs text-muted-foreground">/mo</span>
-                    </div>
-                    <ul className="text-xs text-muted-foreground space-y-1 mb-3">
-                      <li>500 credits/month</li>
-                      <li>All models</li>
-                    </ul>
-                    <Button variant="outline" size="sm" className="w-full h-7 text-xs" onClick={() => openCheckout('starter')} disabled={balance?.tier === 'starter'}>
-                      {balance?.tier === 'starter' ? 'Current Plan' : 'Subscribe'}
-                    </Button>
-                  </div>
-
-                  {/* Pro */}
-                  <div className={`p-4 rounded-lg border-2 ${balance?.tier === 'pro' ? 'border-primary bg-primary/5' : 'border-primary/50'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-medium text-sm">Pro</h3>
-                      <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded">Popular</span>
-                    </div>
-                    <div className="mb-3">
-                      <span className="text-xl font-semibold font-serif">$100</span>
-                      <span className="text-xs text-muted-foreground">/mo</span>
-                    </div>
-                    <ul className="text-xs text-muted-foreground space-y-1 mb-3">
-                      <li>3,000 credits/month</li>
-                      <li>Priority support</li>
-                    </ul>
-                    <Button size="sm" className="w-full h-7 text-xs" onClick={() => openCheckout('pro')} disabled={balance?.tier === 'pro'}>
-                      {balance?.tier === 'pro' ? 'Current Plan' : 'Subscribe'}
-                    </Button>
-                  </div>
-
-                  {/* Team */}
-                  <div className={`p-4 rounded-lg border ${balance?.tier === 'team' ? 'border-primary bg-primary/5' : 'border-border/50'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-medium text-sm">Team</h3>
-                      {balance?.tier === 'team' && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded">Current</span>}
-                    </div>
-                    <div className="mb-3">
-                      <span className="text-xl font-semibold font-serif">$200</span>
-                      <span className="text-xs text-muted-foreground">/mo</span>
-                    </div>
-                    <ul className="text-xs text-muted-foreground space-y-1 mb-3">
-                      <li>7,500 credits/month</li>
-                      <li>Premium support</li>
-                    </ul>
-                    <Button variant="outline" size="sm" className="w-full h-7 text-xs" onClick={() => openCheckout('team')} disabled={balance?.tier === 'team'}>
-                      {balance?.tier === 'team' ? 'Current Plan' : 'Subscribe'}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Start - More compact */}
-            <Card className="border-border/50">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Quick Start</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <pre className="bg-muted/50 p-3 rounded-lg overflow-x-auto text-xs font-mono">
-                  <code>{`curl -X POST https://layers.hustletogether.com/api/v1/chat/completions \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{"model": "anthropic/claude-sonnet-4.5", "messages": [{"role": "user", "content": "Hello!"}]}'`}</code>
-                </pre>
-              </CardContent>
-            </Card>
           </div>
         </main>
       </div>
