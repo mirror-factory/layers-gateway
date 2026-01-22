@@ -269,21 +269,20 @@ export async function callGateway(
 
     // Add JSON mode if requested
     // Different providers handle JSON mode differently:
-    // - Anthropic/Google: Output.object() with z.record() works well
+    // - Anthropic/Google/Perplexity: Output.object() with z.record() works well
     // - OpenAI: z.record() generates 'propertyNames' which OpenAI rejects
-    // - Perplexity: Basic JSON mode works
+    //   We use z.object({}).catchall(z.unknown()) instead which is more compatible
     if (request.response_format?.type === 'json_object') {
       const provider = request.model.split('/')[0];
 
       if (provider === 'openai') {
-        // OpenAI: Pass response_format directly through provider options
-        // Don't use Output.object() as it generates incompatible schemas
-        providerOptions.openai = {
-          ...providerOptions.openai,
-          response_format: { type: 'json_object' },
-        };
+        // OpenAI: Use a more compatible schema that doesn't generate propertyNames
+        // z.object({}).catchall() creates additionalProperties instead of propertyNames
+        generateOptions.output = Output.object({
+          schema: z.object({}).catchall(z.unknown()),
+        });
       } else {
-        // Anthropic, Google, Perplexity: Use Output.object with permissive schema
+        // Anthropic, Google, Perplexity: Use Output.object with z.record()
         generateOptions.output = Output.object({
           schema: z.record(z.string(), z.unknown()),
         });
