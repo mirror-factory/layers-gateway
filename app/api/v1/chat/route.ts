@@ -330,12 +330,12 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     status: 'ok',
-    version: 'v1.2.0', // Test mode auth bypass version
-    build: '2026-01-18T21:30:00Z',
+    version: 'v1.3.0', // Credit deduction fix
+    build: '2026-01-22T12:00:00Z',
     endpoints: {
       chat: 'POST /api/v1/chat',
     },
-    docs: 'https://preview.hustletogether.com/docs',
+    docs: 'https://layers.hustletogether.com/docs',
     timestamp: new Date().toISOString(),
   });
 }

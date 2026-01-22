@@ -78,6 +78,12 @@ export function checkBalance(
  * Deduct credits from user balance
  */
 export async function deductCredits(userId: string, amount: number): Promise<boolean> {
+  // Skip deduction for test users
+  if (userId === 'test-user' || userId === 'demo-user') {
+    console.log(`Credits not deducted for ${userId} (test/demo mode)`);
+    return true;
+  }
+
   if (!isSupabaseConfigured()) {
     console.warn('Credits not deducted - Supabase not configured');
     return true;
@@ -85,7 +91,7 @@ export async function deductCredits(userId: string, amount: number): Promise<boo
 
   const supabase = createServerClient();
 
-  // Use the deduct_credits RPC function if it exists, otherwise update directly
+  // Use the deduct_credits RPC function if it exists
   const { error } = await supabase.rpc('deduct_credits', {
     p_user_id: userId,
     p_amount: amount,
@@ -94,10 +100,25 @@ export async function deductCredits(userId: string, amount: number): Promise<boo
   if (error) {
     // Fallback to direct update if RPC doesn't exist
     console.warn('RPC deduct_credits failed, using direct update:', error.message);
+
+    // First get current balance
+    const { data: current, error: fetchError } = await supabase
+      .from('credit_balances')
+      .select('balance')
+      .eq('user_id', userId)
+      .single();
+
+    if (fetchError || !current) {
+      console.error('Failed to fetch current balance:', fetchError);
+      return false;
+    }
+
+    // Then update with new balance
+    const newBalance = Math.max(0, parseFloat(current.balance) - amount);
     const { error: updateError } = await supabase
       .from('credit_balances')
       .update({
-        balance: supabase.rpc('balance - $1', [amount]),
+        balance: newBalance,
         updated_at: new Date().toISOString()
       })
       .eq('user_id', userId);
@@ -115,6 +136,12 @@ export async function deductCredits(userId: string, amount: number): Promise<boo
  * Log API usage to database
  */
 export async function logUsage(log: UsageLog): Promise<boolean> {
+  // Skip logging for test users
+  if (log.user_id === 'test-user' || log.user_id === 'demo-user') {
+    console.log(`Usage not logged for ${log.user_id} (test/demo mode)`);
+    return true;
+  }
+
   if (!isSupabaseConfigured()) {
     console.warn('Usage not logged - Supabase not configured');
     return true;
