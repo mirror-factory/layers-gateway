@@ -7,11 +7,9 @@ import {
 } from 'fumadocs-ui/page';
 import { notFound } from 'next/navigation';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
-import { ModelPlayground } from '@/components/ModelPlayground';
 
 const mdxComponents = {
   ...defaultMdxComponents,
-  ModelPlayground,
 };
 
 export default async function Page({

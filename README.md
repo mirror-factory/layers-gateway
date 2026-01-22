@@ -29,7 +29,6 @@ layers-dev/
 ├── app/                    # Next.js App Router
 │   ├── api/v1/             # Public API endpoints
 │   ├── docs/               # Fumadocs documentation
-│   ├── playground/         # Interactive playground
 │   └── dashboard/          # User dashboard
 ├── components/             # React components
 ├── content/docs/           # MDX documentation
@@ -96,7 +95,7 @@ STRIPE_WEBHOOK_SECRET=
 | Production | https://layers.hustletogether.com |
 | Local Dev | http://localhost:3700 |
 | Docs | https://layers.hustletogether.com/docs |
-| Playground | https://layers.hustletogether.com/playground |
+| Dashboard | https://layers.hustletogether.com/dashboard |
 
 ---
 

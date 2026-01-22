@@ -30,11 +30,16 @@ All models are accessible through Vercel AI Gateway with a single API key.
   </Card>
 </Cards>
 
-## Try It Out
+## Quick Start
 
-Test any model directly from the documentation:
+Use any model with the Layers API:
 
-<ModelPlayground />
+```bash
+curl -X POST https://layers.hustletogether.com/api/v1/chat/completions \
+  -H "Authorization: Bearer lyr_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "anthropic/claude-sonnet-4-20250514", "messages": [{"role": "user", "content": "Hello!"}]}'
+```
 
 ## All Language Models
 
