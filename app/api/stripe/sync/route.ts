@@ -79,7 +79,7 @@ export async function POST() {
         user_id: user.id,
         stripe_customer_id: customerId,
         tier: 'free',
-        stripe_subscription_status: 'none',
+        subscription_status: 'none',
         monthly_credits: 0,
         updated_at: new Date().toISOString(),
       };
@@ -116,7 +116,7 @@ export async function POST() {
       user_id: user.id,
       stripe_customer_id: customerId,
       stripe_subscription_id: subscription.id,
-      stripe_subscription_status: subscription.status,
+      subscription_status: subscription.status,
       tier: tier || 'pro',
       monthly_credits: credits,
       updated_at: new Date().toISOString(),

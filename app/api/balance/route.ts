@@ -16,7 +16,7 @@ export async function GET() {
     const serverClient = createServerClient();
     const { data: balance, error } = await serverClient
       .from('credit_balances')
-      .select('balance, tier, monthly_credits, stripe_subscription_status')
+      .select('balance, tier, monthly_credits, subscription_status')
       .eq('user_id', user.id)
       .single();
 
@@ -40,7 +40,7 @@ export async function GET() {
       credits: balance.balance,
       tier: balance.tier,
       monthly_credits: balance.monthly_credits,
-      subscription_status: balance.stripe_subscription_status,
+      subscription_status: balance.subscription_status,
     });
   } catch (error) {
     console.error('Error in GET /api/balance:', error);

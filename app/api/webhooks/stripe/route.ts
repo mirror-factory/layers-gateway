@@ -116,7 +116,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     .update({
       stripe_customer_id: customerId,
       stripe_subscription_id: session.subscription as string,
-      stripe_subscription_status: 'active',
+      subscription_status: 'active',
       tier: tier || 'starter',
       monthly_credits: creditsForTier(tier || 'starter'),
       updated_at: new Date().toISOString(),
@@ -153,7 +153,7 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
     .from('credit_balances')
     .update({
       stripe_subscription_id: subscription.id,
-      stripe_subscription_status: subscription.status,
+      subscription_status: subscription.status,
       tier: tier || 'starter',
       monthly_credits: credits,
       balance: credits, // Grant initial credits
@@ -187,7 +187,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   await supabase
     .from('credit_balances')
     .update({
-      stripe_subscription_status: subscription.status,
+      subscription_status: subscription.status,
       tier: tier || 'free',
       monthly_credits: credits,
       updated_at: new Date().toISOString(),
@@ -216,7 +216,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       .from('credit_balances')
       .update({
         stripe_subscription_id: null,
-        stripe_subscription_status: 'cancelled',
+        subscription_status: 'cancelled',
         tier: 'free',
         monthly_credits: 0,
         updated_at: new Date().toISOString(),
@@ -227,7 +227,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       .from('credit_balances')
       .update({
         stripe_subscription_id: null,
-        stripe_subscription_status: 'cancelled',
+        subscription_status: 'cancelled',
         tier: 'free',
         monthly_credits: 0,
         updated_at: new Date().toISOString(),
@@ -298,7 +298,7 @@ async function updateUserByCustomerId(customerId: string, subscription: Stripe.S
     .from('credit_balances')
     .update({
       stripe_subscription_id: subscription.id,
-      stripe_subscription_status: subscription.status,
+      subscription_status: subscription.status,
       tier: tier || 'starter',
       monthly_credits: credits,
       updated_at: new Date().toISOString(),
