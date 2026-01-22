@@ -282,8 +282,16 @@ export async function POST(request: NextRequest) {
           completion_tokens: outputTokens,
           total_tokens: inputTokens + outputTokens,
         },
-        // Perplexity sources/citations (pass-through)
+        // Perplexity sources/citations (pass-through at top level for direct access)
         ...(data.sources && data.sources.length > 0 && { sources: data.sources }),
+        // AI SDK compatible provider metadata (for createOpenAI consumers)
+        ...(data.sources && data.sources.length > 0 && {
+          experimental_providerMetadata: {
+            perplexity: {
+              sources: data.sources,
+            },
+          },
+        }),
         // Layers-specific fields
         layers: {
           credits_used: creditsUsed,
@@ -330,7 +338,7 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     status: 'ok',
-    version: 'v1.3.0', // Credit deduction fix
+    version: 'v1.4.0', // Added experimental_providerMetadata for AI SDK compatibility
     build: '2026-01-22T12:00:00Z',
     endpoints: {
       chat: 'POST /api/v1/chat',
