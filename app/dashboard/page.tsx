@@ -22,8 +22,6 @@ import {
   Activity,
   LayoutDashboard,
   Settings,
-  Code,
-  ChevronRight,
   ArrowUpRight,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -103,7 +101,6 @@ const sidebarNav = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard, active: true },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   { name: 'Documentation', href: '/docs', icon: BookOpen },
-  { name: 'Playground', href: '/playground', icon: Code },
 ];
 
 export default function DashboardPage() {
@@ -176,16 +173,11 @@ export default function DashboardPage() {
 
           {/* Right side */}
           <div className="flex items-center gap-3">
-            <Link href="/docs">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                Docs
-              </Button>
-            </Link>
-            <ThemeToggle />
             <span className="text-sm text-muted-foreground hidden md:inline">{user?.email}</span>
             <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
               <LogOut className="h-4 w-4" />
             </Button>
+            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -193,6 +185,24 @@ export default function DashboardPage() {
       <div className="flex">
         {/* Sidebar */}
         <aside className="hidden lg:flex w-56 flex-col border-r border-border/50 bg-sidebar min-h-[calc(100vh-3.5rem)]">
+          {/* Credits - at top */}
+          <div className="p-4 border-b border-border/50">
+            <div className="rounded-lg bg-primary/5 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted-foreground">Credits</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                  balance?.tier === 'pro' ? 'bg-primary/20 text-primary' :
+                  balance?.tier === 'team' ? 'bg-primary/30 text-primary' :
+                  balance?.tier === 'starter' ? 'bg-primary/15 text-primary' :
+                  'bg-muted text-muted-foreground'
+                }`}>
+                  {(balance?.tier || 'FREE').toUpperCase()}
+                </span>
+              </div>
+              <div className="text-2xl font-semibold font-serif">{balance?.credits?.toFixed(0) || '0'}</div>
+            </div>
+          </div>
+
           <nav className="flex-1 space-y-1 p-4">
             {sidebarNav.map((item) => (
               <Link
@@ -209,24 +219,6 @@ export default function DashboardPage() {
               </Link>
             ))}
           </nav>
-
-          {/* Sidebar footer */}
-          <div className="border-t border-border/50 p-4">
-            <div className="rounded-lg bg-primary/5 p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-muted-foreground">Credits</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                  balance?.tier === 'pro' ? 'bg-primary/20 text-primary' :
-                  balance?.tier === 'team' ? 'bg-primary/30 text-primary' :
-                  balance?.tier === 'starter' ? 'bg-primary/15 text-primary' :
-                  'bg-muted text-muted-foreground'
-                }`}>
-                  {(balance?.tier || 'FREE').toUpperCase()}
-                </span>
-              </div>
-              <div className="text-2xl font-semibold font-serif">{balance?.credits?.toFixed(0) || '0'}</div>
-            </div>
-          </div>
         </aside>
 
         {/* Main Content */}
@@ -439,7 +431,7 @@ export default function DashboardPage() {
             )}
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <Link href="/dashboard/settings">
                 <Card className="border-border/50 hover:border-primary/50 transition-colors cursor-pointer group">
                   <CardContent className="p-5 flex items-center justify-between">
@@ -450,23 +442,6 @@ export default function DashboardPage() {
                       <div>
                         <p className="font-medium">API Keys & Billing</p>
                         <p className="text-sm text-muted-foreground">Manage keys and subscription</p>
-                      </div>
-                    </div>
-                    <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link href="/playground">
-                <Card className="border-border/50 hover:border-primary/50 transition-colors cursor-pointer group">
-                  <CardContent className="p-5 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Code className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">Playground</p>
-                        <p className="text-sm text-muted-foreground">Test models interactively</p>
                       </div>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
