@@ -258,8 +258,10 @@ export async function callGateway(
     // Add JSON mode if requested
     if (request.response_format?.type === 'json_object') {
       // Use Output.object with a permissive schema for JSON mode
+      // Note: z.record() generates propertyNames which OpenAI doesn't support
+      // Use z.object({}).passthrough() for broader compatibility
       generateOptions.output = Output.object({
-        schema: z.record(z.string(), z.unknown()),
+        schema: z.object({}).passthrough(),
       });
     }
 
