@@ -13,7 +13,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  Zap,
   Key,
   CreditCard,
   Copy,
@@ -29,6 +28,10 @@ import {
   RefreshCw,
   TrendingUp,
   Activity,
+  LayoutDashboard,
+  Settings,
+  Code,
+  ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -40,12 +43,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  Legend,
+  AreaChart,
+  Area,
 } from 'recharts';
 
 interface ApiKey {
@@ -106,23 +105,14 @@ interface UsageStats {
   recent_logs: RecentLog[];
 }
 
-// Chart colors - mint palette for consistent branding
-const PROVIDER_COLORS: Record<string, string> = {
-  anthropic: 'oklch(0.70 0.12 166)',  // mint-600
-  openai: 'oklch(0.55 0.12 166)',     // mint-700
-  google: 'oklch(0.80 0.12 166)',     // mint-500
-  perplexity: 'oklch(0.40 0.10 166)', // mint-800
-  morph: 'oklch(0.60 0.10 166)',      // mint-600 variant
-  unknown: 'oklch(0.50 0.05 166)',    // muted mint
-};
-
-const CHART_COLORS = [
-  'oklch(0.70 0.12 166)',  // mint-600
-  'oklch(0.55 0.12 166)',  // mint-700
-  'oklch(0.80 0.12 166)',  // mint-500
-  'oklch(0.40 0.10 166)',  // mint-800
-  'oklch(0.60 0.10 166)',  // mint variant
-  'oklch(0.50 0.05 166)',  // muted mint
+// Sidebar navigation items
+const sidebarNav = [
+  { name: 'Overview', href: '/dashboard', icon: LayoutDashboard, active: true },
+  { name: 'API Keys', href: '/dashboard#keys', icon: Key },
+  { name: 'Usage', href: '/dashboard#usage', icon: Activity },
+  { name: 'Billing', href: '/dashboard#billing', icon: CreditCard },
+  { name: 'Documentation', href: '/docs', icon: BookOpen },
+  { name: 'Playground', href: '/playground', icon: Code },
 ];
 
 export default function DashboardPage() {
@@ -136,12 +126,12 @@ export default function DashboardPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState('overview');
   const router = useRouter();
 
   const loadData = useCallback(async () => {
     const supabase = createClient();
 
-    // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       router.push('/login?redirectTo=/dashboard');
@@ -149,21 +139,18 @@ export default function DashboardPage() {
     }
     setUser(user);
 
-    // Load API keys
     const keysRes = await fetch('/api/keys');
     if (keysRes.ok) {
       const keysData = await keysRes.json();
       setApiKeys(keysData.keys || []);
     }
 
-    // Load balance
     const balanceRes = await fetch('/api/balance');
     if (balanceRes.ok) {
       const balanceData = await balanceRes.json();
       setBalance(balanceData);
     }
 
-    // Load usage
     const usageRes = await fetch('/api/usage');
     if (usageRes.ok) {
       const usageData = await usageRes.json();
@@ -226,10 +213,7 @@ export default function DashboardPage() {
   };
 
   const openCheckout = async (tier: string) => {
-    if (!user) {
-      console.error('No user logged in');
-      return;
-    }
+    if (!user) return;
     try {
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -238,519 +222,473 @@ export default function DashboardPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.url) {
-          window.location.href = data.url;
-        }
-      } else {
-        const error = await res.json();
-        console.error('Checkout error:', error);
-        alert(error.error || 'Failed to start checkout');
+        if (data.url) window.location.href = data.url;
       }
     } catch (err) {
       console.error('Checkout failed:', err);
-      alert('Failed to start checkout. Please try again.');
     }
   };
 
   const syncSubscription = async () => {
     try {
       const res = await fetch('/api/stripe/sync', { method: 'POST' });
-      const data = await res.json();
-      if (res.ok) {
-        alert(data.message || 'Subscription synced!');
-        loadData(); // Reload dashboard data
-      } else {
-        alert(data.error || 'Failed to sync subscription');
-      }
+      if (res.ok) loadData();
     } catch (err) {
       console.error('Sync failed:', err);
-      alert('Failed to sync subscription');
     }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/50">
-      {/* Header */}
-      <header className="border-b bg-background">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Zap className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">Layers</span>
-          </div>
-          <div className="flex items-center gap-2">
+    <div className="min-h-screen bg-background">
+      {/* Top Header Bar */}
+      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex h-14 items-center justify-between px-6">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <span className="font-serif text-lg font-semibold text-primary">L</span>
+            </div>
+            <span className="font-serif text-xl font-semibold tracking-tight">Layers</span>
+          </Link>
+
+          {/* Right side */}
+          <div className="flex items-center gap-3">
             <Link href="/docs">
-              <Button variant="ghost" size="sm">
-                <BookOpen className="h-4 w-4 mr-2" />
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 Docs
               </Button>
             </Link>
             <ThemeToggle />
-            <span className="text-sm text-muted-foreground hidden sm:inline">{user?.email}</span>
-            <Button variant="ghost" size="sm" onClick={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign out
+            <span className="text-sm text-muted-foreground hidden md:inline">{user?.email}</span>
+            <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
+              <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 space-y-8">
-        {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Credit Balance</CardTitle>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{balance?.credits?.toFixed(0) || '0'}</div>
-              <div className="flex items-center gap-2 mt-1">
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  balance?.tier === 'pro' ? 'bg-mint-600/20 text-mint-700 dark:text-mint-400' :
-                  balance?.tier === 'team' ? 'bg-mint-700/20 text-mint-800 dark:text-mint-300' :
-                  balance?.tier === 'starter' ? 'bg-mint-500/20 text-mint-600 dark:text-mint-400' :
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className="hidden lg:flex w-56 flex-col border-r border-border/50 bg-sidebar min-h-[calc(100vh-3.5rem)]">
+          <nav className="flex-1 space-y-1 p-4">
+            {sidebarNav.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  item.active
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                }`}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Sidebar footer */}
+          <div className="border-t border-border/50 p-4">
+            <div className="rounded-lg bg-primary/5 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted-foreground">Credits</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                  balance?.tier === 'pro' ? 'bg-primary/20 text-primary' :
+                  balance?.tier === 'team' ? 'bg-primary/30 text-primary' :
+                  balance?.tier === 'starter' ? 'bg-primary/15 text-primary' :
                   'bg-muted text-muted-foreground'
                 }`}>
-                  {(balance?.tier || 'free').toUpperCase()}
+                  {(balance?.tier || 'FREE').toUpperCase()}
                 </span>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">API Keys</CardTitle>
-              <Key className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{apiKeys.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {apiKeys.filter(k => k.is_active).length} active
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Requests</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{usage?.this_month_requests || 0}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                this month
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Credits Used</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{usage?.this_month_credits?.toFixed(1) || '0'}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                this month
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Usage Analytics Charts */}
-        {usage && (usage.by_provider?.length > 0 || usage.by_day?.length > 0) && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Daily Usage Trend */}
-            {usage.by_day?.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Daily Usage (Last 30 Days)</CardTitle>
-                  <CardDescription>Requests and credits over time</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={usage.by_day}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                        <XAxis
-                          dataKey="date"
-                          tick={{ fontSize: 12 }}
-                          tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        />
-                        <YAxis tick={{ fontSize: 12 }} />
-                        <Tooltip
-                          labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                          contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
-                        />
-                        <Legend />
-                        <Line type="monotone" dataKey="requests" stroke="oklch(0.70 0.12 166)" name="Requests" strokeWidth={2} />
-                        <Line type="monotone" dataKey="credits" stroke="oklch(0.55 0.12 166)" name="Credits" strokeWidth={2} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Usage by Provider (Pie Chart) */}
-            {usage.by_provider?.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Usage by Provider</CardTitle>
-                  <CardDescription>Request distribution across AI providers</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={usage.by_provider}
-                          dataKey="requests"
-                          nameKey="provider"
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={80}
-                          label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
-                        >
-                          {usage.by_provider.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={PROVIDER_COLORS[entry.provider] || CHART_COLORS[index % CHART_COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Top Models (Bar Chart) */}
-            {usage.by_model?.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Top Models</CardTitle>
-                  <CardDescription>Most used AI models</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={usage.by_model.slice(0, 5)} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                        <XAxis type="number" tick={{ fontSize: 12 }} />
-                        <YAxis
-                          dataKey="model"
-                          type="category"
-                          width={150}
-                          tick={{ fontSize: 11 }}
-                          tickFormatter={(value) => value.split('/').pop() || value}
-                        />
-                        <Tooltip
-                          contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
-                        />
-                        <Bar dataKey="requests" fill="oklch(0.70 0.12 166)" name="Requests" radius={[0, 4, 4, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Recent Requests */}
-            {usage.recent_logs?.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Recent Requests</CardTitle>
-                  <CardDescription>Latest API calls</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 max-h-[250px] overflow-y-auto">
-                    {usage.recent_logs.slice(0, 8).map((log) => (
-                      <div
-                        key={log.id}
-                        className="flex items-center justify-between p-2 text-sm border rounded-lg"
-                      >
-                        <div className="space-y-0.5">
-                          <p className="font-medium text-xs">
-                            {log.model.split('/').pop()}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {log.input_tokens + log.output_tokens} tokens · {log.latency_ms}ms
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className={`text-xs font-medium ${log.status === 'success' ? 'text-mint-600 dark:text-mint-400' : 'text-destructive'}`}>
-                            {log.status}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {log.credits_used.toFixed(2)} credits
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+              <div className="text-2xl font-semibold font-serif">{balance?.credits?.toFixed(0) || '0'}</div>
+            </div>
           </div>
-        )}
+        </aside>
 
-        {/* New Key Alert */}
-        {newKey && (
-          <Card className="border-primary bg-primary/5">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Key className="h-5 w-5" />
-                New API Key Created
-              </CardTitle>
-              <CardDescription>
-                Copy this key now. You won&apos;t be able to see it again.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Input
-                  type={showKey ? 'text' : 'password'}
-                  value={newKey}
-                  readOnly
-                  className="font-mono text-sm"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowKey(!showKey)}
-                >
-                  {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => copyToClipboard(newKey, 'new')}
-                >
-                  {copiedId === 'new' ? (
-                    <Check className="h-4 w-4 text-mint-600 dark:text-mint-400" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              <Button variant="outline" onClick={() => setNewKey(null)}>
-                Done
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* API Keys Section */}
-        <Card>
-          <CardHeader>
+        {/* Main Content */}
+        <main className="flex-1 min-h-[calc(100vh-3.5rem)]">
+          <div className="p-6 max-w-6xl mx-auto space-y-6">
+            {/* Page Header */}
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>API Keys</CardTitle>
-                <CardDescription>
-                  Manage your API keys for accessing the Layers API
-                </CardDescription>
+                <h1 className="text-2xl font-serif font-semibold">Dashboard</h1>
+                <p className="text-sm text-muted-foreground mt-1">Monitor your API usage and manage your account</p>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Create New Key */}
-            <div className="flex gap-2">
-              <Input
-                placeholder="Key name (e.g., Production, Development)"
-                value={newKeyName}
-                onChange={(e) => setNewKeyName(e.target.value)}
-                className="flex-1"
-              />
-              <Button onClick={createApiKey} disabled={isCreating || !newKeyName.trim()}>
-                {isCreating ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Plus className="h-4 w-4 mr-2" />
-                )}
-                Create Key
+              <Button variant="outline" size="sm" onClick={() => loadData()}>
+                <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                Refresh
               </Button>
             </div>
 
-            {/* Key List */}
-            <div className="space-y-3">
-              {apiKeys.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No API keys yet. Create one to get started.
-                </p>
-              ) : (
-                apiKeys.map((key) => (
-                  <div
-                    key={key.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
-                  >
-                    <div className="space-y-1">
-                      <p className="font-medium">{key.name}</p>
-                      <p className="text-sm text-muted-foreground font-mono">
-                        {key.prefix}...
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Created {new Date(key.created_at).toLocaleDateString()}
-                        {key.last_used_at && (
-                          <> · Last used {new Date(key.last_used_at).toLocaleDateString()}</>
-                        )}
-                      </p>
+            {/* Stats Grid - Compact */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="border-border/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground font-medium">Credit Balance</p>
+                      <p className="text-2xl font-semibold font-serif mt-1">{balance?.credits?.toFixed(0) || '0'}</p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => deleteApiKey(key.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <CreditCard className="h-4 w-4 text-primary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground font-medium">API Keys</p>
+                      <p className="text-2xl font-semibold font-serif mt-1">{apiKeys.length}</p>
+                      <p className="text-[10px] text-muted-foreground">{apiKeys.filter(k => k.is_active).length} active</p>
+                    </div>
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Key className="h-4 w-4 text-primary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground font-medium">Requests</p>
+                      <p className="text-2xl font-semibold font-serif mt-1">{usage?.this_month_requests?.toLocaleString() || '0'}</p>
+                      <p className="text-[10px] text-muted-foreground">this month</p>
+                    </div>
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Activity className="h-4 w-4 text-primary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground font-medium">Credits Used</p>
+                      <p className="text-2xl font-semibold font-serif mt-1">{usage?.this_month_credits?.toFixed(1) || '0'}</p>
+                      <p className="text-[10px] text-muted-foreground">this month</p>
+                    </div>
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <TrendingUp className="h-4 w-4 text-primary" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Charts Row */}
+            {usage && (usage.by_day?.length > 0 || usage.by_model?.length > 0) && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* Usage Trend - Takes 2 columns */}
+                {usage.by_day?.length > 0 && (
+                  <Card className="lg:col-span-2 border-border/50">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">Usage Trend</CardTitle>
+                      <CardDescription className="text-xs">Last 30 days</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[180px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={usage.by_day}>
+                            <defs>
+                              <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="oklch(0.75 0.12 166)" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="oklch(0.75 0.12 166)" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" vertical={false} />
+                            <XAxis
+                              dataKey="date"
+                              tick={{ fontSize: 10 }}
+                              tickLine={false}
+                              axisLine={false}
+                              tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { day: 'numeric' })}
+                            />
+                            <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} width={30} />
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: 'hsl(var(--card))',
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: '8px',
+                                fontSize: '12px'
+                              }}
+                              labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="requests"
+                              stroke="oklch(0.75 0.12 166)"
+                              strokeWidth={2}
+                              fill="url(#colorRequests)"
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Top Models - Compact */}
+                {usage.by_model?.length > 0 && (
+                  <Card className="border-border/50">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium">Top Models</CardTitle>
+                      <CardDescription className="text-xs">By request count</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[180px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={usage.by_model.slice(0, 4)} layout="vertical">
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" horizontal={false} />
+                            <XAxis type="number" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                            <YAxis
+                              dataKey="model"
+                              type="category"
+                              width={80}
+                              tick={{ fontSize: 9 }}
+                              tickLine={false}
+                              axisLine={false}
+                              tickFormatter={(value) => value.split('/').pop()?.slice(0, 12) || value}
+                            />
+                            <Tooltip
+                              contentStyle={{
+                                backgroundColor: 'hsl(var(--card))',
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: '8px',
+                                fontSize: '12px'
+                              }}
+                            />
+                            <Bar dataKey="requests" fill="oklch(0.75 0.12 166)" radius={[0, 4, 4, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {/* Recent Activity & API Keys side by side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Recent Requests */}
+              {usage?.recent_logs?.length > 0 && (
+                <Card className="border-border/50">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-sm font-medium">Recent Requests</CardTitle>
+                      <Button variant="ghost" size="sm" className="text-xs h-7 text-muted-foreground">
+                        View all <ChevronRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {usage.recent_logs.slice(0, 5).map((log) => (
+                        <div
+                          key={log.id}
+                          className="flex items-center justify-between py-2 border-b border-border/30 last:border-0"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-1.5 h-1.5 rounded-full ${log.status === 'success' ? 'bg-primary' : 'bg-destructive'}`} />
+                            <div>
+                              <p className="text-xs font-medium">{log.model.split('/').pop()}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {log.input_tokens + log.output_tokens} tokens
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-medium">{log.credits_used.toFixed(3)}</p>
+                            <p className="text-[10px] text-muted-foreground">{log.latency_ms}ms</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* API Keys - Compact */}
+              <Card className="border-border/50" id="keys">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium">API Keys</CardTitle>
+                    <span className="text-xs text-muted-foreground">{apiKeys.length} keys</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {/* Create new key - inline */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Key name..."
+                      value={newKeyName}
+                      onChange={(e) => setNewKeyName(e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                    <Button size="sm" className="h-8" onClick={createApiKey} disabled={isCreating || !newKeyName.trim()}>
+                      {isCreating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
                     </Button>
                   </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Billing Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Billing & Plans</CardTitle>
-            <CardDescription>
-              Manage your subscription and purchase credits
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Starter */}
-              <Card className="border-2">
-                <CardHeader>
-                  <CardTitle className="text-lg">Starter</CardTitle>
-                  <CardDescription>For individuals and small projects</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <span className="text-3xl font-bold">$20</span>
-                    <span className="text-muted-foreground">/month</span>
-                  </div>
-                  <ul className="text-sm space-y-2">
-                    <li>500 credits/month</li>
-                    <li>All models</li>
-                    <li>Standard rate limits</li>
-                  </ul>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => openCheckout('starter')}
-                  >
-                    Subscribe
-                  </Button>
-                </CardContent>
-              </Card>
+                  {/* New key alert */}
+                  {newKey && (
+                    <div className="p-3 rounded-lg border border-primary/30 bg-primary/5">
+                      <p className="text-xs font-medium mb-2">New key created - copy now!</p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type={showKey ? 'text' : 'password'}
+                          value={newKey}
+                          readOnly
+                          className="h-7 text-xs font-mono"
+                        />
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setShowKey(!showKey)}>
+                          {showKey ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => copyToClipboard(newKey, 'new')}>
+                          {copiedId === 'new' ? <Check className="h-3 w-3 text-primary" /> : <Copy className="h-3 w-3" />}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
 
-              {/* Pro */}
-              <Card className="border-2 border-primary">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">Pro</CardTitle>
-                    <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
-                      Popular
-                    </span>
+                  {/* Key list */}
+                  <div className="space-y-1">
+                    {apiKeys.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-4">No API keys yet</p>
+                    ) : (
+                      apiKeys.slice(0, 4).map((key) => (
+                        <div key={key.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
+                          <div>
+                            <p className="text-xs font-medium">{key.name}</p>
+                            <p className="text-[10px] text-muted-foreground font-mono">{key.prefix}...</p>
+                          </div>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive" onClick={() => deleteApiKey(key.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
                   </div>
-                  <CardDescription>For growing teams</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <span className="text-3xl font-bold">$100</span>
-                    <span className="text-muted-foreground">/month</span>
-                  </div>
-                  <ul className="text-sm space-y-2">
-                    <li>3,000 credits/month</li>
-                    <li>All models</li>
-                    <li>Higher rate limits</li>
-                    <li>Priority support</li>
-                  </ul>
-                  <Button className="w-full" onClick={() => openCheckout('pro')}>
-                    Subscribe
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Team */}
-              <Card className="border-2">
-                <CardHeader>
-                  <CardTitle className="text-lg">Team</CardTitle>
-                  <CardDescription>For larger organizations</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <span className="text-3xl font-bold">$200</span>
-                    <span className="text-muted-foreground">/month</span>
-                  </div>
-                  <ul className="text-sm space-y-2">
-                    <li>7,500 credits/month</li>
-                    <li>All models</li>
-                    <li>Highest rate limits</li>
-                    <li>Premium support</li>
-                  </ul>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => openCheckout('team')}
-                  >
-                    Subscribe
-                  </Button>
                 </CardContent>
               </Card>
             </div>
 
-            <div className="pt-4 border-t flex gap-2">
-              {balance?.tier && balance.tier !== 'free' && (
-                <Button variant="outline" onClick={openBillingPortal}>
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Manage Subscription
-                </Button>
-              )}
-              <Button variant="ghost" size="sm" onClick={syncSubscription}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Sync from Stripe
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Billing Section - Compact horizontal cards */}
+            <Card className="border-border/50" id="billing">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm font-medium">Plans</CardTitle>
+                    <CardDescription className="text-xs">Choose the plan that fits your needs</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    {balance?.tier && balance.tier !== 'free' && (
+                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={openBillingPortal}>
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Manage
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={syncSubscription}>
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Sync
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Starter */}
+                  <div className={`p-4 rounded-lg border ${balance?.tier === 'starter' ? 'border-primary bg-primary/5' : 'border-border/50'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-medium text-sm">Starter</h3>
+                      {balance?.tier === 'starter' && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded">Current</span>}
+                    </div>
+                    <div className="mb-3">
+                      <span className="text-xl font-semibold font-serif">$20</span>
+                      <span className="text-xs text-muted-foreground">/mo</span>
+                    </div>
+                    <ul className="text-xs text-muted-foreground space-y-1 mb-3">
+                      <li>500 credits/month</li>
+                      <li>All models</li>
+                    </ul>
+                    <Button variant="outline" size="sm" className="w-full h-7 text-xs" onClick={() => openCheckout('starter')} disabled={balance?.tier === 'starter'}>
+                      {balance?.tier === 'starter' ? 'Current Plan' : 'Subscribe'}
+                    </Button>
+                  </div>
 
-        {/* Quick Start */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Start</CardTitle>
-            <CardDescription>
-              Get started with the Layers API in seconds
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
-              <code>{`curl -X POST https://layers.hustletogether.com/api/v1/chat/completions \\
+                  {/* Pro */}
+                  <div className={`p-4 rounded-lg border-2 ${balance?.tier === 'pro' ? 'border-primary bg-primary/5' : 'border-primary/50'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-medium text-sm">Pro</h3>
+                      <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded">Popular</span>
+                    </div>
+                    <div className="mb-3">
+                      <span className="text-xl font-semibold font-serif">$100</span>
+                      <span className="text-xs text-muted-foreground">/mo</span>
+                    </div>
+                    <ul className="text-xs text-muted-foreground space-y-1 mb-3">
+                      <li>3,000 credits/month</li>
+                      <li>Priority support</li>
+                    </ul>
+                    <Button size="sm" className="w-full h-7 text-xs" onClick={() => openCheckout('pro')} disabled={balance?.tier === 'pro'}>
+                      {balance?.tier === 'pro' ? 'Current Plan' : 'Subscribe'}
+                    </Button>
+                  </div>
+
+                  {/* Team */}
+                  <div className={`p-4 rounded-lg border ${balance?.tier === 'team' ? 'border-primary bg-primary/5' : 'border-border/50'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-medium text-sm">Team</h3>
+                      {balance?.tier === 'team' && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded">Current</span>}
+                    </div>
+                    <div className="mb-3">
+                      <span className="text-xl font-semibold font-serif">$200</span>
+                      <span className="text-xs text-muted-foreground">/mo</span>
+                    </div>
+                    <ul className="text-xs text-muted-foreground space-y-1 mb-3">
+                      <li>7,500 credits/month</li>
+                      <li>Premium support</li>
+                    </ul>
+                    <Button variant="outline" size="sm" className="w-full h-7 text-xs" onClick={() => openCheckout('team')} disabled={balance?.tier === 'team'}>
+                      {balance?.tier === 'team' ? 'Current Plan' : 'Subscribe'}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick Start - More compact */}
+            <Card className="border-border/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Quick Start</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <pre className="bg-muted/50 p-3 rounded-lg overflow-x-auto text-xs font-mono">
+                  <code>{`curl -X POST https://layers.hustletogether.com/api/v1/chat/completions \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{
-    "model": "anthropic/claude-sonnet-4.5",
-    "messages": [{"role": "user", "content": "Hello!"}]
-  }'`}</code>
-            </pre>
-          </CardContent>
-        </Card>
-      </main>
+  -d '{"model": "anthropic/claude-sonnet-4.5", "messages": [{"role": "user", "content": "Hello!"}]}'`}</code>
+                </pre>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
