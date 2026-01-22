@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/card';
 import {
   Key,
-  CreditCard,
   Copy,
   Check,
   Plus,
@@ -27,8 +26,6 @@ import {
   BookOpen,
   RefreshCw,
   LayoutDashboard,
-  Activity,
-  Code,
   Settings,
   ArrowLeft,
 } from 'lucide-react';
@@ -54,7 +51,6 @@ const sidebarNav = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings, active: true },
   { name: 'Documentation', href: '/docs', icon: BookOpen },
-  { name: 'Playground', href: '/playground', icon: Code },
 ];
 
 export default function SettingsPage() {
@@ -191,17 +187,13 @@ export default function SettingsPage() {
           </Link>
 
           {/* Right side */}
-          <div className="flex items-center gap-3">
-            <Link href="/docs">
-              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-                Docs
-              </Button>
-            </Link>
-            <ThemeToggle />
+          <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground hidden md:inline">{user?.email}</span>
             <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
               <LogOut className="h-4 w-4" />
             </Button>
+            <div className="w-px h-5 bg-border/50 mx-1" />
+            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -209,6 +201,24 @@ export default function SettingsPage() {
       <div className="flex">
         {/* Sidebar */}
         <aside className="hidden lg:flex w-56 flex-col border-r border-border/50 bg-sidebar min-h-[calc(100vh-3.5rem)]">
+          {/* Credits - at top */}
+          <div className="p-4 border-b border-border/50">
+            <div className="rounded-lg bg-primary/5 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted-foreground">Credits</span>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                  balance?.tier === 'pro' ? 'bg-primary/20 text-primary' :
+                  balance?.tier === 'team' ? 'bg-primary/30 text-primary' :
+                  balance?.tier === 'starter' ? 'bg-primary/15 text-primary' :
+                  'bg-muted text-muted-foreground'
+                }`}>
+                  {(balance?.tier || 'FREE').toUpperCase()}
+                </span>
+              </div>
+              <div className="text-2xl font-semibold font-serif">{balance?.credits?.toFixed(0) || '0'}</div>
+            </div>
+          </div>
+
           <nav className="flex-1 space-y-1 p-4">
             {sidebarNav.map((item) => (
               <Link
@@ -225,24 +235,6 @@ export default function SettingsPage() {
               </Link>
             ))}
           </nav>
-
-          {/* Sidebar footer */}
-          <div className="border-t border-border/50 p-4">
-            <div className="rounded-lg bg-primary/5 p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-muted-foreground">Credits</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                  balance?.tier === 'pro' ? 'bg-primary/20 text-primary' :
-                  balance?.tier === 'team' ? 'bg-primary/30 text-primary' :
-                  balance?.tier === 'starter' ? 'bg-primary/15 text-primary' :
-                  'bg-muted text-muted-foreground'
-                }`}>
-                  {(balance?.tier || 'FREE').toUpperCase()}
-                </span>
-              </div>
-              <div className="text-2xl font-semibold font-serif">{balance?.credits?.toFixed(0) || '0'}</div>
-            </div>
-          </div>
         </aside>
 
         {/* Main Content */}

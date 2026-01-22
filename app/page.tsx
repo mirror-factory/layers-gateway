@@ -1,17 +1,17 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Zap, Key, CreditCard, BarChart3, Code, ArrowRight } from 'lucide-react';
+import { Key, CreditCard, BarChart3, Code, ArrowRight } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="border-b border-border/50 bg-card">
+        <div className="container mx-auto px-4 flex h-14 items-center justify-between md:h-16 md:px-6">
           <div className="flex items-center gap-2">
-            <Zap className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">Layers</span>
+            <span className="font-serif text-xl font-bold md:text-2xl">Layers</span>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" asChild>
@@ -20,6 +20,8 @@ export default function Home() {
             <Button asChild>
               <Link href="/signup">Get Started</Link>
             </Button>
+            <div className="w-px h-5 bg-border/50 mx-1 hidden sm:block" />
+            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -148,13 +150,10 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t mt-16">
+      <footer className="border-t border-border/50 mt-16">
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4" />
-              <span>Layers API</span>
-            </div>
+            <span className="font-serif font-medium">Layers</span>
             <p>&copy; 2026 Layers. All rights reserved.</p>
           </div>
         </div>

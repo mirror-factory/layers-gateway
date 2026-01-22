@@ -15,7 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Loader2, Zap } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 function LoginForm() {
   const [email, setEmail] = useState('');
@@ -55,9 +55,8 @@ function LoginForm() {
   return (
     <Card>
       <CardHeader className="space-y-1">
-        <div className="flex items-center gap-2 mb-2">
-          <Zap className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold">Layers</span>
+        <div className="mb-2">
+          <span className="font-serif text-2xl font-bold">Layers</span>
         </div>
         <CardTitle className="text-2xl">Sign in</CardTitle>
         <CardDescription>

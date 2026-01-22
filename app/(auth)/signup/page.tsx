@@ -15,7 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Loader2, Zap, CheckCircle } from 'lucide-react';
+import { Loader2, CheckCircle } from 'lucide-react';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -69,9 +69,8 @@ export default function SignupPage() {
     return (
       <Card>
         <CardHeader className="space-y-1">
-          <div className="flex items-center gap-2 mb-2">
-            <Zap className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">Layers</span>
+          <div className="mb-2">
+            <span className="font-serif text-2xl font-bold">Layers</span>
           </div>
           <CardTitle className="text-2xl">Check your email</CardTitle>
         </CardHeader>
@@ -101,9 +100,8 @@ export default function SignupPage() {
   return (
     <Card>
       <CardHeader className="space-y-1">
-        <div className="flex items-center gap-2 mb-2">
-          <Zap className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold">Layers</span>
+        <div className="mb-2">
+          <span className="font-serif text-2xl font-bold">Layers</span>
         </div>
         <CardTitle className="text-2xl">Create an account</CardTitle>
         <CardDescription>
