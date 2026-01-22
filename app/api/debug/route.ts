@@ -8,19 +8,58 @@ export async function GET() {
 
   let dbTest = 'not attempted';
   let keyCount = 0;
+  let balanceCount = 0;
+  let usersWithKeys: Array<{ user_id: string; key_count: number; balance: number | null; tier: string | null }> = [];
 
   if (configured) {
     try {
       const supabase = createServerClient();
-      const { data, error, count } = await supabase
+
+      // Count API keys
+      const { error: keyError, count: keysTotal } = await supabase
         .from('api_keys')
         .select('id', { count: 'exact' });
 
-      if (error) {
-        dbTest = `error: ${error.message}`;
+      if (keyError) {
+        dbTest = `error: ${keyError.message}`;
       } else {
         dbTest = 'success';
-        keyCount = count || 0;
+        keyCount = keysTotal || 0;
+      }
+
+      // Count credit balances
+      const { count: balancesTotal } = await supabase
+        .from('credit_balances')
+        .select('id', { count: 'exact' });
+      balanceCount = balancesTotal || 0;
+
+      // Get summary of users with keys and their balances
+      const { data: keys } = await supabase
+        .from('api_keys')
+        .select('user_id');
+
+      if (keys) {
+        const userIds = [...new Set(keys.map(k => k.user_id))];
+
+        for (const userId of userIds.slice(0, 5)) { // Limit to 5 users
+          const { count: userKeyCount } = await supabase
+            .from('api_keys')
+            .select('id', { count: 'exact' })
+            .eq('user_id', userId);
+
+          const { data: balance } = await supabase
+            .from('credit_balances')
+            .select('balance, tier')
+            .eq('user_id', userId)
+            .single();
+
+          usersWithKeys.push({
+            user_id: userId.substring(0, 8) + '...',
+            key_count: userKeyCount || 0,
+            balance: balance?.balance ? parseFloat(balance.balance) : null,
+            tier: balance?.tier || null,
+          });
+        }
       }
     } catch (e) {
       dbTest = `exception: ${String(e)}`;
@@ -37,6 +76,8 @@ export async function GET() {
     configured,
     dbTest,
     keyCount,
+    balanceCount,
+    usersWithKeys,
     testKeyHash: hash,
     expectedHash: '6c42d42ddd9507aace7a9a15eaf1bbd13b8c0ecd33af2f3ac85e4f0994006ace',
     hashMatch: hash === '6c42d42ddd9507aace7a9a15eaf1bbd13b8c0ecd33af2f3ac85e4f0994006ace',
