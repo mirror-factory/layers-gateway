@@ -23,68 +23,101 @@ export async function POST() {
     }
 
     const serverClient = createServerClient();
+    const stripe = getStripe();
 
-    // Get user's Stripe customer ID
-    const { data: balance } = await serverClient
+    // First, check if user has a credit_balances row
+    const { data: existingBalance } = await serverClient
       .from('credit_balances')
-      .select('stripe_customer_id, stripe_subscription_id')
+      .select('*')
       .eq('user_id', user.id)
       .single();
 
-    if (!balance?.stripe_customer_id) {
-      return NextResponse.json({
-        error: 'No Stripe customer found',
-        message: 'User has not made any purchases yet'
-      }, { status: 404 });
+    // Find Stripe customer by user ID in metadata or by email
+    let customerId = existingBalance?.stripe_customer_id;
+
+    if (!customerId) {
+      // Search for customer by metadata userId or email
+      const customers = await stripe.customers.search({
+        query: `metadata['userId']:'${user.id}' OR email:'${user.email}'`,
+        limit: 1,
+      });
+
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+      }
     }
 
-    const stripe = getStripe();
+    if (!customerId) {
+      // No Stripe customer found - ensure user has a free tier row
+      if (!existingBalance) {
+        await serverClient.from('credit_balances').insert({
+          user_id: user.id,
+          balance: 0,
+          tier: 'free',
+          monthly_credits: 0,
+        });
+      }
+
+      return NextResponse.json({
+        synced: true,
+        tier: 'free',
+        credits: 0,
+        message: 'No Stripe customer found. Free tier set.',
+      });
+    }
 
     // Get active subscriptions for this customer
     const subscriptions = await stripe.subscriptions.list({
-      customer: balance.stripe_customer_id,
+      customer: customerId,
       status: 'active',
       limit: 1,
     });
 
     if (subscriptions.data.length === 0) {
       // No active subscription - set to free tier
-      await serverClient
-        .from('credit_balances')
-        .update({
-          tier: 'free',
-          stripe_subscription_status: 'none',
-          monthly_credits: 0,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', user.id);
+      const updateData = {
+        user_id: user.id,
+        stripe_customer_id: customerId,
+        tier: 'free',
+        stripe_subscription_status: 'none',
+        monthly_credits: 0,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (existingBalance) {
+        await serverClient
+          .from('credit_balances')
+          .update(updateData)
+          .eq('user_id', user.id);
+      } else {
+        await serverClient
+          .from('credit_balances')
+          .insert({ ...updateData, balance: 0 });
+      }
 
       return NextResponse.json({
         synced: true,
         tier: 'free',
-        message: 'No active subscription found',
+        message: 'No active subscription found. Free tier set.',
       });
     }
 
+    // Found active subscription
     const subscription = subscriptions.data[0];
     const priceId = subscription.items.data[0]?.price.id;
-    const tier = priceId ? tierFromPriceId(priceId) : 'starter';
-    const credits = tier ? creditsForTier(tier) : 500;
+    const tier = priceId ? tierFromPriceId(priceId) : 'pro';
+    const credits = tier ? creditsForTier(tier) : 3000;
 
-    // Update database with subscription info
-    const { data: currentBalance } = await serverClient
-      .from('credit_balances')
-      .select('balance')
-      .eq('user_id', user.id)
-      .single();
-
-    // If balance is 0 or null, grant initial credits
-    const shouldGrantCredits = !currentBalance?.balance || currentBalance.balance === 0;
+    // Determine if we should grant credits
+    const currentBalance = existingBalance?.balance || 0;
+    const shouldGrantCredits = currentBalance === 0;
 
     const updateData: Record<string, unknown> = {
+      user_id: user.id,
+      stripe_customer_id: customerId,
       stripe_subscription_id: subscription.id,
       stripe_subscription_status: subscription.status,
-      tier: tier || 'starter',
+      tier: tier || 'pro',
       monthly_credits: credits,
       updated_at: new Date().toISOString(),
     };
@@ -93,20 +126,30 @@ export async function POST() {
       updateData.balance = credits;
     }
 
-    await serverClient
-      .from('credit_balances')
-      .update(updateData)
-      .eq('user_id', user.id);
+    if (existingBalance) {
+      await serverClient
+        .from('credit_balances')
+        .update(updateData)
+        .eq('user_id', user.id);
+    } else {
+      updateData.balance = credits; // Always grant credits for new row
+      await serverClient
+        .from('credit_balances')
+        .insert(updateData);
+    }
+
+    const finalBalance = shouldGrantCredits || !existingBalance ? credits : currentBalance;
 
     return NextResponse.json({
       synced: true,
-      tier: tier || 'starter',
-      credits: credits,
+      tier: tier || 'pro',
+      credits: finalBalance,
+      monthly_credits: credits,
       subscription_status: subscription.status,
-      balance_updated: shouldGrantCredits,
-      message: shouldGrantCredits
-        ? `Subscription synced! Added ${credits} credits to your balance.`
-        : 'Subscription synced! Balance unchanged (already had credits).',
+      balance_updated: shouldGrantCredits || !existingBalance,
+      message: shouldGrantCredits || !existingBalance
+        ? `Subscription synced! You now have ${credits} credits.`
+        : `Subscription synced! Tier: ${tier}, Balance: ${currentBalance} credits.`,
     });
   } catch (error) {
     console.error('Stripe sync error:', error);

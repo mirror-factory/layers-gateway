@@ -27,7 +27,9 @@ import {
   Eye,
   EyeOff,
   BookOpen,
-  TestTube,
+  RefreshCw,
+  TrendingUp,
+  Activity,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -219,12 +221,6 @@ export default function DashboardPage() {
                 Docs
               </Button>
             </Link>
-            <Link href="/dashboard/tests">
-              <Button variant="ghost" size="sm">
-                <TestTube className="h-4 w-4 mr-2" />
-                Tests
-              </Button>
-            </Link>
             <span className="text-sm text-muted-foreground">{user?.email}</span>
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 mr-2" />
@@ -236,17 +232,24 @@ export default function DashboardPage() {
 
       <main className="container mx-auto px-4 py-8 space-y-8">
         {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Credit Balance</CardTitle>
               <CreditCard className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{balance?.credits?.toFixed(2) || '0.00'}</div>
-              <p className="text-xs text-muted-foreground">
-                {balance?.tier || 'Free'} tier
-              </p>
+              <div className="text-3xl font-bold">{balance?.credits?.toFixed(0) || '0'}</div>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  balance?.tier === 'pro' ? 'bg-primary/20 text-primary' :
+                  balance?.tier === 'team' ? 'bg-purple-500/20 text-purple-500' :
+                  balance?.tier === 'starter' ? 'bg-blue-500/20 text-blue-500' :
+                  'bg-muted text-muted-foreground'
+                }`}>
+                  {(balance?.tier || 'free').toUpperCase()}
+                </span>
+              </div>
             </CardContent>
           </Card>
 
@@ -256,8 +259,8 @@ export default function DashboardPage() {
               <Key className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{apiKeys.length}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-3xl font-bold">{apiKeys.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">
                 {apiKeys.filter(k => k.is_active).length} active
               </p>
             </CardContent>
@@ -265,13 +268,26 @@ export default function DashboardPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">This Month</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Requests</CardTitle>
+              <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{usage?.this_month_requests || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                {usage?.this_month_credits?.toFixed(2) || '0.00'} credits used
+              <div className="text-3xl font-bold">{usage?.this_month_requests || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                this month
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Credits Used</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{usage?.this_month_credits?.toFixed(1) || '0'}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                this month
               </p>
             </CardContent>
           </Card>
@@ -492,8 +508,9 @@ export default function DashboardPage() {
                   Manage Subscription
                 </Button>
               )}
-              <Button variant="ghost" onClick={syncSubscription}>
-                Sync Subscription
+              <Button variant="ghost" size="sm" onClick={syncSubscription}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Sync from Stripe
               </Button>
             </div>
           </CardContent>
@@ -509,7 +526,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
-              <code>{`curl -X POST https://api.layers.dev/v1/chat \\
+              <code>{`curl -X POST https://layers.hustletogether.com/api/v1/chat/completions \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
