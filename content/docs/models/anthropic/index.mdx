@@ -110,6 +110,11 @@ const { output } = await generateText({
 | Extended Thinking | No | Yes | Yes |
 | Best For | Quick tasks | Coding, chat | Complex reasoning |
 
-## Try Anthropic Models
+## Quick Start
 
-<ModelPlayground defaultProvider="anthropic" singleProvider={true} />
+```bash
+curl -X POST https://layers.hustletogether.com/api/v1/chat/completions \
+  -H "Authorization: Bearer lyr_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "anthropic/claude-sonnet-4-20250514", "messages": [{"role": "user", "content": "Hello!"}]}'
+```
