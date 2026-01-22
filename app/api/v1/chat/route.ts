@@ -263,6 +263,7 @@ export async function POST(request: NextRequest) {
     const finishReason = data.tool_calls && data.tool_calls.length > 0 ? 'tool_calls' : 'stop';
 
     // 10. Return OpenAI-compatible response
+    // Include provider-specific fields like sources (Perplexity) at the top level
     return NextResponse.json(
       {
         id: data.id,
@@ -281,6 +282,8 @@ export async function POST(request: NextRequest) {
           completion_tokens: outputTokens,
           total_tokens: inputTokens + outputTokens,
         },
+        // Perplexity sources/citations (pass-through)
+        ...(data.sources && data.sources.length > 0 && { sources: data.sources }),
         // Layers-specific fields
         layers: {
           credits_used: creditsUsed,

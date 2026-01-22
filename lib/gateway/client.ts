@@ -64,6 +64,15 @@ export interface GatewayRequest {
   google?: Record<string, unknown>;
 }
 
+// Source/citation for Perplexity responses
+export interface Source {
+  type: 'source';
+  sourceType: 'url';
+  id: string;
+  url: string;
+  title?: string;
+}
+
 export interface GatewayResponse {
   id: string;
   object: string;
@@ -83,6 +92,10 @@ export interface GatewayResponse {
   }>;
   // Reasoning/thinking output
   reasoning?: unknown;
+  // Perplexity sources/citations
+  sources?: Source[];
+  // Provider metadata (pass-through)
+  provider_metadata?: Record<string, unknown>;
 }
 
 export interface GatewayError {
@@ -277,15 +290,23 @@ export async function callGateway(
     const completionTokens = usageData?.outputTokens ?? usageData?.completionTokens ?? usageData?.raw?.completion_tokens ?? 0;
 
     // Extract tool calls if present
+    // AI SDK returns toolCalls with: { toolCallId, toolName, input } (note: 'input' not 'args')
+    // We need to convert to OpenAI format: { id, type, function: { name, arguments } }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const toolCalls = result.toolCalls?.map((tc: any, i: number) => ({
-      id: `call_${Date.now()}_${i}`,
-      type: 'function' as const,
-      function: {
-        name: tc.toolName,
-        arguments: JSON.stringify(tc.args || {}),
-      },
-    }));
+    const toolCalls = result.toolCalls?.map((tc: any, i: number) => {
+      // AI SDK uses 'input' for the arguments object, not 'args'
+      const toolArgs = tc.input ?? tc.args ?? {};
+
+      return {
+        id: tc.toolCallId || `call_${Date.now()}_${i}`,
+        type: 'function' as const,
+        function: {
+          name: tc.toolName,
+          // Convert to JSON string for OpenAI compatibility
+          arguments: typeof toolArgs === 'string' ? toolArgs : JSON.stringify(toolArgs),
+        },
+      };
+    });
 
     // Handle JSON mode response
     let responseText = result.text;
@@ -294,6 +315,14 @@ export async function callGateway(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       responseText = JSON.stringify((result as any).output);
     }
+
+    // Extract sources (Perplexity) - AI SDK provides these in result.sources
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resultAny = result as any;
+    const sources = resultAny.sources as Source[] | undefined;
+
+    // Extract provider metadata for pass-through
+    const providerMetadata = result.providerMetadata;
 
     const response: GatewayResponse = {
       id: `chatcmpl-${Date.now()}`,
@@ -308,6 +337,8 @@ export async function callGateway(
       },
       ...(toolCalls && toolCalls.length > 0 && { tool_calls: toolCalls }),
       ...(result.reasoning && { reasoning: result.reasoning }),
+      ...(sources && sources.length > 0 && { sources }),
+      ...(providerMetadata && { provider_metadata: providerMetadata }),
     };
 
     return { success: true, data: response };
