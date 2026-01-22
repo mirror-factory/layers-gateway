@@ -31,6 +31,7 @@ import {
   Activity,
 } from 'lucide-react';
 import Link from 'next/link';
+import { ThemeToggle } from '@/components/theme-toggle';
 import {
   BarChart,
   Bar,
@@ -105,17 +106,24 @@ interface UsageStats {
   recent_logs: RecentLog[];
 }
 
-// Chart colors for different providers
+// Chart colors - mint palette for consistent branding
 const PROVIDER_COLORS: Record<string, string> = {
-  anthropic: '#D97706',
-  openai: '#10B981',
-  google: '#3B82F6',
-  perplexity: '#8B5CF6',
-  morph: '#EC4899',
-  unknown: '#6B7280',
+  anthropic: 'oklch(0.70 0.12 166)',  // mint-600
+  openai: 'oklch(0.55 0.12 166)',     // mint-700
+  google: 'oklch(0.80 0.12 166)',     // mint-500
+  perplexity: 'oklch(0.40 0.10 166)', // mint-800
+  morph: 'oklch(0.60 0.10 166)',      // mint-600 variant
+  unknown: 'oklch(0.50 0.05 166)',    // muted mint
 };
 
-const CHART_COLORS = ['#D97706', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280'];
+const CHART_COLORS = [
+  'oklch(0.70 0.12 166)',  // mint-600
+  'oklch(0.55 0.12 166)',  // mint-700
+  'oklch(0.80 0.12 166)',  // mint-500
+  'oklch(0.40 0.10 166)',  // mint-800
+  'oklch(0.60 0.10 166)',  // mint variant
+  'oklch(0.50 0.05 166)',  // muted mint
+];
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
@@ -277,14 +285,15 @@ export default function DashboardPage() {
             <Zap className="h-6 w-6 text-primary" />
             <span className="text-xl font-bold">Layers</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <Link href="/docs">
               <Button variant="ghost" size="sm">
                 <BookOpen className="h-4 w-4 mr-2" />
                 Docs
               </Button>
             </Link>
-            <span className="text-sm text-muted-foreground">{user?.email}</span>
+            <ThemeToggle />
+            <span className="text-sm text-muted-foreground hidden sm:inline">{user?.email}</span>
             <Button variant="ghost" size="sm" onClick={handleSignOut}>
               <LogOut className="h-4 w-4 mr-2" />
               Sign out
@@ -305,9 +314,9 @@ export default function DashboardPage() {
               <div className="text-3xl font-bold">{balance?.credits?.toFixed(0) || '0'}</div>
               <div className="flex items-center gap-2 mt-1">
                 <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  balance?.tier === 'pro' ? 'bg-primary/20 text-primary' :
-                  balance?.tier === 'team' ? 'bg-purple-500/20 text-purple-500' :
-                  balance?.tier === 'starter' ? 'bg-blue-500/20 text-blue-500' :
+                  balance?.tier === 'pro' ? 'bg-mint-600/20 text-mint-700 dark:text-mint-400' :
+                  balance?.tier === 'team' ? 'bg-mint-700/20 text-mint-800 dark:text-mint-300' :
+                  balance?.tier === 'starter' ? 'bg-mint-500/20 text-mint-600 dark:text-mint-400' :
                   'bg-muted text-muted-foreground'
                 }`}>
                   {(balance?.tier || 'free').toUpperCase()}
@@ -382,8 +391,8 @@ export default function DashboardPage() {
                           contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
                         />
                         <Legend />
-                        <Line type="monotone" dataKey="requests" stroke="#3B82F6" name="Requests" strokeWidth={2} />
-                        <Line type="monotone" dataKey="credits" stroke="#D97706" name="Credits" strokeWidth={2} />
+                        <Line type="monotone" dataKey="requests" stroke="oklch(0.70 0.12 166)" name="Requests" strokeWidth={2} />
+                        <Line type="monotone" dataKey="credits" stroke="oklch(0.55 0.12 166)" name="Credits" strokeWidth={2} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -451,7 +460,7 @@ export default function DashboardPage() {
                         <Tooltip
                           contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
                         />
-                        <Bar dataKey="requests" fill="#3B82F6" name="Requests" radius={[0, 4, 4, 0]} />
+                        <Bar dataKey="requests" fill="oklch(0.70 0.12 166)" name="Requests" radius={[0, 4, 4, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -482,7 +491,7 @@ export default function DashboardPage() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className={`text-xs font-medium ${log.status === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+                          <p className={`text-xs font-medium ${log.status === 'success' ? 'text-mint-600 dark:text-mint-400' : 'text-destructive'}`}>
                             {log.status}
                           </p>
                           <p className="text-xs text-muted-foreground">
@@ -531,7 +540,7 @@ export default function DashboardPage() {
                   onClick={() => copyToClipboard(newKey, 'new')}
                 >
                   {copiedId === 'new' ? (
-                    <Check className="h-4 w-4 text-green-500" />
+                    <Check className="h-4 w-4 text-mint-600 dark:text-mint-400" />
                   ) : (
                     <Copy className="h-4 w-4" />
                   )}

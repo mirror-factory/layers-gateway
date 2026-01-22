@@ -282,12 +282,27 @@ export async function callGateway(
     const result = await generateText(generateOptions);
 
     // Build response in OpenAI-compatible format
-    // The AI SDK returns usage with inputTokens/outputTokens (not promptTokens/completionTokens)
-    // Also check raw field for snake_case versions as fallback
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const usageData = result.usage as any;
-    const promptTokens = usageData?.inputTokens ?? usageData?.promptTokens ?? usageData?.raw?.prompt_tokens ?? 0;
-    const completionTokens = usageData?.outputTokens ?? usageData?.completionTokens ?? usageData?.raw?.completion_tokens ?? 0;
+    const resultAny = result as any;
+
+    // Extract usage data - prefer raw values from response.body.usage.raw for accuracy
+    const responseBody = resultAny.response?.body;
+    const rawUsage = responseBody?.usage?.raw;
+    const usageData = result.usage as Record<string, unknown> | undefined;
+
+    // Token extraction priority: raw (most accurate) > response.body > result.usage
+    const promptTokens =
+      rawUsage?.input_tokens ??
+      responseBody?.usage?.inputTokens?.total ??
+      (usageData?.inputTokens as number | undefined) ??
+      (usageData?.promptTokens as number | undefined) ??
+      0;
+    const completionTokens =
+      rawUsage?.output_tokens ??
+      responseBody?.usage?.outputTokens?.total ??
+      (usageData?.outputTokens as number | undefined) ??
+      (usageData?.completionTokens as number | undefined) ??
+      0;
 
     // Extract tool calls if present
     // AI SDK returns toolCalls with: { toolCallId, toolName, input } (note: 'input' not 'args')
@@ -310,22 +325,26 @@ export async function callGateway(
 
     // Handle JSON mode response
     let responseText = result.text;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (request.response_format?.type === 'json_object' && (result as any).output) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      responseText = JSON.stringify((result as any).output);
+    if (request.response_format?.type === 'json_object' && resultAny.output) {
+      responseText = JSON.stringify(resultAny.output);
     }
 
-    // Extract sources (Perplexity) - AI SDK provides these in result.sources
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resultAny = result as any;
+    // Extract sources (Perplexity) - check both result.sources and response.body
     const sources = resultAny.sources as Source[] | undefined;
 
     // Extract provider metadata for pass-through
-    const providerMetadata = result.providerMetadata;
+    // Includes gateway routing info, cost, and provider-specific metadata
+    const providerMetadata = responseBody?.providerMetadata ?? result.providerMetadata;
+
+    // Extract response ID from provider metadata when available
+    const providerResponseId =
+      providerMetadata?.openai?.responseId ??
+      providerMetadata?.anthropic?.messageId ??
+      resultAny.response?.id;
+    const responseId = providerResponseId ? String(providerResponseId) : `chatcmpl-${Date.now()}`;
 
     const response: GatewayResponse = {
-      id: `chatcmpl-${Date.now()}`,
+      id: responseId,
       object: 'chat.completion',
       created: Math.floor(Date.now() / 1000),
       model: request.model,
