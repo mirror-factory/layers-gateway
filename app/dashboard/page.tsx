@@ -179,6 +179,22 @@ export default function DashboardPage() {
     }
   };
 
+  const syncSubscription = async () => {
+    try {
+      const res = await fetch('/api/stripe/sync', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || 'Subscription synced!');
+        loadData(); // Reload dashboard data
+      } else {
+        alert(data.error || 'Failed to sync subscription');
+      }
+    } catch (err) {
+      console.error('Sync failed:', err);
+      alert('Failed to sync subscription');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -469,14 +485,17 @@ export default function DashboardPage() {
               </Card>
             </div>
 
-            {balance?.tier && balance.tier !== 'free' && (
-              <div className="pt-4 border-t">
+            <div className="pt-4 border-t flex gap-2">
+              {balance?.tier && balance.tier !== 'free' && (
                 <Button variant="outline" onClick={openBillingPortal}>
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Manage Subscription
                 </Button>
-              </div>
-            )}
+              )}
+              <Button variant="ghost" onClick={syncSubscription}>
+                Sync Subscription
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
