@@ -170,3 +170,51 @@ export interface AffordabilityCheck {
   /** Reason if not affordable */
   reason?: string;
 }
+
+/**
+ * Cost breakdown for transparency
+ * Used when external base cost is provided (e.g., from Mirror Factory)
+ */
+export interface CostBreakdown {
+  /** Base cost in USD (from external source or calculated) */
+  base_cost_usd: number;
+  /** Margin percentage applied */
+  margin_percent: number;
+  /** Total cost after margin */
+  total_cost_usd: number;
+  /** Credits before margin */
+  credits_before_margin: number;
+  /** Margin portion in credits */
+  margin_credits: number;
+  /** Validation status */
+  validation: 'ok' | 'warning';
+  /** Validation details if there's a discrepancy */
+  validation_details?: {
+    external_base_cost_usd: number;
+    calculated_base_cost_usd: number;
+    difference_usd: number;
+    difference_percent: number;
+  };
+}
+
+/**
+ * Layers response metadata (added to API responses)
+ */
+export interface LayersResponseMetadata {
+  /** Credits charged for this request */
+  credits_used: number;
+  /** Request latency in milliseconds */
+  latency_ms: number;
+  /** Reasoning content (for thinking models) */
+  reasoning?: string;
+  /** Cost breakdown (when external base cost provided) */
+  cost_breakdown?: CostBreakdown;
+}
+
+/**
+ * External cost input (from Mirror Factory)
+ */
+export interface ExternalCostInput {
+  /** Base cost in USD calculated by the caller */
+  base_cost_usd: number;
+}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateApiKey, authErrorResponse } from '@/lib/middleware/auth';
-import { calculateCredits, estimateCredits, checkBalance, deductCredits, logUsage, creditsToUsd } from '@/lib/middleware/credits';
+import { calculateCredits, estimateCredits, checkBalance, deductCredits, logUsage, creditsToUsd, calculateCreditsWithBreakdown, type MirrorFactoryInput, type CostBreakdown } from '@/lib/middleware/credits';
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/middleware/rate-limit';
 import { callGateway, callGatewayStream, parseProvider, GatewayMessage, ToolDefinition } from '@/lib/gateway/client';
 
@@ -26,6 +26,8 @@ interface ChatRequest {
   anthropic?: Record<string, unknown>;
   openai?: Record<string, unknown>;
   google?: Record<string, unknown>;
+  // External cost input (from Mirror Factory)
+  mirror_factory?: MirrorFactoryInput;
 }
 
 /**
@@ -85,7 +87,22 @@ export async function POST(request: NextRequest) {
       anthropic: anthropicOptions,
       openai: openaiOptions,
       google: googleOptions,
+      mirror_factory,
     } = body;
+
+    // Validate mirror_factory.base_cost_usd if provided
+    if (mirror_factory?.base_cost_usd !== undefined) {
+      const baseCost = mirror_factory.base_cost_usd;
+      if (typeof baseCost !== 'number' || isNaN(baseCost) || baseCost < 0) {
+        return NextResponse.json(
+          {
+            error: 'Invalid mirror_factory.base_cost_usd',
+            details: 'base_cost_usd must be a non-negative number',
+          },
+          { status: 400 }
+        );
+      }
+    }
 
     // Validate required fields
     if (!model) {
@@ -219,10 +236,15 @@ export async function POST(request: NextRequest) {
     const { data } = gatewayResult;
     const latencyMs = Date.now() - startTime;
 
-    // 7. Calculate actual credits used
+    // 7. Calculate actual credits used (with breakdown if mirror_factory provided)
     const inputTokens = data.usage.prompt_tokens || 0;
     const outputTokens = data.usage.completion_tokens || 0;
-    const creditsUsed = calculateCredits(model, inputTokens, outputTokens);
+    const { credits: creditsUsed, breakdown: costBreakdown } = calculateCreditsWithBreakdown(
+      model,
+      inputTokens,
+      outputTokens,
+      mirror_factory
+    );
     const provider = parseProvider(model);
 
     // 8. Log usage and deduct credits
@@ -235,10 +257,14 @@ export async function POST(request: NextRequest) {
         request_type: 'chat',
         input_tokens: inputTokens,
         output_tokens: outputTokens,
-        cost_usd: creditsToUsd(creditsUsed),
+        cost_usd: costBreakdown.base_cost_usd,
         credits_used: creditsUsed,
         latency_ms: latencyMs,
         status: 'success',
+        metadata: {
+          cost_breakdown: costBreakdown,
+          ...(mirror_factory && { external_cost_source: 'mirror_factory' }),
+        },
       }),
       deductCredits(userId, creditsUsed),
     ]);
@@ -297,6 +323,8 @@ export async function POST(request: NextRequest) {
           credits_used: creditsUsed,
           latency_ms: latencyMs,
           reasoning: data.reasoning || undefined,
+          // Include cost breakdown for transparency
+          cost_breakdown: costBreakdown,
         },
       },
       {
@@ -338,10 +366,17 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     status: 'ok',
-    version: 'v1.4.0', // Added experimental_providerMetadata for AI SDK compatibility
-    build: '2026-01-22T12:00:00Z',
+    version: 'v1.6.0', // Added pricing sync from Hustle Together AI
+    build: '2026-01-23T14:00:00Z',
     endpoints: {
       chat: 'POST /api/v1/chat',
+      pricing: 'GET/POST /api/v1/pricing',
+    },
+    features: {
+      cost_breakdown: true,
+      mirror_factory_input: true,
+      validation: true,
+      pricing_sync: true,
     },
     docs: 'https://layers.hustletogether.com/docs',
     timestamp: new Date().toISOString(),

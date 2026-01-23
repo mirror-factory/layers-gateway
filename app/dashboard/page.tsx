@@ -23,6 +23,7 @@ import {
   LayoutDashboard,
   Settings,
   ArrowUpRight,
+  DollarSign,
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -106,6 +107,7 @@ interface UsageStats {
 // Sidebar navigation items
 const sidebarNav = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard, active: true },
+  { name: 'Pricing & Credits', href: '/dashboard/pricing', icon: DollarSign },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   { name: 'Documentation', href: '/docs', icon: BookOpen },
 ];
@@ -460,7 +462,7 @@ export default function DashboardPage() {
             )}
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Link href="/dashboard/settings">
                 <Card className="border-border/50 hover:border-primary/50 transition-colors cursor-pointer group">
                   <CardContent className="p-5 flex items-center justify-between">
@@ -471,6 +473,22 @@ export default function DashboardPage() {
                       <div>
                         <p className="font-medium">API Keys & Billing</p>
                         <p className="text-sm text-muted-foreground">Manage keys and subscription</p>
+                      </div>
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </CardContent>
+                </Card>
+              </Link>
+              <Link href="/dashboard/pricing">
+                <Card className="border-border/50 hover:border-primary/50 transition-colors cursor-pointer group">
+                  <CardContent className="p-5 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <DollarSign className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Pricing & Credits</p>
+                        <p className="text-sm text-muted-foreground">View model costs and margins</p>
                       </div>
                     </div>
                     <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />

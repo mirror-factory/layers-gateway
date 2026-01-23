@@ -78,6 +78,11 @@ POST /api/v1/chat
 
   // Prompt Caching
   cache?: boolean;
+
+  // External Cost Input (for Mirror Factory integration)
+  mirror_factory?: {
+    base_cost_usd: number;  // Base cost calculated by caller
+  };
 }
 
 interface Message {
@@ -148,6 +153,23 @@ interface Tool {
     credits_used: number;
     latency_ms: number;
     reasoning?: object; // Extended thinking output (if enabled)
+    cost_breakdown: CostBreakdown;
+  };
+}
+
+// Cost breakdown for transparency
+interface CostBreakdown {
+  base_cost_usd: number;        // Base cost in USD (before margin)
+  margin_percent: number;       // Margin percentage applied (e.g., 60)
+  total_cost_usd: number;       // Total cost after margin
+  credits_before_margin: number;// Credits at base cost
+  margin_credits: number;       // Additional credits from margin
+  validation: "ok" | "warning"; // Cost validation status
+  validation_details?: {        // Only present if validation is "warning"
+    external_base_cost_usd: number;
+    calculated_base_cost_usd: number;
+    difference_usd: number;
+    difference_percent: number;
   };
 }
 
@@ -258,12 +280,17 @@ GET /api/v1/chat
 ```json
 {
   "status": "ok",
-  "version": "v1",
+  "version": "v1.5.0",
   "endpoints": {
     "chat": "POST /api/v1/chat"
   },
+  "features": {
+    "cost_breakdown": true,
+    "mirror_factory_input": true,
+    "validation": true
+  },
   "docs": "https://layers.hustletogether.com/docs",
-  "timestamp": "2026-01-16T12:00:00.000Z"
+  "timestamp": "2026-01-23T12:00:00.000Z"
 }
 ```
 
@@ -315,6 +342,14 @@ All errors follow this format:
   "error": "Rate limit exceeded",
   "limit": 10,
   "reset_at": "2026-01-16T12:01:00.000Z"
+}
+```
+
+**Invalid External Cost (400)**
+```json
+{
+  "error": "Invalid mirror_factory.base_cost_usd",
+  "details": "base_cost_usd must be a non-negative number"
 }
 ```
 
@@ -535,6 +570,61 @@ interface Source {
   title?: string;
 }
 ```
+
+### Cost Transparency (v1.5.0+)
+
+Every response includes a full cost breakdown in the `layers` object:
+
+```typescript
+const data = await response.json();
+
+console.log(data.layers.cost_breakdown);
+// {
+//   base_cost_usd: 0.0035,         // Base provider cost
+//   margin_percent: 60,             // Layers margin (60%)
+//   total_cost_usd: 0.0056,        // Total cost after margin
+//   credits_before_margin: 0.35,   // Credits at base rate
+//   margin_credits: 0.21,          // Additional margin credits
+//   validation: "ok"               // Cost validation status
+// }
+```
+
+**External Cost Input (Mirror Factory Integration)**
+
+If you calculate your own base costs, you can pass them to Layers for validation:
+
+```typescript
+const response = await fetch('/api/v1/chat', {
+  method: 'POST',
+  headers: { /* ... */ },
+  body: JSON.stringify({
+    model: 'anthropic/claude-sonnet-4.5',
+    messages: [{ role: 'user', content: 'Hello!' }],
+    mirror_factory: {
+      base_cost_usd: 0.0035  // Your calculated cost
+    }
+  }),
+});
+
+const data = await response.json();
+
+// Layers validates your cost against its own calculation
+if (data.layers.cost_breakdown.validation === 'warning') {
+  console.log('Cost discrepancy detected:', data.layers.cost_breakdown.validation_details);
+  // {
+  //   external_base_cost_usd: 0.0035,    // What you sent
+  //   calculated_base_cost_usd: 0.0034,  // What Layers calculated
+  //   difference_usd: 0.0001,            // Difference
+  //   difference_percent: 2.94           // Difference %
+  // }
+}
+```
+
+**Validation Levels:**
+- `"ok"` - Costs match within 5% threshold
+- `"warning"` - Costs differ by more than 5% (may indicate pricing drift)
+
+**Note:** The `mirror_factory.base_cost_usd` field is optional. If omitted, Layers calculates the base cost from its own model registry.
 
 ### Streaming
 

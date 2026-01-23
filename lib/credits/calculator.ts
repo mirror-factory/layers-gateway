@@ -5,8 +5,11 @@
  */
 
 import { getModel, getModelSafe, type ModelId } from '../models/index';
-import type { MarginConfig } from './types';
+import type { MarginConfig, CostBreakdown, ExternalCostInput } from './types';
 import { DEFAULT_MARGIN_CONFIG } from './types';
+
+/** Threshold for flagging cost discrepancies (5% difference) */
+const DISCREPANCY_THRESHOLD_PERCENT = 5;
 
 /**
  * Get the effective margin for a model
@@ -201,4 +204,86 @@ export function getCostBreakdown(
     revenue,
     profit,
   };
+}
+
+/**
+ * Calculate credits with external base cost and return full breakdown
+ *
+ * When an external system (like Mirror Factory) provides the base cost,
+ * we use their cost for billing but validate against our own calculation.
+ *
+ * @param modelId - The model ID (for validation calculation)
+ * @param inputTokens - Number of input tokens (for validation calculation)
+ * @param outputTokens - Number of output tokens (for validation calculation)
+ * @param externalCost - External cost input with base_cost_usd
+ * @param config - Margin configuration
+ * @returns Credits used and full cost breakdown
+ */
+export function calculateCreditsWithBreakdown(
+  modelId: string,
+  inputTokens: number,
+  outputTokens: number,
+  externalCost: ExternalCostInput | undefined,
+  config: MarginConfig = DEFAULT_MARGIN_CONFIG
+): {
+  credits: number;
+  breakdown: CostBreakdown;
+} {
+  const marginPercent = getEffectiveMargin(modelId, config);
+
+  // Calculate our own base cost for validation
+  const ourBaseCost = calculateCostSafe(modelId, inputTokens, outputTokens);
+
+  // Determine which base cost to use
+  let baseCostUsd: number;
+  let validation: 'ok' | 'warning' = 'ok';
+  let validationDetails: CostBreakdown['validation_details'] | undefined;
+
+  if (externalCost && externalCost.base_cost_usd !== undefined) {
+    // Use external base cost
+    baseCostUsd = externalCost.base_cost_usd;
+
+    // Validate against our calculation
+    if (ourBaseCost !== null) {
+      const difference = Math.abs(baseCostUsd - ourBaseCost);
+      const differencePercent = ourBaseCost > 0 ? (difference / ourBaseCost) * 100 : 0;
+
+      if (differencePercent > DISCREPANCY_THRESHOLD_PERCENT) {
+        validation = 'warning';
+        validationDetails = {
+          external_base_cost_usd: baseCostUsd,
+          calculated_base_cost_usd: ourBaseCost,
+          difference_usd: difference,
+          difference_percent: differencePercent,
+        };
+      }
+    }
+  } else {
+    // No external cost provided, use our calculation
+    if (ourBaseCost === null) {
+      // Unknown model, use 0 (this shouldn't happen in production)
+      baseCostUsd = 0;
+    } else {
+      baseCostUsd = ourBaseCost;
+    }
+  }
+
+  // Apply margin
+  const creditsBeforeMargin = baseCostUsd / 0.01;
+  const marginMultiplier = 1 + marginPercent / 100;
+  const credits = creditsBeforeMargin * marginMultiplier;
+  const marginCredits = credits - creditsBeforeMargin;
+  const totalCostUsd = baseCostUsd * marginMultiplier;
+
+  const breakdown: CostBreakdown = {
+    base_cost_usd: baseCostUsd,
+    margin_percent: marginPercent,
+    total_cost_usd: totalCostUsd,
+    credits_before_margin: creditsBeforeMargin,
+    margin_credits: marginCredits,
+    validation,
+    ...(validationDetails && { validation_details: validationDetails }),
+  };
+
+  return { credits, breakdown };
 }
