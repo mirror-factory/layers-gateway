@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono, Cormorant_Garamond } from 'next/font/google';
-import { RootProvider } from 'fumadocs-ui/provider';
 import { ThemeProvider } from 'next-themes';
 import './globals.css';
 
@@ -49,7 +48,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <RootProvider>{children}</RootProvider>
+          {children}
         </ThemeProvider>
       </body>
     </html>
