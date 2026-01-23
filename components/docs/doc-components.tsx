@@ -1,9 +1,37 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Check, Copy, Info, AlertTriangle, AlertCircle, Lightbulb } from 'lucide-react';
+import {
+  Check,
+  Copy,
+  Info,
+  AlertTriangle,
+  AlertCircle,
+  Lightbulb,
+  Key,
+  CreditCard,
+  Zap,
+  BarChart3,
+  Layers,
+  Shield,
+  Globe,
+  Database,
+  LucideIcon,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+
+// Icon lookup for FeatureCard (to avoid passing functions across server/client boundary)
+const iconMap: Record<string, LucideIcon> = {
+  key: Key,
+  'credit-card': CreditCard,
+  zap: Zap,
+  'bar-chart': BarChart3,
+  layers: Layers,
+  shield: Shield,
+  globe: Globe,
+  database: Database,
+};
 
 // Code Block with syntax highlighting placeholder
 export function CodeBlock({
@@ -228,16 +256,17 @@ export function Endpoint({
   );
 }
 
-// Feature card
+// Feature card - accepts icon name string to avoid server/client boundary issues
 export function FeatureCard({
-  icon: Icon,
+  icon,
   title,
   description,
 }: {
-  icon: React.ElementType;
+  icon: string;
   title: string;
   description: string;
 }) {
+  const Icon = iconMap[icon] || Layers;
   return (
     <div className="p-4 rounded-lg border bg-card hover:border-primary/50 transition-colors">
       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">

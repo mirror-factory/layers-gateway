@@ -13,17 +13,7 @@ import {
   Td,
 } from '@/components/docs';
 import { Button } from '@/components/ui/button';
-import {
-  Key,
-  CreditCard,
-  Zap,
-  LayoutDashboard,
-  ArrowRight,
-  Layers,
-  Shield,
-  BarChart3,
-  Globe,
-} from 'lucide-react';
+import { LayoutDashboard, ArrowRight, Layers } from 'lucide-react';
 
 export const metadata = {
   title: 'Layers Documentation',
@@ -67,22 +57,22 @@ export default function DocsIndexPage() {
       {/* Features Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
         <FeatureCard
-          icon={Key}
+          icon="key"
           title="One API Key"
           description="Access Anthropic, OpenAI, Google, Perplexity, and Morph with a single key."
         />
         <FeatureCard
-          icon={CreditCard}
+          icon="credit-card"
           title="Unified Credits"
           description="One credit balance works across all providers. 1 credit = $0.01 USD."
         />
         <FeatureCard
-          icon={Zap}
+          icon="zap"
           title="OpenAI Compatible"
           description="Drop-in replacement for OpenAI SDK. Works with Vercel AI SDK."
         />
         <FeatureCard
-          icon={BarChart3}
+          icon="bar-chart"
           title="Usage Analytics"
           description="Real-time tracking of tokens, costs, and credits in your dashboard."
         />

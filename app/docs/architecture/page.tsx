@@ -14,7 +14,7 @@ import {
   FeatureCard,
   Flow,
 } from '@/components/docs';
-import { Layers, Shield, Zap, BarChart3, Globe, Database, Key, ArrowRight } from 'lucide-react';
+import { Shield, Globe, Database, Key, ArrowRight } from 'lucide-react';
 
 export const metadata = {
   title: 'Gateway Architecture - Layers Docs',
@@ -41,22 +41,22 @@ export default function ArchitecturePage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
         <FeatureCard
-          icon={Key}
+          icon="key"
           title="Unified API Key"
           description="One key for all providers - no more juggling multiple credentials."
         />
         <FeatureCard
-          icon={BarChart3}
+          icon="bar-chart"
           title="Automatic Tracking"
           description="Every API call logs tokens, costs, and credits automatically."
         />
         <FeatureCard
-          icon={Database}
+          icon="database"
           title="Credit System"
           description="Transparent pricing - 1 credit = $0.01 USD across all providers."
         />
         <FeatureCard
-          icon={Shield}
+          icon="shield"
           title="Centralized Enforcement"
           description="Rate limits, quotas, and billing enforced at the gateway level."
         />
