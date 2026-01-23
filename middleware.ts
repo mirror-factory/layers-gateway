@@ -52,9 +52,11 @@ export async function middleware(request: NextRequest) {
     });
 
     // Refresh session if it exists
+    // Type assertion needed due to @supabase/ssr type inference issues
+    // See: https://github.com/supabase/supabase-js/issues/1738
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+    } = await (supabase.auth as any).getUser();
 
     // Protected routes that require authentication
     const protectedPaths = ['/dashboard'];
