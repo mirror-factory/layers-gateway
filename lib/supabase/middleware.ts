@@ -6,8 +6,12 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  // Allow test docs without auth (public documentation)
-  const publicPaths = ['/dashboard/tests/docs', '/dashboard/tests/runner'];
+  // Public paths that don't need auth processing
+  const publicPaths = [
+    '/docs',
+    '/dashboard/tests/docs',
+    '/dashboard/tests/runner',
+  ];
   const isPublicPath = publicPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   );
@@ -20,61 +24,67 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
+  try {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            );
+            supabaseResponse = NextResponse.next({
+              request,
+            });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options)
+            );
+          },
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({
-            request,
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
-      },
+      }
+    );
+
+    // Refresh session if it exists
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // Protected routes that require authentication
+    const protectedPaths = ['/dashboard'];
+    const isProtectedPath = protectedPaths.some((path) =>
+      request.nextUrl.pathname.startsWith(path)
+    );
+
+    if (isProtectedPath && !user) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      // Only set redirectTo if not already present (avoid redirect loops)
+      if (!request.nextUrl.searchParams.has('redirectTo')) {
+        url.searchParams.set('redirectTo', request.nextUrl.pathname);
+      }
+      return NextResponse.redirect(url);
     }
-  );
 
-  // Refresh session if it exists
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    // Redirect authenticated users away from auth pages
+    const authPaths = ['/login', '/signup'];
+    const isAuthPath = authPaths.some((path) =>
+      request.nextUrl.pathname.startsWith(path)
+    );
 
-  // Protected routes that require authentication
-  const protectedPaths = ['/dashboard'];
-  const isProtectedPath = protectedPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
-  );
-
-  if (isProtectedPath && !user) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    // Only set redirectTo if not already present (avoid redirect loops)
-    if (!request.nextUrl.searchParams.has('redirectTo')) {
-      url.searchParams.set('redirectTo', request.nextUrl.pathname);
+    if (isAuthPath && user) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
     }
-    return NextResponse.redirect(url);
+
+    return supabaseResponse;
+  } catch (error) {
+    // If Supabase fails, continue without auth (don't break the site)
+    console.error('Middleware auth error:', error);
+    return supabaseResponse;
   }
-
-  // Redirect authenticated users away from auth pages
-  const authPaths = ['/login', '/signup'];
-  const isAuthPath = authPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
-  );
-
-  if (isAuthPath && user) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
-    return NextResponse.redirect(url);
-  }
-
-  return supabaseResponse;
 }
