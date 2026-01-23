@@ -1,7 +1,3 @@
-import { createMDX } from 'fumadocs-mdx/next';
-
-const withMDX = createMDX();
-
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
@@ -9,4 +5,4 @@ const config = {
   transpilePackages: ['@layers/models', '@layers/credits'],
 };
 
-export default withMDX(config);
+export default config;
