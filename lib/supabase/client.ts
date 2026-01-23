@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 
 // Singleton pattern for server client
 let serverClient: SupabaseClient | null = null;
@@ -52,7 +52,6 @@ export function hashApiKey(key: string): string {
  * Format: lyr_live_<base64url-encoded-32-random-bytes>
  */
 export function generateApiKey(): { key: string; prefix: string; hash: string } {
-  const { randomBytes } = require('crypto');
   const prefix = 'lyr_live_';
   const randomPart = randomBytes(32).toString('base64url');
   const key = `${prefix}${randomPart}`;
