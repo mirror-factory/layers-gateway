@@ -101,7 +101,7 @@ function LoginForm() {
     <Card>
       <CardHeader className="space-y-1">
         <div className="mb-2">
-          <span className="font-serif text-2xl font-bold">Layers Login</span>
+          <span className="font-serif text-2xl font-bold">Layers</span>
         </div>
         <CardTitle className="text-2xl">Sign in</CardTitle>
         <CardDescription>
