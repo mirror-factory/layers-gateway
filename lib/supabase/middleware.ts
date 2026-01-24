@@ -11,6 +11,7 @@ export async function updateSession(request: NextRequest) {
     '/docs',
     '/dashboard/tests/docs',
     '/dashboard/tests/runner',
+    '/auth/callback', // OAuth callback route
   ];
   const isPublicPath = publicPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
