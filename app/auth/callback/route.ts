@@ -9,6 +9,8 @@ export async function GET(request: Request) {
 
   if (code) {
     const cookieStore = await cookies();
+    const redirectUrl = new URL(next, origin);
+    const response = NextResponse.redirect(redirectUrl);
 
     // Create a Supabase client with proper cookie handling for the response
     const supabase = createServerClient(
@@ -20,8 +22,9 @@ export async function GET(request: Request) {
             return cookieStore.getAll();
           },
           setAll(cookiesToSet) {
+            // CRITICAL: Set cookies on the response, not just the store
             cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
+              response.cookies.set(name, value, options);
             });
           },
         },
@@ -31,9 +34,8 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.session) {
-      // Redirect to the destination
-      const redirectUrl = new URL(next, origin);
-      return NextResponse.redirect(redirectUrl);
+      // Return the response with cookies set
+      return response;
     }
 
     console.error('OAuth callback error:', error);
