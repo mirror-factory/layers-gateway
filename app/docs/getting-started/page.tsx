@@ -38,9 +38,15 @@ export default function GettingStartedPage() {
       <Heading level={2} id="what-is-layers">What is Layers?</Heading>
 
       <P>
-        Layers is a unified AI API gateway that gives you access to 24+ language models
-        from multiple providers through a single API key and credit balance.
+        Layers is a unified AI API gateway that gives you access to 40 models (19 language, 21 image/multimodal)
+        from 6 providers through a single API key and credit balance.
       </P>
+
+      <div className="rounded-lg border bg-muted/50 p-4 my-6">
+        <p className="text-sm text-muted-foreground">
+          <strong>Powered by Hustle Together AI SDK</strong> - Layers is built on the Hustle Together AI SDK, which provides the model registry (40 models from 6 providers: Anthropic, OpenAI, Google, Perplexity, Morph, BFL, Recraft), real-time pricing data synced daily, and routing infrastructure via Vercel AI Gateway. Layers adds credit management, authentication, rate limiting, and Stripe billing.
+        </p>
+      </div>
 
       <Table>
         <Thead>

@@ -28,12 +28,14 @@ pnpm dev
 layers-dev/
 ├── app/                    # Next.js App Router
 │   ├── api/v1/             # Public API endpoints
-│   ├── docs/               # Fumadocs documentation
+│   ├── docs/               # Documentation pages (React)
 │   └── dashboard/          # User dashboard
 ├── components/             # React components
-├── content/docs/           # MDX documentation
+│   ├── ui/                 # shadcn components
+│   ├── docs/               # Documentation components
+│   └── navigation/         # Unified navigation
 ├── lib/
-│   ├── models/             # AI model registry (24 models)
+│   ├── models/             # AI model registry (40 models)
 │   ├── credits/            # Credit calculation
 │   ├── gateway/            # Vercel AI Gateway client
 │   ├── middleware/         # Auth, credits, rate-limit

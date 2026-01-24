@@ -2,30 +2,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Key, CreditCard, BarChart3, Code, ArrowRight } from 'lucide-react';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { UnifiedNav } from '@/components/navigation/unified-nav';
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-4 md:h-16 md:px-6">
-        <div className="flex items-center gap-2 md:gap-3">
-          <span className="font-serif text-base font-bold md:text-lg">Layers</span>
-          <p className="hidden text-xs text-muted-foreground md:block">
-            Unified AI Gateway
-          </p>
-        </div>
-        <div className="flex items-center gap-2 md:gap-3">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/login">Sign in</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link href="/signup">Get Started</Link>
-          </Button>
-          <div className="w-px h-5 bg-border/50 mx-1 hidden sm:block" />
-          <ThemeToggle />
-        </div>
-      </header>
+      <UnifiedNav variant="default" />
 
       {/* Hero */}
       <section className="container mx-auto px-4 py-24 text-center">

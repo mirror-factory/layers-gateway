@@ -53,16 +53,17 @@ layers-dev/
 │   ├── api/playground/         # Playground proxy API
 │   ├── api/keys/               # API key management
 │   ├── api/stripe/             # Billing integration
-│   ├── docs/                   # Documentation (Fumadocs)
+│   ├── docs/                   # Documentation pages (React)
 │   ├── playground/             # Interactive API playground
 │   └── dashboard/              # User dashboard
 ├── components/
 │   ├── ui/                     # shadcn components
+│   ├── docs/                   # Documentation components
+│   ├── navigation/             # Unified navigation
 │   └── playground/             # Playground components
-├── content/docs/               # MDX documentation
 ├── hooks/                      # React hooks
 ├── lib/
-│   ├── models/                 # AI model registry (24 models, 5 providers)
+│   ├── models/                 # AI model registry (40 models, 6 providers)
 │   │   ├── registry.ts         # Model definitions
 │   │   ├── types.ts            # Types
 │   │   └── helpers.ts          # Helper functions

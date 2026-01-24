@@ -7,59 +7,25 @@ const DEFAULT_MARGIN_PERCENT = 60;
 // Threshold for flagging cost discrepancies (5% difference)
 const DISCREPANCY_THRESHOLD_PERCENT = 5;
 
-// Model pricing in USD per 1K tokens (base cost, before margin)
-// FALLBACK pricing - synced pricing from Hustle Together AI takes precedence
-// Source: lib/models/registry.ts (Vercel AI Gateway pricing)
-// Last manual sync: 2026-01-23
-const MODEL_BASE_PRICING_FALLBACK: Record<string, { input: number; output: number }> = {
-  // Anthropic (3 models)
-  'anthropic/claude-haiku-4.5': { input: 0.001, output: 0.005 },
-  'anthropic/claude-sonnet-4.5': { input: 0.003, output: 0.015 },
-  'anthropic/claude-opus-4.5': { input: 0.005, output: 0.025 },
-  // OpenAI (8 models)
-  'openai/gpt-4o': { input: 0.0025, output: 0.01 },
-  'openai/gpt-4o-mini': { input: 0.0001, output: 0.0006 },
-  'openai/gpt-5-chat': { input: 0.0013, output: 0.01 },
-  'openai/gpt-5-codex': { input: 0.0013, output: 0.01 },
-  'openai/gpt-5.1-codex': { input: 0.0013, output: 0.01 },
-  'openai/gpt-5.1-codex-mini': { input: 0.0003, output: 0.002 },
-  'openai/gpt-5.1-instant': { input: 0.0013, output: 0.01 },
-  'openai/gpt-5.1-thinking': { input: 0.0013, output: 0.01 },
-  // Google (7 models)
-  'google/gemini-2.5-flash': { input: 0.0003, output: 0.0025 },
-  'google/gemini-2.5-flash-lite': { input: 0.0001, output: 0.0004 },
-  'google/gemini-2.5-flash-image': { input: 0.0003, output: 0.0025 },
-  'google/gemini-2.5-pro': { input: 0.0013, output: 0.01 },
-  'google/gemini-3-flash': { input: 0.0005, output: 0.003 },
-  'google/gemini-3-pro-preview': { input: 0.002, output: 0.012 },
-  'google/gemini-3-pro-image': { input: 0.002, output: 0.12 },
-  // Perplexity (3 models)
-  'perplexity/sonar': { input: 0.001, output: 0.001 },
-  'perplexity/sonar-pro': { input: 0.003, output: 0.015 },
-  'perplexity/sonar-reasoning-pro': { input: 0.002, output: 0.008 },
-  // Morph (2 models)
-  'morph/morph-v3-fast': { input: 0.0008, output: 0.0012 },
-  'morph/morph-v3-large': { input: 0.0009, output: 0.0019 },
-};
-
 /**
- * Get model pricing - checks synced pricing first, falls back to hardcoded
+ * Get model pricing from synced pricing ONLY
+ * No fallback - relies entirely on Hustle Together AI pricing sync
  */
 function getModelPricing(model: string): { input: number; output: number } | null {
-  // Try synced pricing from Hustle Together AI first
+  // Get synced pricing from Hustle Together AI
   const syncedPricing = getSyncedModelPricing(model);
-  if (syncedPricing) {
-    return syncedPricing;
+
+  if (!syncedPricing) {
+    console.error(`Pricing not available for model: ${model}. Ensure pricing is synced from Hustle Together AI.`);
   }
 
-  // Fall back to hardcoded pricing
-  return MODEL_BASE_PRICING_FALLBACK[model] || null;
+  return syncedPricing;
 }
 
 
 /**
  * Calculate credits for a request based on model and token usage
- * Uses synced pricing from Hustle Together AI with fallback to hardcoded
+ * Uses ONLY synced pricing from Hustle Together AI (no fallback)
  */
 export function calculateCredits(
   model: string,
@@ -68,8 +34,10 @@ export function calculateCredits(
 ): number {
   const pricing = getModelPricing(model);
   if (!pricing) {
-    // Default pricing for unknown models (conservative)
-    return ((inputTokens + outputTokens) / 1000) * 0.5;
+    // No pricing available - this should trigger an error upstream
+    // Conservative fallback to prevent system failure
+    console.error(`PRICING UNAVAILABLE: ${model}. Check Hustle Together AI sync status.`);
+    return ((inputTokens + outputTokens) / 1000) * 1.0; // Conservative estimate
   }
   // Calculate USD cost then convert to credits with margin
   const costUsd = (inputTokens / 1000) * pricing.input + (outputTokens / 1000) * pricing.output;
@@ -79,11 +47,13 @@ export function calculateCredits(
 /**
  * Estimate credits before making a request (for pre-flight check)
  * Uses conservative estimate based on max_tokens
+ * Relies on synced pricing from Hustle Together AI
  */
 export function estimateCredits(model: string, maxTokens: number = 1024): number {
   const pricing = getModelPricing(model);
   if (!pricing) {
-    return (maxTokens / 1000) * 0.5;
+    console.error(`PRICING UNAVAILABLE: ${model}. Check Hustle Together AI sync status.`);
+    return (maxTokens / 1000) * 1.0; // Conservative estimate
   }
   // Estimate: ~500 input tokens + max_tokens output
   const estimatedInput = 500;

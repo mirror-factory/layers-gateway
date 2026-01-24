@@ -26,10 +26,16 @@ export default function ArchitecturePage() {
     <div>
       <Heading level={1}>Gateway Architecture</Heading>
       <P>
-        Layers is the AI Gateway layer for the Hustle Together platform. It sits between
+        Layers is an AI Gateway built on top of the Hustle Together AI SDK. It sits between
         your applications and AI providers, providing unified access, automatic billing,
         and usage tracking.
       </P>
+
+      <div className="rounded-lg border bg-muted/50 p-4 my-6">
+        <p className="text-sm text-muted-foreground">
+          <strong>Powered by Hustle Together AI SDK</strong> - The Hustle Together AI SDK provides the model registry (40 models: 19 language, 21 image/multimodal from 6 providers), real-time pricing data synced daily from all providers, and Vercel AI Gateway integration. Layers wraps this with authentication, credit management, rate limiting, and Stripe billing.
+        </p>
+      </div>
 
       <Heading level={2} id="what-is-layers-gateway">What is Layers Gateway?</Heading>
 
@@ -106,64 +112,115 @@ export default function ArchitecturePage() {
         When your application makes a request through Layers Gateway, here's what happens:
       </P>
 
-      <Flow>
-{`                              YOUR APPLICATION
-                                    │
-                                    │ POST /api/v1/chat
-                                    │ Authorization: Bearer lyr_live_xxx
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          LAYERS GATEWAY                                  │
-│                    layers.hustletogether.com                            │
-│                                                                          │
-│  ┌────────────────────────────────────────────────────────────────┐     │
-│  │ 1. AUTH MIDDLEWARE                                              │     │
-│  │    • Validate API key format (lyr_live_* or lyr_test_*)        │     │
-│  │    • Look up key in database                                    │     │
-│  │    • Return 401 if invalid/expired/revoked                     │     │
-│  └────────────────────────────────────────────────────────────────┘     │
-│                                    │                                     │
-│                                    ▼                                     │
-│  ┌────────────────────────────────────────────────────────────────┐     │
-│  │ 2. RATE LIMIT MIDDLEWARE                                        │     │
-│  │    • Check requests/minute by subscription tier                 │     │
-│  │    • Free: 10/min, Starter: 60, Pro: 300, Team: 1000           │     │
-│  │    • Return 429 if exceeded                                     │     │
-│  └────────────────────────────────────────────────────────────────┘     │
-│                                    │                                     │
-│                                    ▼                                     │
-│  ┌────────────────────────────────────────────────────────────────┐     │
-│  │ 3. CREDIT PRE-CHECK                                             │     │
-│  │    • Estimate cost based on model + max_tokens                 │     │
-│  │    • Check user balance                                         │     │
-│  │    • Return 402 if insufficient credits                        │     │
-│  └────────────────────────────────────────────────────────────────┘     │
-│                                    │                                     │
-│                                    ▼                                     │
-│  ┌────────────────────────────────────────────────────────────────┐     │
-│  │ 4. AI PROVIDER CALL                                             │     │
-│  │    • Route to correct provider based on model prefix           │     │
-│  │    • anthropic/* → Anthropic API                               │     │
-│  │    • openai/* → OpenAI API                                      │     │
-│  │    • google/* → Google AI API                                   │     │
-│  │    • perplexity/* → Perplexity API                             │     │
-│  └────────────────────────────────────────────────────────────────┘     │
-│                                    │                                     │
-│                                    ▼                                     │
-│  ┌────────────────────────────────────────────────────────────────┐     │
-│  │ 5. POST-PROCESSING                                              │     │
-│  │    • Calculate actual credits used                             │     │
-│  │    • Deduct from user balance                                  │     │
-│  │    • Log usage to database                                      │     │
-│  │    • Return OpenAI-compatible response                         │     │
-│  └────────────────────────────────────────────────────────────────┘     │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-                              AI PROVIDERS
-                    (Anthropic, OpenAI, Google, etc.)`}
-      </Flow>
+      <div className="my-8 space-y-4">
+        {/* Step 0: Your Application */}
+        <div className="flex flex-col items-center">
+          <div className="w-full max-w-md p-4 rounded-lg border-2 border-foreground bg-background">
+            <div className="font-medium text-center mb-2">YOUR APPLICATION</div>
+            <div className="text-sm text-muted-foreground text-center">
+              POST /api/v1/chat<br/>
+              Authorization: Bearer lyr_live_xxx
+            </div>
+          </div>
+          <div className="text-2xl my-2">↓</div>
+        </div>
+
+        {/* Layers Gateway Container */}
+        <div className="w-full p-6 rounded-lg border-2 border-primary bg-primary/5">
+          <div className="text-center font-bold text-lg mb-2">LAYERS GATEWAY</div>
+          <div className="text-center text-sm text-muted-foreground mb-6">layers.hustletogether.com</div>
+
+          <div className="space-y-4">
+            {/* Step 1: Auth */}
+            <div className="p-4 rounded-lg border bg-background">
+              <div className="font-medium mb-2">1. AUTH MIDDLEWARE</div>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Validate API key format (lyr_live_* or lyr_test_*)</li>
+                <li>• Look up key in database</li>
+                <li>• Return 401 if invalid/expired/revoked</li>
+              </ul>
+            </div>
+            <div className="text-center text-2xl">↓</div>
+
+            {/* Step 2: Rate Limit */}
+            <div className="p-4 rounded-lg border bg-background">
+              <div className="font-medium mb-2">2. RATE LIMIT MIDDLEWARE</div>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Check requests/minute by subscription tier</li>
+                <li>• Free: 10/min, Starter: 60, Pro: 300, Team: 1000</li>
+                <li>• Return 429 if exceeded</li>
+              </ul>
+            </div>
+            <div className="text-center text-2xl">↓</div>
+
+            {/* Step 3: Credit Pre-Check */}
+            <div className="p-4 rounded-lg border bg-background">
+              <div className="font-medium mb-2">3. CREDIT PRE-CHECK</div>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Estimate cost based on model + max_tokens</li>
+                <li>• Check user balance</li>
+                <li>• Return 402 if insufficient credits</li>
+              </ul>
+            </div>
+            <div className="text-center text-2xl">↓</div>
+
+            {/* Step 4: Forward to SDK */}
+            <div className="p-4 rounded-lg border bg-background">
+              <div className="font-medium mb-2">4. FORWARD TO HUSTLE TOGETHER AI SDK</div>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Route request to Hustle Together AI SDK</li>
+                <li>• SDK handles model lookup and provider routing</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-center text-2xl">↓</div>
+
+        {/* Hustle Together AI SDK */}
+        <div className="flex flex-col items-center">
+          <div className="w-full max-w-md p-4 rounded-lg border-2 border-foreground bg-background">
+            <div className="font-medium text-center mb-2">HUSTLE TOGETHER AI SDK</div>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li>• Look up model in registry (40 models)</li>
+              <li>• Get pricing data (synced daily)</li>
+              <li>• Route via Vercel AI Gateway to provider:</li>
+              <li className="ml-4">• anthropic/* → Anthropic API</li>
+              <li className="ml-4">• openai/* → OpenAI API</li>
+              <li className="ml-4">• google/* → Google AI API</li>
+              <li className="ml-4">• perplexity/* → Perplexity API</li>
+              <li className="ml-4">• morph/* → Morph API</li>
+              <li className="ml-4">• bfl/* → Black Forest Labs (Flux)</li>
+              <li className="ml-4">• recraft/* → Recraft API</li>
+            </ul>
+          </div>
+          <div className="text-2xl my-2">↓</div>
+        </div>
+
+        {/* AI Providers */}
+        <div className="flex flex-col items-center">
+          <div className="w-full max-w-md p-4 rounded-lg border-2 border-foreground bg-background">
+            <div className="font-medium text-center mb-2">AI PROVIDERS (6 Total)</div>
+            <div className="text-sm text-muted-foreground text-center">
+              Anthropic, OpenAI, Google, Perplexity, Morph, BFL, Recraft
+            </div>
+          </div>
+          <div className="text-2xl my-2">↓</div>
+        </div>
+
+        {/* Response Processing */}
+        <div className="w-full p-6 rounded-lg border-2 border-primary bg-primary/5">
+          <div className="p-4 rounded-lg border bg-background">
+            <div className="font-medium mb-2">5. POST-PROCESSING (Layers)</div>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li>• Calculate actual credits used (via SDK pricing)</li>
+              <li>• Deduct from user balance</li>
+              <li>• Log usage to database</li>
+              <li>• Return OpenAI-compatible response</li>
+            </ul>
+          </div>
+        </div>
+      </div>
 
       <Heading level={2} id="layers-toggle">The Layers Toggle</Heading>
 

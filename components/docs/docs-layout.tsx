@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { UnifiedNav } from '@/components/navigation/unified-nav';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -36,33 +36,13 @@ interface NavItem {
 const docsNav: NavItem[] = [
   {
     title: 'Getting Started',
-    href: '/docs',
+    href: '/docs/getting-started',
     icon: Book,
-    items: [
-      { title: 'Introduction', href: '/docs' },
-      { title: 'Quick Start', href: '/docs/getting-started' },
-      { title: 'AI SDK Integration', href: '/docs/ai-sdk' },
-    ],
   },
   {
-    title: 'Architecture',
+    title: 'How It Works',
     href: '/docs/architecture',
     icon: Layers,
-    items: [
-      { title: 'Gateway Overview', href: '/docs/architecture' },
-      { title: 'How It Works', href: '/docs/architecture/how-it-works' },
-      { title: 'Request Flow', href: '/docs/architecture/request-flow' },
-    ],
-  },
-  {
-    title: 'Billing & Credits',
-    href: '/docs/billing',
-    icon: CreditCard,
-    items: [
-      { title: 'Credit System', href: '/docs/billing' },
-      { title: 'Pricing', href: '/docs/billing/pricing' },
-      { title: 'Subscriptions', href: '/docs/billing/subscriptions' },
-    ],
   },
   {
     title: 'Authentication',
@@ -70,27 +50,9 @@ const docsNav: NavItem[] = [
     icon: Key,
   },
   {
-    title: 'Models',
-    href: '/docs/models',
-    icon: Boxes,
-    items: [
-      { title: 'Overview', href: '/docs/models' },
-      { title: 'Anthropic', href: '/docs/models/anthropic' },
-      { title: 'OpenAI', href: '/docs/models/openai' },
-      { title: 'Google', href: '/docs/models/google' },
-      { title: 'Perplexity', href: '/docs/models/perplexity' },
-    ],
-  },
-  {
-    title: 'API Reference',
-    href: '/docs/api',
-    icon: FileCode,
-    items: [
-      { title: 'Overview', href: '/docs/api' },
-      { title: 'Chat Completions', href: '/docs/api/chat' },
-      { title: 'Streaming', href: '/docs/api/streaming' },
-      { title: 'Tools & Functions', href: '/docs/api/tools' },
-    ],
+    title: 'Billing & Credits',
+    href: '/docs/billing',
+    icon: CreditCard,
   },
 ];
 
@@ -144,60 +106,18 @@ export function DocsLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       {/* Top Navigation */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center px-4 lg:px-6">
-          {/* Mobile menu button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden mr-2"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 font-semibold">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <Layers className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-serif text-xl">Layers</span>
-          </Link>
-
-          {/* Nav Links */}
-          <nav className="hidden md:flex items-center gap-1 ml-8">
-            <Link href="/docs">
-              <Button variant="ghost" size="sm">Docs</Button>
-            </Link>
-            <Link href="/docs/api">
-              <Button variant="ghost" size="sm">API</Button>
-            </Link>
-            <Link href="/docs/models">
-              <Button variant="ghost" size="sm">Models</Button>
-            </Link>
-            <Link href="/docs/billing">
-              <Button variant="ghost" size="sm">Pricing</Button>
-            </Link>
-          </nav>
-
-          {/* Right side */}
-          <div className="ml-auto flex items-center gap-2">
-            <ThemeToggle />
-            <Link href="/dashboard">
-              <Button variant="outline" size="sm" className="hidden sm:flex">
-                <LayoutDashboard className="h-4 w-4 mr-2" />
-                Dashboard
-              </Button>
-            </Link>
-            <Link href="/dashboard">
-              <Button size="sm" className="hidden sm:flex">
-                Get API Key
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <UnifiedNav variant="docs" />
+        {/* Mobile menu button - overlay on top of nav */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden absolute left-2 top-3 z-[60]"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+        >
+          {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
+      </div>
 
       <div className="flex">
         {/* Sidebar */}

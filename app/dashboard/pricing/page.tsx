@@ -194,6 +194,91 @@ export default function PricingDashboard() {
         </Card>
       )}
 
+      {/* Pricing Sync Warning */}
+      {!error && pricingData && (!pricingData.metadata.model_count || pricingData.metadata.model_count === 0) && (
+        <Card className="border-yellow-500 bg-yellow-50">
+          <CardContent className="flex items-start gap-3 py-4">
+            <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-medium text-yellow-900">Pricing Not Synced</p>
+              <p className="text-sm text-yellow-800 mt-1">
+                No pricing data synced from Hustle Together AI. Click "Refresh Pricing" to sync, or check that the external API is accessible.
+              </p>
+              <p className="text-xs text-yellow-700 mt-2">
+                <strong>Note:</strong> The system relies entirely on synced pricing. Without it, API requests may fail or use conservative estimates.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Credit System Overview */}
+      <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="h-5 w-5" />
+            Credit System Overview
+          </CardTitle>
+          <CardDescription>
+            1 credit = $0.01 USD base cost × (1 + {marginPercent}% margin) = ${(0.01 * (1 + marginPercent / 100)).toFixed(4)} USD
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Free Tier */}
+            <div className="p-4 rounded-lg bg-background border">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold">Free</h3>
+                <Badge variant="outline">$0/mo</Badge>
+              </div>
+              <p className="text-2xl font-bold mb-1">50 credits</p>
+              <p className="text-sm text-muted-foreground">≈ $0.80 value</p>
+              <p className="text-xs text-muted-foreground mt-2">~15 Claude Haiku conversations</p>
+            </div>
+
+            {/* Starter Tier */}
+            <div className="p-4 rounded-lg bg-background border border-primary/30">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold">Starter</h3>
+                <Badge>$20/mo</Badge>
+              </div>
+              <p className="text-2xl font-bold mb-1">500 credits</p>
+              <p className="text-sm text-muted-foreground">≈ $8.00 value</p>
+              <p className="text-xs text-muted-foreground mt-2">~100 GPT-4o queries</p>
+            </div>
+
+            {/* Pro Tier */}
+            <div className="p-4 rounded-lg bg-background border border-primary/30">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold">Pro</h3>
+                <Badge>$100/mo</Badge>
+              </div>
+              <p className="text-2xl font-bold mb-1">3,000 credits</p>
+              <p className="text-sm text-muted-foreground">≈ $48.00 value</p>
+              <p className="text-xs text-muted-foreground mt-2">~600 Claude Sonnet queries</p>
+            </div>
+
+            {/* Team Tier */}
+            <div className="p-4 rounded-lg bg-background border border-primary/30">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold">Team</h3>
+                <Badge>$200/mo</Badge>
+              </div>
+              <p className="text-2xl font-bold mb-1">7,500 credits</p>
+              <p className="text-sm text-muted-foreground">≈ $120.00 value</p>
+              <p className="text-xs text-muted-foreground mt-2">~1,500 Claude Sonnet queries</p>
+            </div>
+          </div>
+          <div className="mt-4 p-3 rounded-lg bg-muted/50 border">
+            <p className="text-sm">
+              <strong>How it works:</strong> Credits are calculated from base cost + {marginPercent}% margin.
+              Example: $0.01 base → {formatCredits(usdToCredits(0.01, marginPercent))} credits.
+              Token pricing varies by model (see table below).
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Sync Status Card */}
       <Card>
         <CardHeader>
@@ -241,19 +326,19 @@ export default function PricingDashboard() {
         </CardContent>
       </Card>
 
-      {/* Margin Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Margin Configuration
-          </CardTitle>
-          <CardDescription>
-            Configure the profit margin applied to base costs
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-end gap-4">
+      {/* Margin Configuration & Credit Conversion */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Margin Configuration
+            </CardTitle>
+            <CardDescription>
+              Adjust the profit margin applied to base costs
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="margin">Margin Percentage</Label>
               <div className="flex items-center gap-2">
@@ -269,17 +354,44 @@ export default function PricingDashboard() {
                 <span className="text-muted-foreground">%</span>
               </div>
             </div>
-            <div className="flex-1">
-              <div className="text-sm text-muted-foreground">
-                <strong>Formula:</strong> credits = (base_cost_usd / $0.01) × {(1 + marginPercent / 100).toFixed(2)}
-              </div>
-              <div className="text-sm text-muted-foreground mt-1">
-                <strong>Example:</strong> $0.01 base cost = {formatCredits(usdToCredits(0.01, marginPercent))} credits
-              </div>
+            <div className="p-3 rounded-lg bg-muted/50 border">
+              <p className="text-sm font-medium mb-1">Formula</p>
+              <code className="text-xs">credits = (base_cost_usd / $0.01) × {(1 + marginPercent / 100).toFixed(2)}</code>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+              <p className="text-sm font-medium mb-1">Current Conversion</p>
+              <p className="text-lg">$0.01 base cost = <strong>{formatCredits(usdToCredits(0.01, marginPercent))} credits</strong></p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Credit Conversion Examples</CardTitle>
+            <CardDescription>
+              Quick reference at {marginPercent}% margin
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {[0.001, 0.005, 0.01, 0.05].map((usd) => (
+                <div key={usd} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Base Cost</p>
+                    <p className="font-mono font-medium">{formatUsd(usd)}/1K tokens</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground">Credits</p>
+                    <p className="font-mono font-bold text-primary text-lg">
+                      {formatCredits(usdToCredits(usd, marginPercent))}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -400,29 +512,6 @@ export default function PricingDashboard() {
         </CardContent>
       </Card>
 
-      {/* Credit Conversion Reference */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Credit Conversion Reference</CardTitle>
-          <CardDescription>
-            Quick reference for cost-to-credit conversion at {marginPercent}% margin
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[0.001, 0.005, 0.01, 0.05].map((usd) => (
-              <div key={usd} className="p-4 rounded-lg bg-muted">
-                <p className="text-sm text-muted-foreground">Base Cost</p>
-                <p className="text-lg font-bold">{formatUsd(usd)}/1K</p>
-                <p className="text-sm text-muted-foreground mt-2">Credits</p>
-                <p className="text-lg font-bold text-primary">
-                  {formatCredits(usdToCredits(usd, marginPercent))}
-                </p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

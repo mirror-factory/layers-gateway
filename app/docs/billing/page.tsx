@@ -29,6 +29,12 @@ export default function BillingPage() {
         margins, Stripe subscriptions, and pricing synchronization.
       </P>
 
+      <div className="rounded-lg border bg-muted/50 p-4 my-6">
+        <p className="text-sm text-muted-foreground">
+          <strong>Powered by Hustle Together AI SDK</strong> - All model pricing data is synced from the Hustle Together AI SDK every 24 hours. The SDK aggregates real-time pricing from all AI providers to ensure accurate cost calculations.
+        </p>
+      </div>
+
       <Heading level={2} id="credit-system">Credit System Overview</Heading>
 
       <P>
@@ -347,9 +353,19 @@ credits = (base_cost_usd / $0.01) × 1.60`}
 
       <CodeBlock language="text">
 {`Source: https://ai.hustletogether.com/api/pricing
-Frequency: Every 24 hours (cached)
-Fallback: Hardcoded pricing if sync fails`}
+Frequency: Daily sync via GitHub Actions
+Cache: 24-hour in-memory cache
+Models: 40 total (19 language, 21 image/multimodal)
+Providers: 6 (Anthropic, OpenAI, Google, Perplexity, Morph, BFL, Recraft)`}
       </CodeBlock>
+
+      <Callout type="info">
+        For current pricing on all models, see the{' '}
+        <Link href="/dashboard/pricing" className="text-primary hover:underline">
+          Pricing Dashboard
+        </Link>{' '}
+        which displays real-time data from the Hustle Together AI SDK.
+      </Callout>
 
       <Heading level={3}>Pricing API Endpoints</Heading>
 

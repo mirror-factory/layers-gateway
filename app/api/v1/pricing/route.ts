@@ -12,8 +12,8 @@ import { getPricing, refreshPricing, getPricingMetadata } from '@/lib/pricing';
  * Get current pricing and sync status
  */
 export async function GET() {
-  const metadata = getPricingMetadata();
   const pricing = await getPricing();
+  const metadata = getPricingMetadata(); // Get metadata AFTER pricing is fetched
 
   return NextResponse.json({
     status: pricing ? 'synced' : 'using_fallback',
