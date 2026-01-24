@@ -8,10 +8,18 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (!error && data.session) {
+      // Force a redirect that will cause the middleware to re-run
+      const redirectUrl = new URL(next, origin);
+      const response = NextResponse.redirect(redirectUrl);
+
+      // Ensure cookies are set on the response
+      return response;
     }
+
+    console.error('OAuth callback error:', error);
   }
 
   // Return the user to an error page with instructions

@@ -120,11 +120,16 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (retryCount = 0) => {
     const supabase = createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
+      // Retry up to 3 times with 500ms delay to handle OAuth cookie propagation
+      if (retryCount < 3) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return loadData(retryCount + 1);
+      }
       router.push('/login?redirectTo=/dashboard');
       return;
     }
