@@ -253,8 +253,10 @@ export default function DocsIndexPage() {
       <div className="grid gap-2">
         {[
           { href: '/docs/getting-started', title: 'Getting Started', desc: 'Quick setup in under 5 minutes' },
+          { href: '/docs/authentication', title: 'Authentication', desc: 'User auth (OAuth) and API key authentication' },
           { href: '/docs/architecture', title: 'Gateway Architecture', desc: 'How Layers works under the hood' },
           { href: '/docs/billing', title: 'Billing & Credits', desc: 'Credit system, margins, and Stripe' },
+          { href: '/docs/security', title: 'Security Guide', desc: 'Security concerns, hardening, and best practices' },
         ].map((item) => (
           <Link
             key={item.href}
