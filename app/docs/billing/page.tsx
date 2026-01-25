@@ -109,7 +109,15 @@ credits = (base_cost_usd / $0.01) × 1.60`}
 
       <Heading level={2} id="model-pricing">Model Pricing Reference</Heading>
 
-      <P>All prices are per <strong>1,000 tokens</strong>:</P>
+      <Callout type="info" title="Dynamic Pricing">
+        For current pricing on all 40 models, see the{' '}
+        <Link href="/dashboard/pricing" className="text-primary hover:underline font-medium">
+          Pricing Dashboard
+        </Link>{' '}
+        which pulls real-time data from the Hustle Together AI SDK. The examples below are for illustration.
+      </Callout>
+
+      <P>Example prices per <strong>1,000 tokens</strong>:</P>
 
       <Table>
         <Thead>

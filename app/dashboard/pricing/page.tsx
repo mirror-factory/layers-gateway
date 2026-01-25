@@ -15,6 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { RefreshCw, DollarSign, Calculator, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { UnifiedNav } from '@/components/navigation/unified-nav';
 
 interface ModelPricing {
   input: number;
@@ -160,16 +161,21 @@ export default function PricingDashboard() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="min-h-screen bg-background">
+        <UnifiedNav variant="dashboard" />
+        <div className="container mx-auto p-6">
+          <div className="flex items-center justify-center h-64">
+            <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="min-h-screen bg-background">
+      <UnifiedNav variant="dashboard" />
+      <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -511,7 +517,7 @@ export default function PricingDashboard() {
           </div>
         </CardContent>
       </Card>
-
+      </div>
     </div>
   );
 }

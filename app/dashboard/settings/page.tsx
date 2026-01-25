@@ -30,7 +30,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { UnifiedNav } from '@/components/navigation/unified-nav';
 import {
   Select,
   SelectContent,
@@ -134,13 +134,6 @@ export default function SettingsPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
-
   const openBillingPortal = async () => {
     const res = await fetch('/api/stripe/portal', { method: 'POST' });
     if (res.ok) {
@@ -177,8 +170,11 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="min-h-screen bg-background">
+        <UnifiedNav variant="dashboard" />
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
       </div>
     );
   }
@@ -186,29 +182,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Top Header Bar */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-4 md:h-16 md:px-6">
-          {/* Logo and tagline */}
-          <div className="flex items-center gap-2 md:gap-3">
-            <Link href="/" className="flex items-center">
-              <span className="font-serif text-base font-bold md:text-lg">Layers</span>
-            </Link>
-            <p className="hidden text-xs text-muted-foreground md:block">
-              Unified AI Gateway for all providers
-            </p>
-          </div>
-
-          {/* Right side */}
-          <div className="flex items-center gap-2 md:gap-3">
-            <span className="hidden rounded-full bg-primary/10 px-2 py-1 font-mono text-xs text-primary sm:inline-block md:px-3">
-              {user?.email}
-            </span>
-            <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
-              <LogOut className="h-4 w-4" />
-            </Button>
-            <div className="w-px h-5 bg-border/50 mx-1" />
-            <ThemeToggle />
-          </div>
-      </header>
+      <UnifiedNav variant="dashboard" />
 
       <div className="flex">
         {/* Sidebar */}

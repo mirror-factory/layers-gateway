@@ -78,10 +78,15 @@ export default function AuthenticationPage() {
       <ol className="list-decimal list-inside space-y-2 my-4">
         <li>User enters email and password on [/signup](/signup)</li>
         <li>Supabase Auth creates the user account</li>
-        <li>Confirmation email sent to user</li>
+        <li>Confirmation email sent to user via Resend (transactional email service)</li>
         <li>User clicks confirmation link</li>
         <li>User redirected to dashboard</li>
       </ol>
+
+      <Callout type="info" title="Email Delivery">
+        Layers uses <strong>Resend</strong> for all transactional emails including signup confirmations,
+        password resets, and magic links. Resend is integrated with Supabase Auth for reliable email delivery.
+      </Callout>
 
       <Heading level={3} id="oauth-flow">Google OAuth Flow</Heading>
 
@@ -156,6 +161,11 @@ export default function AuthenticationPage() {
             <Td>OAuth Callback</Td>
             <Td>[app/auth/callback/route.ts](app/auth/callback/route.ts)</Td>
             <Td>Exchange OAuth code for session</Td>
+          </Tr>
+          <Tr>
+            <Td>Email Delivery</Td>
+            <Td>Resend (via Supabase)</Td>
+            <Td>Transactional emails (confirmations, password resets)</Td>
           </Tr>
         </Tbody>
       </Table>
@@ -410,6 +420,10 @@ lyr_test_sk_1a2b3c4d5e6f7890...`}
         </li>
         <li className="flex items-start gap-2">
           <input type="checkbox" className="mt-1" />
+          <span><strong>Email Provider:</strong> Resend configured in Auth → Email settings</span>
+        </li>
+        <li className="flex items-start gap-2">
+          <input type="checkbox" className="mt-1" />
           <span><strong>Email Templates:</strong> Confirm signup template uses correct token hash format</span>
         </li>
       </ul>
@@ -422,7 +436,10 @@ NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 
 # Optional: Service role for admin operations
-SUPABASE_SERVICE_ROLE_KEY=eyJ...`}
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+
+# Resend (configured in Supabase dashboard)
+# No additional environment variables needed - configured via Supabase Auth settings`}
       </CodeBlock>
 
       <Heading level={3} id="google-console">Google Cloud Console</Heading>
