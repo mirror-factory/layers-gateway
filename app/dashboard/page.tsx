@@ -118,12 +118,18 @@ export default function DashboardPage() {
   const [balance, setBalance] = useState<CreditBalance | null>(null);
   const [usage, setUsage] = useState<UsageStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [selectedProvider, setSelectedProvider] = useState<string>('all');
   const [selectedModel, setSelectedModel] = useState<string>('all');
   const router = useRouter();
 
-  const loadData = useCallback(async (retryCount = 0) => {
+  const loadData = useCallback(async (retryCount = 0, isManualRefresh = false) => {
+    if (isManualRefresh) {
+      setIsRefreshing(true);
+    }
+
     const supabase = createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -131,7 +137,7 @@ export default function DashboardPage() {
       // Retry up to 3 times with 500ms delay to handle OAuth cookie propagation
       if (retryCount < 3) {
         await new Promise(resolve => setTimeout(resolve, 500));
-        return loadData(retryCount + 1);
+        return loadData(retryCount + 1, isManualRefresh);
       }
       router.push('/login?redirectTo=/dashboard');
       return;
@@ -157,8 +163,14 @@ export default function DashboardPage() {
       setUsage(usageData);
     }
 
+    setLastUpdated(new Date());
     setIsLoading(false);
+    setIsRefreshing(false);
   }, [router]);
+
+  const handleManualRefresh = useCallback(() => {
+    loadData(0, true);
+  }, [loadData]);
 
   // Filter data based on selected filters
   const filteredUsage = usage ? (() => {
@@ -235,6 +247,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadData();
+
+    // Auto-refresh every 30 seconds
+    const intervalId = setInterval(() => {
+      loadData(0, false);
+    }, 30000);
+
+    return () => clearInterval(intervalId);
   }, [loadData]);
 
   // Export filtered data to CSV
@@ -304,17 +323,30 @@ export default function DashboardPage() {
             {/* Page Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-serif font-semibold">Dashboard</h1>
-                <p className="text-sm text-muted-foreground mt-1">Monitor your API usage and performance</p>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-serif font-semibold">Dashboard</h1>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-medium">
+                    <Activity className="h-3 w-3" />
+                    Live
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-sm text-muted-foreground">Auto-refreshing every 30s</p>
+                  {lastUpdated && (
+                    <span className="text-xs text-muted-foreground">
+                      · Last update: {new Date(lastUpdated).toLocaleTimeString()}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={exportData} disabled={!filteredUsage?.recent_logs?.length}>
                   <Download className="h-3.5 w-3.5 mr-2" />
                   Export CSV
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => loadData()}>
-                  <RefreshCw className="h-3.5 w-3.5 mr-2" />
-                  Refresh
+                <Button variant="outline" size="sm" onClick={handleManualRefresh} disabled={isRefreshing}>
+                  <RefreshCw className={`h-3.5 w-3.5 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
                 </Button>
               </div>
             </div>
