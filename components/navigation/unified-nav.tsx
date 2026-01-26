@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { createClient } from '@/lib/supabase/browser';
-import { LogOut, Layers, Github } from 'lucide-react';
+import { LogOut, Layers, Github, LayoutDashboard, BookOpen } from 'lucide-react';
 
 interface UnifiedNavProps {
   variant?: 'default' | 'docs' | 'dashboard';
@@ -63,6 +63,28 @@ export function UnifiedNav({ variant = 'default' }: UnifiedNavProps) {
                 <span className="hidden rounded-full bg-primary/10 px-2 py-1 font-mono text-xs text-primary sm:inline-block md:px-3">
                   {user.email}
                 </span>
+                <Link href="/dashboard">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground"
+                    aria-label="Dashboard"
+                  >
+                    <LayoutDashboard className="h-4 w-4 mr-2" aria-hidden="true" />
+                    <span className="hidden sm:inline">Dashboard</span>
+                  </Button>
+                </Link>
+                <Link href="/docs">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground"
+                    aria-label="Docs"
+                  >
+                    <BookOpen className="h-4 w-4 mr-2" aria-hidden="true" />
+                    <span className="hidden sm:inline">Docs</span>
+                  </Button>
+                </Link>
                 <Link href="https://github.com/CrazySwami/layers-gateway" target="_blank" rel="noopener noreferrer">
                   <Button
                     variant="ghost"
@@ -86,6 +108,16 @@ export function UnifiedNav({ variant = 'default' }: UnifiedNavProps) {
             ) : (
               <>
                 {/* Logged out state */}
+                <Link href="/docs">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <BookOpen className="h-4 w-4 mr-2 sm:mr-0" aria-hidden="true" />
+                    <span className="sm:hidden">Docs</span>
+                  </Button>
+                </Link>
                 <Link href="/login">
                   <Button variant="ghost" size="sm">
                     Sign in
