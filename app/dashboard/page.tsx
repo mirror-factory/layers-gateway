@@ -248,10 +248,10 @@ export default function DashboardPage() {
   useEffect(() => {
     loadData();
 
-    // Auto-refresh every 30 seconds
+    // Auto-refresh every 5 seconds
     const intervalId = setInterval(() => {
       loadData(0, false);
-    }, 30000);
+    }, 5000);
 
     return () => clearInterval(intervalId);
   }, [loadData]);
@@ -331,7 +331,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2 mt-1">
-                  <p className="text-sm text-muted-foreground">Auto-refreshing every 30s</p>
+                  <p className="text-sm text-muted-foreground">Auto-refreshing every 5s</p>
                   {lastUpdated && (
                     <span className="text-xs text-muted-foreground">
                       · Last update: {new Date(lastUpdated).toLocaleTimeString()}
