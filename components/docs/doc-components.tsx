@@ -228,9 +228,15 @@ export function Td({ children }: { children: React.ReactNode }) {
 }
 
 // Inline code
-export function InlineCode({ children }: { children: React.ReactNode }) {
+export function InlineCode({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">
+    <code className={cn("px-1.5 py-0.5 rounded bg-muted font-mono text-sm", className)}>
       {children}
     </code>
   );
