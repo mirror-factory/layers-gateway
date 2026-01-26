@@ -109,12 +109,12 @@ export function UnifiedSidebar({ className }: UnifiedSidebarProps) {
       )}
     >
       <ScrollArea className="flex-1">
-        {/* Credits Section */}
-        {balance && (
-          <div className="p-4 border-b border-border/50">
-            <div className="rounded-lg bg-primary/5 p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-muted-foreground">Credits</span>
+        {/* Credits Section - Always visible */}
+        <div className="p-4 border-b border-border/50">
+          <div className="rounded-lg bg-primary/5 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-muted-foreground">Credits</span>
+              {balance ? (
                 <span
                   className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
                     balance.tier === 'pro'
@@ -128,13 +128,17 @@ export function UnifiedSidebar({ className }: UnifiedSidebarProps) {
                 >
                   {(balance.tier || 'FREE').toUpperCase()}
                 </span>
-              </div>
-              <div className="text-2xl font-semibold font-serif">
-                {balance.credits?.toFixed(0) || '0'}
-              </div>
+              ) : (
+                <div className="h-4 w-12 bg-muted/50 rounded animate-pulse" />
+              )}
+            </div>
+            <div className="text-2xl font-semibold font-serif">
+              {balance ? balance.credits?.toFixed(0) || '0' : (
+                <div className="h-8 w-20 bg-muted/50 rounded animate-pulse" />
+              )}
             </div>
           </div>
-        )}
+        </div>
 
         {/* Navigation */}
         <nav className="space-y-1 p-4">
