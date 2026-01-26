@@ -514,7 +514,7 @@ export default function DashboardPage() {
                                 fontSize: '12px'
                               }}
                               labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                              formatter={(value: any, name: string) => [
+                              formatter={(value: any, name?: string) => [
                                 name === 'requests' ? value : value.toFixed(2),
                                 name === 'requests' ? 'Requests' : 'Credits'
                               ]}
