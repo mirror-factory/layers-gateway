@@ -78,6 +78,10 @@ export default function PricingDashboard() {
   const [modelMargins, setModelMargins] = useState<Record<string, number>>({});
   const [editingModel, setEditingModel] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const fetchPricing = async () => {
     try {
@@ -106,9 +110,64 @@ export default function PricingDashboard() {
     }
   };
 
+  const loadMarginConfig = async () => {
+    try {
+      const response = await fetch('/api/margin-config');
+      if (!response.ok) throw new Error('Failed to load margin config');
+      const data = await response.json();
+      setMarginPercent(data.globalMarginPercent);
+      setModelMargins(data.modelOverrides || {});
+      setHasUnsavedChanges(false);
+    } catch (err) {
+      console.error('Failed to load margin config:', err);
+      // Use defaults if loading fails
+    }
+  };
+
+  const saveMarginConfig = async () => {
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+
+    try {
+      const response = await fetch('/api/margin-config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          globalMarginPercent: marginPercent,
+          modelOverrides: modelMargins,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save margin config');
+      }
+
+      setSaveSuccess(true);
+      setHasUnsavedChanges(false);
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save');
+      setTimeout(() => setSaveError(null), 5000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   useEffect(() => {
     fetchPricing();
+    loadMarginConfig();
   }, []);
+
+  // Track unsaved changes
+  useEffect(() => {
+    setHasUnsavedChanges(true);
+  }, [marginPercent, modelMargins]);
 
   // Calculate credits from USD price
   const usdToCredits = (usdPer1K: number, margin: number): number => {
@@ -442,6 +501,52 @@ export default function PricingDashboard() {
               <p className="text-sm font-medium mb-1">Current Conversion</p>
               <p className="text-lg">$0.01 base cost = <strong>{formatCredits(usdToCredits(0.01, marginPercent))} credits</strong></p>
             </div>
+
+            {/* Save Button */}
+            <div className="flex items-center gap-2 pt-2">
+              <Button
+                onClick={saveMarginConfig}
+                disabled={saving || !hasUnsavedChanges}
+                className="flex-1"
+              >
+                {saving ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Margin Configuration'
+                )}
+              </Button>
+              {saveSuccess && (
+                <CheckCircle className="h-5 w-5 text-green-500" />
+              )}
+            </div>
+
+            {/* Save Status Messages */}
+            {saveSuccess && (
+              <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                <p className="text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Margin configuration saved successfully!
+                </p>
+              </div>
+            )}
+
+            {saveError && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                <p className="text-sm text-red-700 dark:text-red-400 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  {saveError}
+                </p>
+              </div>
+            )}
+
+            {hasUnsavedChanges && !saving && !saveSuccess && (
+              <p className="text-xs text-muted-foreground">
+                * You have unsaved changes
+              </p>
+            )}
           </CardContent>
         </Card>
 

@@ -44,11 +44,12 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
+    // SECURITY: Log user ID, not email (GDPR compliance)
     console.log('[OAuth Callback] Code exchange result:', {
       success: !error,
       error: error?.message,
       hasSession: !!data?.session,
-      user: data?.user?.email,
+      userId: data?.user?.id,
     });
 
     if (!error && data.session) {

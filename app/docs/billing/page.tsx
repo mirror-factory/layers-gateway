@@ -11,7 +11,6 @@ import {
   Th,
   Td,
   InlineCode,
-  Flow,
 } from '@/components/docs';
 import { ArrowRight } from 'lucide-react';
 
@@ -46,6 +45,169 @@ export default function BillingPage() {
         <strong>1 credit = $0.01 USD worth of AI usage (before margin)</strong>
         <br />
         With the default 60% margin, each credit costs you ~$0.016.
+      </Callout>
+
+      <Heading level={2} id="token-counting">How Token Counting Works</Heading>
+
+      <P>
+        Understanding the separation between what the AI SDK provides and what Layers calculates
+        is key to understanding your billing.
+      </P>
+
+      <Heading level={3}>The Flow</Heading>
+
+      <div className="my-6 space-y-4">
+        {/* Step 1 */}
+        <div className="rounded-lg border bg-card p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">1</div>
+            <div className="flex-1">
+              <h4 className="font-semibold mb-2">You make API request</h4>
+              <CodeBlock language="bash">
+{`POST /api/v1/chat
+{ "model": "claude-3-5-sonnet", "messages": [...] }`}
+              </CodeBlock>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-center">
+          <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+        </div>
+
+        {/* Step 2 */}
+        <div className="rounded-lg border bg-blue-500/5 border-blue-500/20 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white font-bold">2</div>
+            <div className="flex-1">
+              <h4 className="font-semibold mb-2">Hustle Together AI SDK processes request</h4>
+              <p className="text-sm text-muted-foreground mb-2">Returns token counts only:</p>
+              <ul className="text-sm space-y-1 ml-4">
+                <li>• <InlineCode>prompt_tokens: 12</InlineCode></li>
+                <li>• <InlineCode>completion_tokens: 8</InlineCode></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-center">
+          <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+        </div>
+
+        {/* Step 3 */}
+        <div className="rounded-lg border bg-primary/5 border-primary/20 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">3</div>
+            <div className="flex-1">
+              <h4 className="font-semibold mb-2">Layers calculates costs <span className="text-primary">(YOUR BILLING)</span></h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-start gap-2">
+                  <span className="text-primary">→</span>
+                  <span>Looks up model pricing from registry</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-primary">→</span>
+                  <div>
+                    <div>Calculates base cost in USD</div>
+                    <InlineCode className="text-xs">(12 × $3/1M) + (8 × $15/1M) = $0.00024</InlineCode>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-primary">→</span>
+                  <div>
+                    <div>Applies 60% margin</div>
+                    <InlineCode className="text-xs">$0.00024 × 1.6 = $0.000384</InlineCode>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-primary">→</span>
+                  <div>
+                    <div>Converts to credits</div>
+                    <InlineCode className="text-xs">$0.000384 / $0.01 = 0.0384 credits</InlineCode>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-center">
+          <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+        </div>
+
+        {/* Step 4 */}
+        <div className="rounded-lg border bg-green-500/5 border-green-500/20 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-500 text-white font-bold">4</div>
+            <div className="flex-1">
+              <h4 className="font-semibold mb-2">Response includes both</h4>
+              <div className="space-y-1 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-600">→</span>
+                  <span>Standard <InlineCode>usage</InlineCode> field (SDK data)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-green-600">→</span>
+                  <span><InlineCode>layers</InlineCode> field (your cost breakdown)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Heading level={3}>Complete API Response</Heading>
+
+      <P>
+        Every Layers API response includes both the standard OpenAI-compatible usage field
+        and a detailed Layers cost breakdown:
+      </P>
+
+      <CodeBlock language="json">
+{`{
+  "id": "msg_01ABC123...",
+  "model": "claude-3-5-sonnet-20241022",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "text",
+      "text": "The capital of France is Paris."
+    }
+  ],
+  "stop_reason": "end_turn",
+
+  // Standard usage field (from Hustle Together AI SDK)
+  "usage": {
+    "prompt_tokens": 12,        // ← SDK provides this
+    "completion_tokens": 8,      // ← SDK provides this
+    "total_tokens": 20
+  },
+
+  // Layers cost breakdown (calculated by Layers)
+  "layers": {
+    "credits_used": 0.00048,     // ← Your actual charge
+    "latency_ms": 847,
+    "cost_breakdown": {
+      "model": "claude-3-5-sonnet-20241022",
+      "input_tokens": 12,        // ← Used for calculation
+      "output_tokens": 8,         // ← Used for calculation
+      "base_cost_usd": 0.0003,   // ← Calculated by Layers
+      "margin_percent": 60,       // ← Your margin
+      "margin_cost_usd": 0.00018, // ← Calculated by Layers
+      "total_cost_usd": 0.00048,  // ← Calculated by Layers
+      "credits": 0.00048          // ← What you pay
+    }
+  }
+}`}
+      </CodeBlock>
+
+      <Callout type="success" title="Key Takeaway">
+        <strong>The SDK only provides token counts.</strong> Layers does all the pricing math:
+        <br />• Looks up model pricing (synced from Hustle Together AI)
+        <br />• Calculates USD cost from tokens
+        <br />• Applies your margin
+        <br />• Converts to credits
+        <br />• Provides transparent cost breakdown
       </Callout>
 
       <Heading level={2} id="cost-calculation">Cost Calculation</Heading>
@@ -191,19 +353,30 @@ credits = (base_cost_usd / $0.01) × 1.60`}
 
       <Heading level={3}>Margin Breakdown in API Response</Heading>
 
-      <P>Every API response includes a full cost breakdown:</P>
+      <P>Every API response includes both standard usage and a detailed Layers cost breakdown:</P>
 
       <CodeBlock language="json">
 {`{
+  // ... message content ...
+
+  "usage": {
+    "prompt_tokens": 1000,
+    "completion_tokens": 500,
+    "total_tokens": 1500
+  },
+
   "layers": {
     "credits_used": 1.68,
+    "latency_ms": 1243,
     "cost_breakdown": {
+      "model": "claude-3-5-sonnet-20241022",
+      "input_tokens": 1000,
+      "output_tokens": 500,
       "base_cost_usd": 0.0105,
       "margin_percent": 60,
+      "margin_cost_usd": 0.0063,
       "total_cost_usd": 0.0168,
-      "credits_before_margin": 1.05,
-      "margin_credits": 0.63,
-      "validation": "ok"
+      "credits": 1.68
     }
   }
 }`}
@@ -306,18 +479,47 @@ credits = (base_cost_usd / $0.01) × 1.60`}
 
       <Heading level={3}>Subscription Flow</Heading>
 
-      <Flow>
-{`┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Dashboard │ ──▶ │   Stripe    │ ──▶ │   Webhook   │
-│   Checkout  │     │   Checkout  │     │   Handler   │
-└─────────────┘     └─────────────┘     └─────────────┘
-                          │                    │
-                          ▼                    ▼
-                    ┌─────────────┐     ┌─────────────┐
-                    │   Payment   │     │   Update    │
-                    │   Complete  │     │   Credits   │
-                    └─────────────┘     └─────────────┘`}
-      </Flow>
+      <div className="my-6">
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          {/* Dashboard Checkout */}
+          <div className="flex flex-col items-center">
+            <div className="rounded-lg border bg-card p-4 w-40 text-center">
+              <div className="font-semibold">Dashboard</div>
+              <div className="text-sm text-muted-foreground">Checkout</div>
+            </div>
+          </div>
+
+          <ArrowRight className="h-6 w-6 text-muted-foreground" />
+
+          {/* Stripe Checkout */}
+          <div className="flex flex-col items-center">
+            <div className="rounded-lg border bg-blue-500/10 border-blue-500/20 p-4 w-40 text-center">
+              <div className="font-semibold">Stripe</div>
+              <div className="text-sm text-muted-foreground">Checkout</div>
+            </div>
+            <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90 mt-2" />
+            <div className="rounded-lg border bg-green-500/10 border-green-500/20 p-3 w-40 text-center mt-2">
+              <div className="text-sm font-medium">Payment</div>
+              <div className="text-xs text-muted-foreground">Complete</div>
+            </div>
+          </div>
+
+          <ArrowRight className="h-6 w-6 text-muted-foreground" />
+
+          {/* Webhook Handler */}
+          <div className="flex flex-col items-center">
+            <div className="rounded-lg border bg-primary/10 border-primary/20 p-4 w-40 text-center">
+              <div className="font-semibold">Webhook</div>
+              <div className="text-sm text-muted-foreground">Handler</div>
+            </div>
+            <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90 mt-2" />
+            <div className="rounded-lg border bg-primary/10 border-primary/20 p-3 w-40 text-center mt-2">
+              <div className="text-sm font-medium">Update</div>
+              <div className="text-xs text-muted-foreground">Credits</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <Heading level={3}>Webhook Events</Heading>
 
@@ -401,31 +603,80 @@ Providers: 6 (Anthropic, OpenAI, Google, Perplexity, Morph, BFL, Recraft)`}
 
       <Heading level={2} id="credit-deduction-flow">Credit Deduction Flow</Heading>
 
-      <Flow>
-{`┌─────────────────────────────────────────────────────────────┐
-│                       REQUEST FLOW                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  1. PRE-FLIGHT ESTIMATE                                     │
-│     └─▶ estimateCredits(model, max_tokens)                 │
-│         └─▶ Check user balance >= estimate                  │
-│         └─▶ Return 402 if insufficient                      │
-│                                                             │
-│  2. AI GATEWAY CALL                                         │
-│     └─▶ Call AI provider                                   │
-│         └─▶ Get actual token usage                          │
-│                                                             │
-│  3. ACTUAL CALCULATION                                      │
-│     └─▶ calculateCreditsWithBreakdown(                     │
-│             model, input_tokens, output_tokens              │
-│         )                                                   │
-│                                                             │
-│  4. DEDUCTION & LOGGING                                     │
-│     └─▶ deductCredits(userId, credits)                     │
-│     └─▶ logUsage(userId, model, tokens, credits)           │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘`}
-      </Flow>
+      <div className="my-6 rounded-lg border p-6 bg-gradient-to-b from-muted/30 to-muted/10">
+        <h3 className="text-lg font-semibold mb-4 text-center">Request Flow</h3>
+        <div className="space-y-4 max-w-2xl mx-auto">
+          {/* Step 1 */}
+          <div className="rounded-lg border bg-card p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-500 text-white font-bold text-sm">1</div>
+              <div className="flex-1">
+                <h4 className="font-semibold mb-1">Pre-Flight Estimate</h4>
+                <div className="text-sm space-y-1">
+                  <div><InlineCode>estimateCredits(model, max_tokens)</InlineCode></div>
+                  <div className="text-muted-foreground">→ Check user balance ≥ estimate</div>
+                  <div className="text-muted-foreground">→ Return 402 if insufficient</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-center">
+            <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+          </div>
+
+          {/* Step 2 */}
+          <div className="rounded-lg border bg-card p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500 text-white font-bold text-sm">2</div>
+              <div className="flex-1">
+                <h4 className="font-semibold mb-1">AI Gateway Call</h4>
+                <div className="text-sm space-y-1">
+                  <div className="text-muted-foreground">→ Call AI provider</div>
+                  <div className="text-muted-foreground">→ Get actual token usage</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-center">
+            <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+          </div>
+
+          {/* Step 3 */}
+          <div className="rounded-lg border bg-card p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm">3</div>
+              <div className="flex-1">
+                <h4 className="font-semibold mb-1">Actual Calculation</h4>
+                <div className="text-sm">
+                  <InlineCode className="text-xs">
+                    calculateCreditsWithBreakdown(model, input_tokens, output_tokens)
+                  </InlineCode>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-center">
+            <ArrowRight className="h-6 w-6 text-muted-foreground rotate-90" />
+          </div>
+
+          {/* Step 4 */}
+          <div className="rounded-lg border bg-green-500/10 border-green-500/20 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-500 text-white font-bold text-sm">4</div>
+              <div className="flex-1">
+                <h4 className="font-semibold mb-1">Deduction & Logging</h4>
+                <div className="text-sm space-y-1">
+                  <div><InlineCode>deductCredits(userId, credits)</InlineCode></div>
+                  <div><InlineCode>logUsage(userId, model, tokens, credits)</InlineCode></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <Heading level={2} id="external-cost-validation">External Cost Validation</Heading>
 

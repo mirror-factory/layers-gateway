@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateApiKey, authErrorResponse } from '@/lib/middleware/auth';
+import { validateApiKey } from '@/lib/middleware/auth';
 import { calculateCredits, estimateCredits, checkBalance, deductCredits, logUsage, creditsToUsd, calculateCreditsWithBreakdown, type MirrorFactoryInput, type CostBreakdown } from '@/lib/middleware/credits';
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/middleware/rate-limit';
 import { callGateway, callGatewayStream, parseProvider, GatewayMessage, ToolDefinition } from '@/lib/gateway/client';
+import { getCorsHeaders, createCorsPreflightResponse } from '@/lib/cors/config';
+
+// SECURITY: Input validation limits
+const MAX_MESSAGE_LENGTH = 100_000; // 100k characters per message
+const MAX_MESSAGES_ARRAY = 100; // Maximum messages in conversation
+const MAX_CREDITS_PER_REQUEST = 100; // ~$1.00 USD safety cap
 
 interface ChatRequest {
   model: string;
@@ -31,6 +37,13 @@ interface ChatRequest {
 }
 
 /**
+ * CORS preflight handler
+ */
+export async function OPTIONS(request: NextRequest) {
+  return createCorsPreflightResponse(request.headers.get('origin'));
+}
+
+/**
  * Layers API - Chat Completions
  *
  * POST /api/v1/chat
@@ -54,6 +67,8 @@ interface ChatRequest {
  *   500: Server error
  */
 export async function POST(request: NextRequest) {
+  const origin = request.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
   const startTime = Date.now();
   let userId: string | null = null;
   let apiKeyId: string | null = null;
@@ -62,7 +77,10 @@ export async function POST(request: NextRequest) {
     // 1. Authenticate (pass headers for test mode detection)
     const authResult = await validateApiKey(request.headers.get('authorization'), request.headers);
     if (!authResult.success) {
-      return authErrorResponse(authResult);
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status, headers: corsHeaders }
+      );
     }
 
     const { user } = authResult;
@@ -99,21 +117,50 @@ export async function POST(request: NextRequest) {
             error: 'Invalid mirror_factory.base_cost_usd',
             details: 'base_cost_usd must be a non-negative number',
           },
-          { status: 400 }
+          { status: 400, headers: corsHeaders }
         );
       }
     }
 
     // Validate required fields
     if (!model) {
-      return NextResponse.json({ error: 'Model is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Model is required' }, { status: 400, headers: corsHeaders });
     }
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
         { error: 'Messages array is required and must not be empty' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
+    }
+
+    // SECURITY: Validate messages array size
+    if (messages.length > MAX_MESSAGES_ARRAY) {
+      return NextResponse.json(
+        {
+          error: 'Too many messages in conversation',
+          max_messages: MAX_MESSAGES_ARRAY,
+          received: messages.length,
+        },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // SECURITY: Validate individual message lengths
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      if (content && content.length > MAX_MESSAGE_LENGTH) {
+        return NextResponse.json(
+          {
+            error: 'Message content exceeds maximum length',
+            max_length: MAX_MESSAGE_LENGTH,
+            message_index: i,
+            received_length: content.length,
+          },
+          { status: 400, headers: corsHeaders }
+        );
+      }
     }
 
     // 3. Check rate limit (pass headers to detect test mode)
@@ -127,13 +174,27 @@ export async function POST(request: NextRequest) {
         },
         {
           status: 429,
-          headers: getRateLimitHeaders(rateLimitResult),
+          headers: { ...getRateLimitHeaders(rateLimitResult), ...corsHeaders },
         }
       );
     }
 
     // 4. Pre-flight credit check
     const estimated = estimateCredits(model, max_tokens);
+
+    // SECURITY: Per-request credit cap to prevent runaway costs
+    if (estimated > MAX_CREDITS_PER_REQUEST) {
+      return NextResponse.json(
+        {
+          error: 'Request exceeds maximum cost per request',
+          max_credits: MAX_CREDITS_PER_REQUEST,
+          estimated_credits: estimated,
+          suggestion: 'Reduce max_tokens or use a more economical model',
+        },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
     const balanceCheck = checkBalance(user.balance, estimated);
 
     if (!balanceCheck.sufficient) {
@@ -143,7 +204,7 @@ export async function POST(request: NextRequest) {
           balance: user.balance,
           estimated_required: estimated,
         },
-        { status: 402 }
+        { status: 402, headers: corsHeaders }
       );
     }
 
@@ -190,7 +251,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(
           { error: streamResult.error.error, details: streamResult.error.details },
-          { status: streamResult.error.status }
+          { status: streamResult.error.status, headers: corsHeaders }
         );
       }
 
@@ -205,6 +266,7 @@ export async function POST(request: NextRequest) {
           'Cache-Control': 'no-cache',
           'Connection': 'keep-alive',
           ...getRateLimitHeaders(rateLimitResult),
+          ...corsHeaders,
           'X-Layers-Credits-Estimated': String(estimatedCredits),
         },
       });
@@ -229,7 +291,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         { error: gatewayResult.error.error, details: gatewayResult.error.details },
-        { status: gatewayResult.error.status }
+        { status: gatewayResult.error.status, headers: corsHeaders }
       );
     }
 
@@ -328,11 +390,13 @@ export async function POST(request: NextRequest) {
         },
       },
       {
-        headers: getRateLimitHeaders(rateLimitResult),
+        headers: { ...getRateLimitHeaders(rateLimitResult), ...corsHeaders },
       }
     );
   } catch (error) {
-    console.error('Layers API error:', error);
+    // SECURITY: Generate request ID for support, don't expose stack traces
+    const requestId = crypto.randomUUID();
+    console.error('[API Error]', { requestId, error, userId });
 
     // Log failed request if we have user context
     if (userId) {
@@ -354,8 +418,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Internal server error', details: String(error) },
-      { status: 500 }
+      { error: 'Internal server error', request_id: requestId },
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -363,22 +427,27 @@ export async function POST(request: NextRequest) {
 /**
  * Health check endpoint
  */
-export async function GET() {
-  return NextResponse.json({
-    status: 'ok',
-    version: 'v1.6.0', // Added pricing sync from Hustle Together AI
-    build: '2026-01-23T14:00:00Z',
-    endpoints: {
-      chat: 'POST /api/v1/chat',
-      pricing: 'GET/POST /api/v1/pricing',
+export async function GET(request: NextRequest) {
+  const corsHeaders = getCorsHeaders(request.headers.get('origin'));
+
+  return NextResponse.json(
+    {
+      status: 'ok',
+      version: 'v1.6.0', // Added pricing sync from Hustle Together AI
+      build: '2026-01-23T14:00:00Z',
+      endpoints: {
+        chat: 'POST /api/v1/chat',
+        pricing: 'GET/POST /api/v1/pricing',
+      },
+      features: {
+        cost_breakdown: true,
+        mirror_factory_input: true,
+        validation: true,
+        pricing_sync: true,
+      },
+      docs: 'https://layers.hustletogether.com/docs',
+      timestamp: new Date().toISOString(),
     },
-    features: {
-      cost_breakdown: true,
-      mirror_factory_input: true,
-      validation: true,
-      pricing_sync: true,
-    },
-    docs: 'https://layers.hustletogether.com/docs',
-    timestamp: new Date().toISOString(),
-  });
+    { headers: corsHeaders }
+  );
 }

@@ -2,20 +2,25 @@ import { NextResponse } from 'next/server';
 import { createServerClient, hashApiKey, isSupabaseConfigured, ApiKey, CreditBalance } from '@/lib/supabase/client';
 
 // Auth v2 - Test mode bypass for integration tests (2026-01-18)
-// Test mode secret for integration tests (must match rate-limit.ts)
-const TEST_MODE_SECRET = process.env.LAYERS_TEST_SECRET || 'layers-integration-test-2026';
+// SECURITY: No hardcoded default - requires explicit environment variable
+const TEST_MODE_SECRET = process.env.LAYERS_TEST_SECRET;
 
 // Check if running in test mode
 function isTestMode(headers?: Headers): boolean {
-  // Check environment variables
+  // SECURITY: NEVER allow test mode in production
+  if (process.env.NODE_ENV === 'production') {
+    return false;
+  }
+
+  // Check environment variables (for CI/test environments)
   if (process.env.NODE_ENV === 'test' ||
       process.env.LAYERS_TEST_MODE === 'true' ||
       process.env.CI === 'true') {
     return true;
   }
 
-  // Check for test header (allows tests to bypass auth on deployed API)
-  if (headers) {
+  // Check for test header only if secret is explicitly configured
+  if (headers && TEST_MODE_SECRET) {
     const testHeader = headers.get('X-Layers-Test-Mode');
     if (testHeader === TEST_MODE_SECRET) {
       return true;
@@ -85,8 +90,17 @@ export async function validateApiKey(authHeader: string | null, headers?: Header
 
   // Check if Supabase is configured
   if (!isSupabaseConfigured()) {
-    // Demo mode - return mock user
-    console.warn('SUPABASE not configured - running in demo mode');
+    // SECURITY: Block demo mode in production
+    if (process.env.NODE_ENV === 'production') {
+      console.error('CRITICAL: Supabase not configured in production');
+      return {
+        success: false,
+        error: 'Service temporarily unavailable',
+        status: 503,
+      };
+    }
+    // Demo mode - only for development
+    console.warn('SUPABASE not configured - running in demo mode (development only)');
     return {
       success: true,
       user: {

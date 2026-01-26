@@ -12,20 +12,25 @@ const RATE_LIMITS: Record<RateLimitTier, number> = {
   test: 1000, // High limit for integration tests
 };
 
-// Secret for test mode bypass (should match what tests send)
-const TEST_MODE_SECRET = process.env.LAYERS_TEST_SECRET || 'layers-integration-test-2026';
+// SECURITY: No hardcoded default - requires explicit environment variable
+const TEST_MODE_SECRET = process.env.LAYERS_TEST_SECRET;
 
 // Check if running in test mode
 export function isTestMode(headers?: Headers): boolean {
-  // Check environment variables
+  // SECURITY: NEVER allow test mode in production
+  if (process.env.NODE_ENV === 'production') {
+    return false;
+  }
+
+  // Check environment variables (for CI/test environments)
   if (process.env.NODE_ENV === 'test' ||
       process.env.LAYERS_TEST_MODE === 'true' ||
       process.env.CI === 'true') {
     return true;
   }
 
-  // Check for test header (allows tests to bypass rate limits on deployed API)
-  if (headers) {
+  // Check for test header only if secret is explicitly configured
+  if (headers && TEST_MODE_SECRET) {
     const testHeader = headers.get('X-Layers-Test-Mode');
     if (testHeader === TEST_MODE_SECRET) {
       return true;

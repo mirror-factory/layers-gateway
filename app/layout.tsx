@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono, Cormorant_Garamond } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import './globals.css';
@@ -32,6 +32,13 @@ export const metadata: Metadata = {
     ],
     apple: '/icon.svg?v=2',
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f8faf9' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0f' },
+  ],
 };
 
 export default function RootLayout({

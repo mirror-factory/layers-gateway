@@ -4,6 +4,23 @@ import Stripe from 'stripe';
 import { getStripe, creditsForTier, tierFromPriceId, TierName } from '@/lib/stripe/client';
 import { createServerClient, isSupabaseConfigured } from '@/lib/supabase/client';
 
+// SECURITY: In-memory processed events store for idempotency
+// In production, use Redis or database for distributed systems
+const processedEvents = new Map<string, number>();
+
+// Event timestamp tolerance (5 minutes - Stripe default)
+const EVENT_TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000;
+
+// Cleanup old events periodically (prevent memory leak)
+setInterval(() => {
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  for (const [eventId, timestamp] of processedEvents.entries()) {
+    if (timestamp < oneHourAgo) {
+      processedEvents.delete(eventId);
+    }
+  }
+}, 10 * 60 * 1000); // Every 10 minutes
+
 /**
  * Stripe Webhook Handler
  *
@@ -43,12 +60,37 @@ export async function POST(request: NextRequest) {
     const stripe = getStripe();
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err);
+    console.error('[Webhook] Signature verification failed:', err);
     return NextResponse.json(
       { error: 'Invalid signature' },
       { status: 400 }
     );
   }
+
+  // SECURITY: Check for replay attacks - event timestamp tolerance
+  const eventTimestamp = event.created * 1000;
+  const now = Date.now();
+
+  if (now - eventTimestamp > EVENT_TIMESTAMP_TOLERANCE_MS) {
+    console.warn('[Webhook] Event too old, possible replay:', {
+      eventId: event.id,
+      eventTimestamp: new Date(eventTimestamp).toISOString(),
+      now: new Date(now).toISOString(),
+    });
+    return NextResponse.json(
+      { error: 'Event too old' },
+      { status: 400 }
+    );
+  }
+
+  // SECURITY: Idempotency check - prevent duplicate processing
+  if (processedEvents.has(event.id)) {
+    console.log('[Webhook] Event already processed, skipping:', event.id);
+    return NextResponse.json({ received: true, status: 'duplicate' });
+  }
+
+  // Mark as processed immediately to prevent race conditions
+  processedEvents.set(event.id, now);
 
   // Handle the event
   try {
@@ -77,11 +119,15 @@ export async function POST(request: NextRequest) {
         console.log(`Unhandled event type: ${event.type}`);
     }
 
+    console.log('[Webhook] Successfully processed:', event.id, event.type);
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error(`Error handling ${event.type}:`, error);
+    // Remove from processed events on failure so it can be retried
+    processedEvents.delete(event.id);
+    console.error(`[Webhook] Error handling ${event.type}:`, error);
+    // SECURITY: Don't expose internal error details
     return NextResponse.json(
-      { error: 'Webhook handler failed', details: String(error) },
+      { error: 'Webhook handler failed' },
       { status: 500 }
     );
   }

@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateApiKey, authErrorResponse } from '@/lib/middleware/auth';
+import { validateApiKey } from '@/lib/middleware/auth';
 import { checkBalance, deductCredits, logUsage, creditsToUsd } from '@/lib/middleware/credits';
 import { checkRateLimit, getRateLimitHeaders } from '@/lib/middleware/rate-limit';
 import { parseProvider } from '@/lib/gateway/client';
 import { experimental_generateImage as generateImage, createGateway } from 'ai';
+import { getCorsHeaders, createCorsPreflightResponse } from '@/lib/cors/config';
+
+// SECURITY: Input validation limits
+const MAX_PROMPT_LENGTH = 10_000; // 10k characters for image prompts
+const MAX_IMAGES_PER_REQUEST = 4; // Maximum images per request
+const MAX_CREDITS_PER_IMAGE_REQUEST = 60; // ~$0.60 USD safety cap
 
 interface ImageRequest {
   model: string;
@@ -54,6 +60,13 @@ function getGatewayKey(): string | null {
 }
 
 /**
+ * CORS preflight handler
+ */
+export async function OPTIONS(request: NextRequest) {
+  return createCorsPreflightResponse(request.headers.get('origin'));
+}
+
+/**
  * Layers API - Image Generation
  *
  * POST /api/v1/image
@@ -77,6 +90,8 @@ function getGatewayKey(): string | null {
  *   500: Server error
  */
 export async function POST(request: NextRequest) {
+  const origin = request.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
   const startTime = Date.now();
   let userId: string | null = null;
   let apiKeyId: string | null = null;
@@ -85,7 +100,10 @@ export async function POST(request: NextRequest) {
     // 1. Authenticate
     const authResult = await validateApiKey(request.headers.get('authorization'), request.headers);
     if (!authResult.success) {
-      return authErrorResponse(authResult);
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status, headers: corsHeaders }
+      );
     }
 
     const { user } = authResult;
@@ -104,13 +122,37 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!model) {
-      return NextResponse.json({ error: 'Model is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Model is required' }, { status: 400, headers: corsHeaders });
     }
 
     if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
       return NextResponse.json(
         { error: 'Prompt is required and must be a non-empty string' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // SECURITY: Validate prompt length
+    if (prompt.length > MAX_PROMPT_LENGTH) {
+      return NextResponse.json(
+        {
+          error: 'Prompt exceeds maximum length',
+          max_length: MAX_PROMPT_LENGTH,
+          received_length: prompt.length,
+        },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // SECURITY: Validate number of images
+    if (n > MAX_IMAGES_PER_REQUEST) {
+      return NextResponse.json(
+        {
+          error: 'Too many images requested',
+          max_images: MAX_IMAGES_PER_REQUEST,
+          requested: n,
+        },
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -125,13 +167,27 @@ export async function POST(request: NextRequest) {
         },
         {
           status: 429,
-          headers: getRateLimitHeaders(rateLimitResult),
+          headers: { ...getRateLimitHeaders(rateLimitResult), ...corsHeaders },
         }
       );
     }
 
     // 4. Pre-flight credit check
     const estimated = estimateImageCredits(model, n);
+
+    // SECURITY: Per-request credit cap to prevent runaway costs
+    if (estimated > MAX_CREDITS_PER_IMAGE_REQUEST) {
+      return NextResponse.json(
+        {
+          error: 'Request exceeds maximum cost per request',
+          max_credits: MAX_CREDITS_PER_IMAGE_REQUEST,
+          estimated_credits: estimated,
+          suggestion: 'Reduce number of images or use a more economical model',
+        },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
     const balanceCheck = checkBalance(user.balance, estimated);
 
     if (!balanceCheck.sufficient) {
@@ -141,7 +197,7 @@ export async function POST(request: NextRequest) {
           balance: user.balance,
           estimated_required: estimated,
         },
-        { status: 402 }
+        { status: 402, headers: corsHeaders }
       );
     }
 
@@ -150,7 +206,7 @@ export async function POST(request: NextRequest) {
     if (!gatewayKey) {
       return NextResponse.json(
         { error: 'AI Gateway not configured' },
-        { status: 500 }
+        { status: 500, headers: corsHeaders }
       );
     }
 
@@ -227,11 +283,13 @@ export async function POST(request: NextRequest) {
         },
       },
       {
-        headers: getRateLimitHeaders(rateLimitResult),
+        headers: { ...getRateLimitHeaders(rateLimitResult), ...corsHeaders },
       }
     );
   } catch (error) {
-    console.error('Layers Image API error:', error);
+    // SECURITY: Generate request ID for support, don't expose stack traces
+    const requestId = crypto.randomUUID();
+    console.error('[Image API Error]', { requestId, error, userId });
 
     // Log failed request
     if (userId) {
@@ -253,8 +311,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Internal server error', details: String(error) },
-      { status: 500 }
+      { error: 'Internal server error', request_id: requestId },
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -262,13 +320,18 @@ export async function POST(request: NextRequest) {
 /**
  * Health check endpoint
  */
-export async function GET() {
-  return NextResponse.json({
-    status: 'ok',
-    version: 'v1.0.0',
-    endpoint: '/api/v1/image',
-    supported_models: Object.keys(IMAGE_PRICING),
-    docs: 'https://preview.hustletogether.com/docs',
-    timestamp: new Date().toISOString(),
-  });
+export async function GET(request: NextRequest) {
+  const corsHeaders = getCorsHeaders(request.headers.get('origin'));
+
+  return NextResponse.json(
+    {
+      status: 'ok',
+      version: 'v1.0.0',
+      endpoint: '/api/v1/image',
+      supported_models: Object.keys(IMAGE_PRICING),
+      docs: 'https://layers.hustletogether.com/docs',
+      timestamp: new Date().toISOString(),
+    },
+    { headers: corsHeaders }
+  );
 }
