@@ -3,6 +3,7 @@
 import { cn } from '@/lib/utils';
 import {
   Check,
+  CheckCircle,
   Copy,
   Info,
   AlertTriangle,
@@ -91,11 +92,16 @@ export function Callout({
   title,
   children,
 }: {
-  type?: 'info' | 'warning' | 'error' | 'tip';
+  type?: 'info' | 'warning' | 'error' | 'tip' | 'success';
   title?: string;
   children: React.ReactNode;
 }) {
   const styles = {
+    success: {
+      bg: 'bg-green-500/10 border-green-500/20',
+      icon: CheckCircle,
+      iconColor: 'text-green-500',
+    },
     info: {
       bg: 'bg-blue-500/10 border-blue-500/20',
       icon: Info,
@@ -118,7 +124,7 @@ export function Callout({
     },
   };
 
-  const style = styles[type];
+  const style = styles[type] || styles.info;
   const Icon = style.icon;
 
   return (

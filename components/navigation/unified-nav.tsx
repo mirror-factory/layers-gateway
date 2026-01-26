@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { createClient } from '@/lib/supabase/browser';
-import { LogOut, Layers } from 'lucide-react';
+import { LogOut, Layers, Github } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface UnifiedNavProps {
@@ -41,22 +41,24 @@ export function UnifiedNav({ variant = 'default' }: UnifiedNavProps) {
     window.location.href = '/login';
   };
 
-  const navLinks = [
+  const navLinks = user ? [
     { href: '/docs', label: 'Docs' },
     { href: '/dashboard/pricing', label: 'Pricing' },
+    { href: '/dashboard', label: 'Dashboard' },
+  ] : [
+    { href: '/docs', label: 'Docs' },
+    { href: '/pricing', label: 'Pricing' },
   ];
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-4 md:h-16 md:px-6">
       {/* Logo and tagline */}
       <div className="flex items-center gap-2 md:gap-3">
-        <Link href="/" className="flex items-center gap-2">
-          {variant === 'docs' && (
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <Layers className="h-5 w-5 text-primary-foreground" />
-            </div>
-          )}
-          <span className="font-serif text-base font-bold md:text-lg">Layers</span>
+        <Link href="/" className="flex items-center gap-2 md:gap-3">
+          <div className="h-9 w-9 md:h-10 md:w-10 rounded-lg bg-primary flex items-center justify-center">
+            <Layers className="h-5 w-5 md:h-6 md:w-6 text-primary-foreground" />
+          </div>
+          <span className="font-serif text-xl font-bold md:text-2xl">Layers</span>
         </Link>
         <p className="hidden text-xs text-muted-foreground md:block">
           Unified AI Gateway
@@ -87,25 +89,27 @@ export function UnifiedNav({ variant = 'default' }: UnifiedNavProps) {
             {user ? (
               <>
                 {/* Logged in state */}
-                <Link href="/dashboard">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="hidden sm:flex"
-                  >
-                    Dashboard
-                  </Button>
-                </Link>
                 <span className="hidden rounded-full bg-primary/10 px-2 py-1 font-mono text-xs text-primary sm:inline-block md:px-3">
                   {user.email}
                 </span>
+                <Link href="https://github.com/CrazySwami/layers-gateway" target="_blank" rel="noopener noreferrer">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground"
+                    aria-label="GitHub"
+                  >
+                    <Github className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </Link>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleSignOut}
                   className="text-muted-foreground hover:text-foreground"
+                  aria-label="Sign out"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </>
             ) : (

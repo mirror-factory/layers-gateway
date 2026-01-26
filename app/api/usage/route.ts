@@ -4,7 +4,7 @@ import { createServerClient } from '@/lib/supabase/client';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -15,16 +15,21 @@ export async function GET() {
 
     const serverClient = createServerClient();
 
-    // Get start of current month and last 30 days
+    // Get time range from query params (default to 90 days to cover all filters)
+    const { searchParams } = new URL(request.url);
+    const days = parseInt(searchParams.get('days') || '90', 10);
+
+    // Get start of current month and last N days
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-    const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const lastNDays = new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
 
-    // Get all usage logs for the user
+    // Get all usage logs for the user within the time range
     const { data: allLogs, error: logsError } = await serverClient
       .from('usage_logs')
       .select('*')
       .eq('user_id', user.id)
+      .gte('created_at', lastNDays)
       .order('created_at', { ascending: false });
 
     if (logsError) {
@@ -42,6 +47,19 @@ export async function GET() {
     }
 
     const logs = allLogs || [];
+
+    // For client-side filtering, return all logs (not just 20)
+    const allRecentLogs = logs.map(log => ({
+      id: log.id,
+      model: log.model_id,
+      provider: log.provider,
+      input_tokens: log.input_tokens || 0,
+      output_tokens: log.output_tokens || 0,
+      credits_used: log.credits_used || 0,
+      latency_ms: log.latency_ms || 0,
+      status: log.status,
+      created_at: log.created_at,
+    }));
 
     // Calculate totals
     const totalRequests = logs.length;
@@ -84,10 +102,10 @@ export async function GET() {
       .sort((a, b) => b.requests - a.requests)
       .slice(0, 10); // Top 10 models
 
-    // Group by day (last 30 days)
-    const last30DaysLogs = logs.filter(log => log.created_at >= last30Days);
+    // Group by day (last N days)
+    const lastNDaysLogs = logs.filter(log => log.created_at >= lastNDays);
     const byDayMap = new Map<string, { requests: number; credits: number; tokens: number }>();
-    for (const log of last30DaysLogs) {
+    for (const log of lastNDaysLogs) {
       const day = log.created_at.split('T')[0]; // YYYY-MM-DD
       const existing = byDayMap.get(day) || { requests: 0, credits: 0, tokens: 0 };
       byDayMap.set(day, {
@@ -100,19 +118,6 @@ export async function GET() {
       .map(([date, stats]) => ({ date, ...stats }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    // Recent logs (last 20)
-    const recentLogs = logs.slice(0, 20).map(log => ({
-      id: log.id,
-      model: log.model_id,
-      provider: log.provider,
-      input_tokens: log.input_tokens || 0,
-      output_tokens: log.output_tokens || 0,
-      credits_used: log.credits_used || 0,
-      latency_ms: log.latency_ms || 0,
-      status: log.status,
-      created_at: log.created_at,
-    }));
-
     return NextResponse.json({
       total_requests: totalRequests,
       total_credits_used: totalCredits,
@@ -121,7 +126,7 @@ export async function GET() {
       by_provider: byProvider,
       by_model: byModel,
       by_day: byDay,
-      recent_logs: recentLogs,
+      recent_logs: allRecentLogs,
     });
   } catch (error) {
     console.error('Error in GET /api/usage:', error);

@@ -14,8 +14,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { RefreshCw, DollarSign, Calculator, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { RefreshCw, DollarSign, Calculator, TrendingUp, AlertCircle, CheckCircle, CreditCard } from 'lucide-react';
 import { UnifiedNav } from '@/components/navigation/unified-nav';
+import { UnifiedSidebar } from '@/components/navigation/unified-sidebar';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface ModelPricing {
   input: number;
@@ -40,19 +50,33 @@ interface ModelWithCredits {
   provider: string;
   inputUsd: number;
   outputUsd: number;
+  imageUsd: number | null;
   inputCredits: number;
   outputCredits: number;
+  imageCredits: number | null;
   marginPercent: number;
+  isImageModel: boolean;
 }
 
 const DEFAULT_MARGIN = 60;
 
+// Mobile navigation items
+const mobileNav = [
+  { name: 'Overview', href: '/dashboard' },
+  { name: 'Pricing & Credits', href: '/dashboard/pricing' },
+  { name: 'Settings', href: '/dashboard/settings' },
+  { name: 'Documentation', href: '/docs' },
+];
+
 export default function PricingDashboard() {
+  const router = useRouter();
   const [pricingData, setPricingData] = useState<PricingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [marginPercent, setMarginPercent] = useState(DEFAULT_MARGIN);
+  const [modelMargins, setModelMargins] = useState<Record<string, number>>({});
+  const [editingModel, setEditingModel] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const fetchPricing = async () => {
@@ -136,15 +160,23 @@ export default function PricingDashboard() {
         if (!searchQuery) return true;
         return id.toLowerCase().includes(searchQuery.toLowerCase());
       })
-      .map(([id, pricing]) => ({
-        id,
-        provider: getProvider(id),
-        inputUsd: pricing.input,
-        outputUsd: pricing.output,
-        inputCredits: usdToCredits(pricing.input, marginPercent),
-        outputCredits: usdToCredits(pricing.output, marginPercent),
-        marginPercent,
-      }))
+      .map(([id, pricing]) => {
+        const modelMargin = modelMargins[id] ?? marginPercent;
+        const isImageModel = pricing.image !== undefined && pricing.image !== null;
+
+        return {
+          id,
+          provider: getProvider(id),
+          inputUsd: pricing.input,
+          outputUsd: pricing.output,
+          imageUsd: pricing.image || null,
+          inputCredits: usdToCredits(pricing.input, modelMargin),
+          outputCredits: usdToCredits(pricing.output, modelMargin),
+          imageCredits: pricing.image ? usdToCredits(pricing.image, modelMargin) : null,
+          marginPercent: modelMargin,
+          isImageModel,
+        };
+      })
       .sort((a, b) => a.id.localeCompare(b.id));
   };
 
@@ -163,10 +195,15 @@ export default function PricingDashboard() {
     return (
       <div className="min-h-screen bg-background">
         <UnifiedNav variant="dashboard" />
-        <div className="container mx-auto p-6">
-          <div className="flex items-center justify-center h-64">
-            <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
+        <div className="flex">
+          <UnifiedSidebar className="hidden md:flex" />
+          <main className="flex-1 overflow-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-center h-64">
+                <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            </div>
+          </main>
         </div>
       </div>
     );
@@ -175,7 +212,29 @@ export default function PricingDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <UnifiedNav variant="dashboard" />
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="flex">
+        {/* Sidebar */}
+        <UnifiedSidebar className="hidden md:flex" />
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto">
+          {/* Mobile Navigation Dropdown */}
+          <div className="md:hidden border-b bg-card p-4">
+            <Select value="/dashboard/pricing" onValueChange={(value) => router.push(value)}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Navigate to..." />
+              </SelectTrigger>
+              <SelectContent>
+                {mobileNav.map((item) => (
+                  <SelectItem key={item.href} value={item.href}>
+                    {item.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -341,12 +400,12 @@ export default function PricingDashboard() {
               Margin Configuration
             </CardTitle>
             <CardDescription>
-              Adjust the profit margin applied to base costs
+              Adjust the profit margin applied to base costs. Click on individual model margins in the table to customize.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="margin">Margin Percentage</Label>
+              <Label htmlFor="margin">Global Margin Percentage</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="margin"
@@ -359,6 +418,21 @@ export default function PricingDashboard() {
                 />
                 <span className="text-muted-foreground">%</span>
               </div>
+              {Object.keys(modelMargins).length > 0 && (
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant="secondary">
+                    {Object.keys(modelMargins).length} model{Object.keys(modelMargins).length > 1 ? 's' : ''} with custom margins
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setModelMargins({})}
+                    className="text-xs h-7"
+                  >
+                    Reset all
+                  </Button>
+                </div>
+              )}
             </div>
             <div className="p-3 rounded-lg bg-muted/50 border">
               <p className="text-sm font-medium mb-1">Formula</p>
@@ -474,40 +548,85 @@ export default function PricingDashboard() {
                   <TableHead>Provider</TableHead>
                   <TableHead className="text-right">Input (USD)</TableHead>
                   <TableHead className="text-right">Output (USD)</TableHead>
+                  <TableHead className="text-right">Image (USD)</TableHead>
                   <TableHead className="text-right">Input (Credits)</TableHead>
                   <TableHead className="text-right">Output (Credits)</TableHead>
-                  <TableHead className="text-right">Margin</TableHead>
+                  <TableHead className="text-right">Image (Credits)</TableHead>
+                  <TableHead className="text-right">Margin %</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {models.map((model) => (
                   <TableRow key={model.id}>
-                    <TableCell className="font-mono text-sm">{model.id}</TableCell>
+                    <TableCell className="font-mono text-sm">
+                      <div className="flex items-center gap-2">
+                        {model.id}
+                        {model.isImageModel && (
+                          <Badge variant="secondary" className="text-[10px]">IMG</Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge className={getProviderColor(model.provider)}>
                         {model.provider}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right font-mono">
+                    <TableCell className="text-right font-mono text-sm">
                       {formatUsd(model.inputUsd)}
                     </TableCell>
-                    <TableCell className="text-right font-mono">
+                    <TableCell className="text-right font-mono text-sm">
                       {formatUsd(model.outputUsd)}
                     </TableCell>
-                    <TableCell className="text-right font-mono font-medium">
+                    <TableCell className="text-right font-mono text-sm">
+                      {model.imageUsd ? formatUsd(model.imageUsd) : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
+                    <TableCell className="text-right font-mono font-medium text-sm">
                       {formatCredits(model.inputCredits)}
                     </TableCell>
-                    <TableCell className="text-right font-mono font-medium">
+                    <TableCell className="text-right font-mono font-medium text-sm">
                       {formatCredits(model.outputCredits)}
                     </TableCell>
+                    <TableCell className="text-right font-mono font-medium text-sm">
+                      {model.imageCredits ? formatCredits(model.imageCredits) : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
                     <TableCell className="text-right">
-                      <Badge variant="outline">{model.marginPercent}%</Badge>
+                      {editingModel === model.id ? (
+                        <div className="flex items-center gap-1">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="200"
+                            value={modelMargins[model.id] ?? marginPercent}
+                            onChange={(e) => {
+                              const newMargin = Number(e.target.value);
+                              setModelMargins(prev => ({ ...prev, [model.id]: newMargin }));
+                            }}
+                            className="w-16 h-7 text-xs"
+                            autoFocus
+                            onBlur={() => setEditingModel(null)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === 'Escape') {
+                                setEditingModel(null);
+                              }
+                            }}
+                          />
+                          <span className="text-xs">%</span>
+                        </div>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="cursor-pointer hover:bg-muted"
+                          onClick={() => setEditingModel(model.id)}
+                        >
+                          {model.marginPercent}%
+                        </Badge>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
                 {models.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       {searchQuery ? 'No models match your search' : 'No pricing data available'}
                     </TableCell>
                   </TableRow>
@@ -517,6 +636,8 @@ export default function PricingDashboard() {
           </div>
         </CardContent>
       </Card>
+          </div>
+        </main>
       </div>
     </div>
   );

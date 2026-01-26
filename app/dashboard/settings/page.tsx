@@ -23,14 +23,12 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
-  BookOpen,
   RefreshCw,
-  LayoutDashboard,
-  Settings,
   ArrowLeft,
 } from 'lucide-react';
 import Link from 'next/link';
 import { UnifiedNav } from '@/components/navigation/unified-nav';
+import { UnifiedSidebar } from '@/components/navigation/unified-sidebar';
 import {
   Select,
   SelectContent,
@@ -53,11 +51,12 @@ interface CreditBalance {
   tier: string;
 }
 
-// Sidebar navigation items
-const sidebarNav = [
-  { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings, active: true },
-  { name: 'Documentation', href: '/docs', icon: BookOpen },
+// Mobile navigation items
+const mobileNav = [
+  { name: 'Overview', href: '/dashboard' },
+  { name: 'Pricing & Credits', href: '/dashboard/pricing' },
+  { name: 'Settings', href: '/dashboard/settings' },
+  { name: 'Documentation', href: '/docs' },
 ];
 
 export default function SettingsPage() {
@@ -186,42 +185,7 @@ export default function SettingsPage() {
 
       <div className="flex">
         {/* Sidebar */}
-        <aside className="hidden w-64 shrink-0 border-r bg-card md:flex flex-col min-h-[calc(100vh-3.5rem)]">
-          {/* Credits - at top */}
-          <div className="p-4 border-b border-border/50">
-            <div className="rounded-lg bg-primary/5 p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-muted-foreground">Credits</span>
-                <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                  balance?.tier === 'pro' ? 'bg-primary/20 text-primary' :
-                  balance?.tier === 'team' ? 'bg-primary/30 text-primary' :
-                  balance?.tier === 'starter' ? 'bg-primary/15 text-primary' :
-                  'bg-muted text-muted-foreground'
-                }`}>
-                  {(balance?.tier || 'FREE').toUpperCase()}
-                </span>
-              </div>
-              <div className="text-2xl font-semibold font-serif">{balance?.credits?.toFixed(0) || '0'}</div>
-            </div>
-          </div>
-
-          <nav className="flex-1 space-y-1 p-4">
-            {sidebarNav.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                  item.active
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                }`}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.name}
-              </Link>
-            ))}
-          </nav>
-        </aside>
+        <UnifiedSidebar className="hidden md:flex" />
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
@@ -232,7 +196,7 @@ export default function SettingsPage() {
                 <SelectValue placeholder="Navigate to..." />
               </SelectTrigger>
               <SelectContent>
-                {sidebarNav.map((item) => (
+                {mobileNav.map((item) => (
                   <SelectItem key={item.href} value={item.href}>
                     {item.name}
                   </SelectItem>
