@@ -173,8 +173,18 @@ export function Heading({
 }
 
 // Paragraph
-export function P({ children }: { children: React.ReactNode }) {
-  return <p className="text-muted-foreground leading-7 mb-4">{children}</p>;
+export function P({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <p className={cn("text-muted-foreground leading-7 mb-4", className)}>
+      {children}
+    </p>
+  );
 }
 
 // List
