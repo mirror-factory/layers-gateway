@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { createClient } from '@/lib/supabase/browser';
 import { LogOut, Layers, Github } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface UnifiedNavProps {
   variant?: 'default' | 'docs' | 'dashboard';
@@ -16,7 +14,6 @@ interface UnifiedNavProps {
 export function UnifiedNav({ variant = 'default' }: UnifiedNavProps) {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const pathname = usePathname();
 
   useEffect(() => {
     const supabase = createClient();
@@ -41,15 +38,6 @@ export function UnifiedNav({ variant = 'default' }: UnifiedNavProps) {
     window.location.href = '/login';
   };
 
-  const navLinks = user ? [
-    { href: '/docs', label: 'Docs' },
-    { href: '/dashboard/pricing', label: 'Pricing' },
-    { href: '/dashboard', label: 'Dashboard' },
-  ] : [
-    { href: '/docs', label: 'Docs' },
-    { href: '/pricing', label: 'Pricing' },
-  ];
-
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b bg-card px-4 md:h-16 md:px-6">
       {/* Logo and tagline */}
@@ -65,25 +53,8 @@ export function UnifiedNav({ variant = 'default' }: UnifiedNavProps) {
         </p>
       </div>
 
-      {/* Center navigation links (desktop) */}
-      <nav className="hidden md:flex items-center gap-1 absolute left-1/2 transform -translate-x-1/2">
-        {navLinks.map((link) => (
-          <Link key={link.href} href={link.href}>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                pathname.startsWith(link.href) && "bg-muted"
-              )}
-            >
-              {link.label}
-            </Button>
-          </Link>
-        ))}
-      </nav>
-
       {/* Right side */}
-      <div className="flex items-center gap-2 md:gap-3">
+      <div className="flex items-center gap-2">
         {!isLoading && (
           <>
             {user ? (
@@ -129,7 +100,6 @@ export function UnifiedNav({ variant = 'default' }: UnifiedNavProps) {
             )}
           </>
         )}
-        <div className="w-px h-5 bg-border/50 mx-1 hidden sm:block" />
         <ThemeToggle />
       </div>
     </header>
