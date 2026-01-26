@@ -83,7 +83,7 @@ export default function SecurityPage() {
 
       <Heading level={3} id="rls-bypass">1. Row Level Security (RLS) Bypass</Heading>
 
-      <Callout type="danger" title="High Priority">
+      <Callout type="error" title="High Priority">
         The Supabase service role key bypasses all Row Level Security policies. This means
         application code is the <strong>only</strong> protection preventing users from accessing
         other users&apos; data.
@@ -144,7 +144,7 @@ CREATE POLICY "Users can update own data"
 
       <Heading level={3} id="test-mode">2. Test Mode Authentication Bypass</Heading>
 
-      <Callout type="danger" title="High Priority">
+      <Callout type="error" title="High Priority">
         Test mode uses a hardcoded default secret that&apos;s visible in the source code. If deployed
         without proper configuration, this could allow complete authentication bypass.
       </Callout>
