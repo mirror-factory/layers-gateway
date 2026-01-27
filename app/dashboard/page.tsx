@@ -130,42 +130,48 @@ export default function DashboardPage() {
       setIsRefreshing(true);
     }
 
-    const supabase = createClient();
+    try {
+      const supabase = createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      // Retry up to 3 times with 500ms delay to handle OAuth cookie propagation
-      if (retryCount < 3) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return loadData(retryCount + 1, isManualRefresh);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        // Retry up to 3 times with 500ms delay to handle OAuth cookie propagation
+        if (retryCount < 3) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          return loadData(retryCount + 1, isManualRefresh);
+        }
+        router.push('/login?redirectTo=/dashboard');
+        return;
       }
-      router.push('/login?redirectTo=/dashboard');
-      return;
-    }
-    setUser(user);
+      setUser(user);
 
-    const keysRes = await fetch('/api/keys');
-    if (keysRes.ok) {
-      const keysData = await keysRes.json();
-      setApiKeys(keysData.keys || []);
-    }
+      const keysRes = await fetch('/api/keys');
+      if (keysRes.ok) {
+        const keysData = await keysRes.json();
+        setApiKeys(keysData.keys || []);
+      }
 
-    const balanceRes = await fetch('/api/balance');
-    if (balanceRes.ok) {
-      const balanceData = await balanceRes.json();
-      setBalance(balanceData);
-    }
+      const balanceRes = await fetch('/api/balance');
+      if (balanceRes.ok) {
+        const balanceData = await balanceRes.json();
+        setBalance(balanceData);
+      }
 
-    // Fetch 90 days of data so we can filter client-side
-    const usageRes = await fetch('/api/usage?days=90');
-    if (usageRes.ok) {
-      const usageData = await usageRes.json();
-      setUsage(usageData);
-    }
+      // Fetch 90 days of data so we can filter client-side
+      const usageRes = await fetch('/api/usage?days=90');
+      if (usageRes.ok) {
+        const usageData = await usageRes.json();
+        setUsage(usageData);
+      }
 
-    setLastUpdated(new Date());
-    setIsLoading(false);
-    setIsRefreshing(false);
+      setLastUpdated(new Date());
+      console.log('Dashboard data refreshed at:', new Date().toLocaleTimeString());
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
   }, [router]);
 
   const handleManualRefresh = useCallback(() => {
