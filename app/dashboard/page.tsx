@@ -119,6 +119,7 @@ export default function DashboardPage() {
   const [usage, setUsage] = useState<UsageStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [selectedProvider, setSelectedProvider] = useState<string>('all');
@@ -128,6 +129,8 @@ export default function DashboardPage() {
   const loadData = useCallback(async (retryCount = 0, isManualRefresh = false) => {
     if (isManualRefresh) {
       setIsRefreshing(true);
+    } else {
+      setIsBackgroundRefreshing(true);
     }
 
     try {
@@ -171,6 +174,7 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
+      setIsBackgroundRefreshing(false);
     }
   }, [router]);
 
@@ -332,7 +336,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-3">
                   <h1 className="text-2xl font-serif font-semibold">Dashboard</h1>
                   <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-medium">
-                    <Activity className="h-3 w-3" />
+                    <Activity className={`h-3 w-3 ${isRefreshing || isBackgroundRefreshing ? 'animate-pulse' : ''}`} />
                     Live
                   </span>
                 </div>
