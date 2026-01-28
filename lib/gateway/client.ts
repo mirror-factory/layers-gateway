@@ -171,19 +171,30 @@ function convertTools(tools: ToolDefinition[]): Record<string, { description?: s
 
   for (const tool of tools) {
     if (tool.type === 'function' && tool.function) {
-      // Ensure the parameters have the required structure for AI SDK
-      const params = tool.function.parameters || {};
-      const schema = {
-        type: 'object',
-        properties: params.properties || {},
-        required: params.required || [],
-        additionalProperties: false, // Required by AI SDK
-      };
+      try {
+        // Ensure the parameters have the required structure for AI SDK
+        const params = tool.function.parameters || {};
+        const schema = {
+          type: 'object',
+          properties: params.properties || {},
+          required: params.required || [],
+          additionalProperties: false, // Required by AI SDK
+        };
 
-      sdkTools[tool.function.name] = {
-        description: tool.function.description,
-        inputSchema: jsonSchema(schema),
-      };
+        sdkTools[tool.function.name] = {
+          description: tool.function.description,
+          inputSchema: jsonSchema(schema),
+        };
+
+        console.log(`[Gateway] Converted tool: ${tool.function.name}`, {
+          hasDescription: !!tool.function.description,
+          propertyCount: Object.keys(params.properties || {}).length,
+          requiredCount: (params.required || []).length,
+        });
+      } catch (err) {
+        console.error(`[Gateway] Failed to convert tool: ${tool.function.name}`, err);
+        throw new Error(`Tool conversion failed for ${tool.function.name}: ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
   }
 
@@ -300,6 +311,16 @@ export async function callGateway(
       generateOptions.providerOptions = providerOptions;
     }
 
+    // Debug logging for tool requests
+    if (request.tools && request.tools.length > 0) {
+      console.log('[Gateway] Tool request detected:', {
+        model: request.model,
+        toolCount: request.tools.length,
+        toolNames: request.tools.map(t => t.function.name),
+        toolChoice: request.tool_choice,
+      });
+    }
+
     // Use generateText for non-streaming
     const result = await generateText(generateOptions);
 
@@ -402,7 +423,13 @@ export async function callGateway(
 
     return { success: true, data: response };
   } catch (err) {
-    console.error('Gateway error:', err);
+    console.error('[Gateway] Error details:', {
+      error: err,
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      model: request.model,
+      hasTools: !!request.tools && request.tools.length > 0,
+    });
 
     const errorMessage = err instanceof Error ? err.message : String(err);
     let status = 500;
