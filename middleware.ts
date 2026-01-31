@@ -19,20 +19,15 @@ export async function middleware(request: NextRequest) {
   // First, handle session refresh
   const response = await updateSession(request);
 
-  // Generate nonce for CSP
-  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-
   // Build Content Security Policy
-  // Note: 'unsafe-eval' is needed for development hot reload
+  // Note: 'unsafe-eval' is needed for Next.js dynamic imports and module loading
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'nonce-${nonce}' ${
-      process.env.NODE_ENV === 'production' ? '' : "'unsafe-eval'"
-    } 'strict-dynamic' https://apis.google.com https://accounts.google.com;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com;
     style-src 'self' 'unsafe-inline';
     img-src 'self' blob: data: https:;
     font-src 'self' data:;
-    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://apis.google.com https://accounts.google.com;
+    connect-src 'self' https://*.supabase.co wss://*.supabase.co https://apis.google.com https://accounts.google.com https://ai-gateway.vercel.sh;
     frame-src 'self' https://accounts.google.com;
     object-src 'none';
     base-uri 'self';
@@ -40,9 +35,6 @@ export async function middleware(request: NextRequest) {
     frame-ancestors 'none';
     upgrade-insecure-requests;
   `.replace(/\s{2,}/g, ' ').trim();
-
-  // Set nonce for use in components
-  response.headers.set('x-nonce', nonce);
 
   // Set security headers
   response.headers.set('Content-Security-Policy', cspHeader);
