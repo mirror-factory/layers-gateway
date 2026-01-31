@@ -94,7 +94,7 @@ async function layersChat(
 ): Promise<{
   status: number;
   headers: Headers;
-  data: Record<string, unknown>;
+  data: any;
 }> {
   const { key = apiKey, skipTestHeader = false } = options;
 

@@ -1,6 +1,3 @@
-import { createGateway, generateText, streamText, Output, jsonSchema } from 'ai';
-import { z } from 'zod';
-
 // Content part types for multimodal messages
 export interface TextContentPart {
   type: 'text';
@@ -125,84 +122,7 @@ export function isGatewayConfigured(): boolean {
 }
 
 /**
- * Convert OpenAI-style content parts to AI SDK format
- */
-function convertContentParts(content: string | ContentPart[]): string | Array<{ type: string; text?: string; image?: unknown }> {
-  if (typeof content === 'string') {
-    return content;
-  }
-
-  return content.map(part => {
-    if (part.type === 'text') {
-      return { type: 'text', text: (part as TextContentPart).text };
-    }
-    if (part.type === 'image_url') {
-      const imgPart = part as ImageContentPart;
-      const url = imgPart.image_url?.url || '';
-      // Handle data URLs (base64)
-      if (url.startsWith('data:')) {
-        const matches = url.match(/^data:([^;]+);base64,(.+)$/);
-        if (matches) {
-          return {
-            type: 'image',
-            image: Buffer.from(matches[2], 'base64'),
-            mimeType: matches[1],
-          };
-        }
-      }
-      // Handle regular URLs
-      return { type: 'image', image: new URL(url) };
-    }
-    if (part.type === 'image') {
-      const imgPart = part as ImageContentPart;
-      return { type: 'image', image: imgPart.image };
-    }
-    // Pass through unknown types
-    return part;
-  });
-}
-
-/**
- * Convert OpenAI-style tools to AI SDK format
- * AI SDK uses `inputSchema` (not `parameters`) and requires additionalProperties: false
- */
-function convertTools(tools: ToolDefinition[]): Record<string, { description?: string; inputSchema: unknown }> {
-  const sdkTools: Record<string, { description?: string; inputSchema: unknown }> = {};
-
-  for (const tool of tools) {
-    if (tool.type === 'function' && tool.function) {
-      try {
-        // Ensure the parameters have the required structure for AI SDK
-        const params = tool.function.parameters || {};
-        const schema = {
-          type: 'object',
-          properties: params.properties || {},
-          required: params.required || [],
-          additionalProperties: false, // Required by AI SDK
-        };
-
-        sdkTools[tool.function.name] = {
-          description: tool.function.description,
-          inputSchema: jsonSchema(schema),
-        };
-
-        console.log(`[Gateway] Converted tool: ${tool.function.name}`, {
-          hasDescription: !!tool.function.description,
-          propertyCount: Object.keys(params.properties || {}).length,
-          requiredCount: (params.required || []).length,
-        });
-      } catch (err) {
-        console.error(`[Gateway] Failed to convert tool: ${tool.function.name}`, err);
-        throw new Error(`Tool conversion failed for ${tool.function.name}: ${err instanceof Error ? err.message : String(err)}`);
-      }
-    }
-  }
-
-  return sdkTools;
-}
-
-/**
- * Send a chat completion request using Vercel AI SDK Gateway
+ * Send a chat completion request via HTTP passthrough to Vercel AI Gateway
  */
 export async function callGateway(
   request: GatewayRequest
@@ -215,247 +135,99 @@ export async function callGateway(
       error: {
         error: 'AI Gateway not configured',
         status: 500,
-        details: 'Set VERCEL_AI_GATEWAY_KEY (vai_...) or AI_GATEWAY_API_KEY environment variable',
+        details: 'Set VERCEL_AI_GATEWAY_KEY or AI_GATEWAY_API_KEY',
       },
     };
   }
 
   try {
-    // Create gateway instance
-    const gateway = createGateway({ apiKey: gatewayKey });
-
-    // Build prompt from messages
-    const systemMessages = request.messages.filter(m => m.role === 'system');
-    const otherMessages = request.messages.filter(m => m.role !== 'system');
-
-    const systemPrompt = systemMessages.length > 0
-      ? systemMessages.map(m => typeof m.content === 'string' ? m.content : '').join('\n')
-      : undefined;
-
-    // Convert messages to AI SDK format, properly handling multimodal content
-    const convertedMessages = otherMessages.map(m => ({
-      role: m.role as 'user' | 'assistant' | 'tool',
-      content: convertContentParts(m.content),
-      ...(m.tool_call_id && { toolCallId: m.tool_call_id }),
-    }));
-
-    // Build generateText options
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const generateOptions: any = {
-      model: gateway(request.model),
-      system: systemPrompt,
-      messages: convertedMessages,
-      maxOutputTokens: request.max_tokens || 1024,
-      temperature: request.temperature,
+    // Build request body - already OpenAI-compatible
+    const requestBody: Record<string, unknown> = {
+      model: request.model,
+      messages: request.messages,
     };
 
-    // Add tools if provided
-    if (request.tools && request.tools.length > 0) {
-      generateOptions.tools = convertTools(request.tools);
+    // Add optional parameters
+    if (request.max_tokens) requestBody.max_tokens = request.max_tokens;
+    if (request.temperature !== undefined) requestBody.temperature = request.temperature;
+    if (request.tools) requestBody.tools = request.tools;
+    if (request.tool_choice) requestBody.tool_choice = request.tool_choice;
+    if (request.response_format) requestBody.response_format = request.response_format;
 
-      // Convert tool_choice
-      if (request.tool_choice) {
-        if (typeof request.tool_choice === 'string') {
-          generateOptions.toolChoice = request.tool_choice;
-        } else if (request.tool_choice.type === 'function') {
-          generateOptions.toolChoice = {
-            type: 'tool',
-            toolName: request.tool_choice.function.name,
-          };
-        }
-      }
-    }
+    // Web search (for Perplexity)
+    if (request.web_search) requestBody.web_search = request.web_search;
+    if (request.search_domains) requestBody.search_domains = request.search_domains;
 
-    // Add provider-specific options
-    const providerOptions: Record<string, unknown> = {};
-    if (request.anthropic) {
-      providerOptions.anthropic = request.anthropic;
-    }
-    if (request.openai) {
-      providerOptions.openai = request.openai;
-    }
-    if (request.google) {
-      providerOptions.google = request.google;
-    }
+    // Prompt caching
+    if (request.cache) requestBody.cache = request.cache;
 
-    // Track if JSON mode requested for OpenAI (which needs special handling)
-    let openaiJsonMode = false;
+    // Provider-specific options at top level (OpenAI-compatible format)
+    if (request.anthropic) requestBody.anthropic = request.anthropic;
+    if (request.openai) requestBody.openai = request.openai;
+    if (request.google) requestBody.google = request.google;
 
-    // Add JSON mode if requested
-    // Different providers handle JSON mode differently:
-    // - Anthropic/Google/Perplexity: Output.object() with z.record() works well
-    // - OpenAI: z.record() generates 'propertyNames' which OpenAI rejects
-    //   For OpenAI, we skip Output.object and rely on system message + response parsing
-    if (request.response_format?.type === 'json_object') {
-      const provider = request.model.split('/')[0];
+    // HTTP POST to Vercel AI Gateway
+    const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${gatewayKey}`,
+      },
+      body: JSON.stringify(requestBody),
+    });
 
-      if (provider === 'openai') {
-        // OpenAI: Don't use Output.object() as it generates incompatible schemas
-        // Instead, add a strong system instruction for JSON output
-        openaiJsonMode = true;
-        const jsonInstruction = '\n\nCRITICAL: You MUST respond with ONLY valid JSON. No markdown code blocks, no explanations, no other text - just the raw JSON object starting with { and ending with }.';
-        if (generateOptions.system) {
-          generateOptions.system = generateOptions.system + jsonInstruction;
-        } else {
-          generateOptions.system = 'You are a helpful assistant that responds in JSON format.' + jsonInstruction;
-        }
-      } else {
-        // Anthropic, Google, Perplexity: Use Output.object with z.record()
-        generateOptions.output = Output.object({
-          schema: z.record(z.string(), z.unknown()),
-        });
-      }
-    }
-
-    if (Object.keys(providerOptions).length > 0) {
-      generateOptions.providerOptions = providerOptions;
-    }
-
-    // Debug logging for tool requests
-    if (request.tools && request.tools.length > 0) {
-      console.log('[Gateway] Tool request detected:', {
-        model: request.model,
-        toolCount: request.tools.length,
-        toolNames: request.tools.map(t => t.function.name),
-        toolChoice: request.tool_choice,
-      });
-    }
-
-    // Use generateText for non-streaming
-    const result = await generateText(generateOptions);
-
-    // Build response in OpenAI-compatible format
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resultAny = result as any;
-
-    // Extract usage data - prefer raw values from response.body.usage.raw for accuracy
-    const responseBody = resultAny.response?.body;
-    const rawUsage = responseBody?.usage?.raw;
-    const usageData = result.usage as Record<string, unknown> | undefined;
-
-    // Token extraction priority: raw (most accurate) > response.body > result.usage
-    const promptTokens =
-      rawUsage?.input_tokens ??
-      responseBody?.usage?.inputTokens?.total ??
-      (usageData?.inputTokens as number | undefined) ??
-      (usageData?.promptTokens as number | undefined) ??
-      0;
-    const completionTokens =
-      rawUsage?.output_tokens ??
-      responseBody?.usage?.outputTokens?.total ??
-      (usageData?.outputTokens as number | undefined) ??
-      (usageData?.completionTokens as number | undefined) ??
-      0;
-
-    // Extract tool calls if present
-    // AI SDK returns toolCalls with: { toolCallId, toolName, input } (note: 'input' not 'args')
-    // We need to convert to OpenAI format: { id, type, function: { name, arguments } }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const toolCalls = result.toolCalls?.map((tc: any, i: number) => {
-      // AI SDK uses 'input' for the arguments object, not 'args'
-      const toolArgs = tc.input ?? tc.args ?? {};
-
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
       return {
-        id: tc.toolCallId || `call_${Date.now()}_${i}`,
-        type: 'function' as const,
-        function: {
-          name: tc.toolName,
-          // Convert to JSON string for OpenAI compatibility
-          arguments: typeof toolArgs === 'string' ? toolArgs : JSON.stringify(toolArgs),
+        success: false,
+        error: {
+          error: errorData.error?.message || 'Gateway request failed',
+          status: response.status,
+          details: errorData.error?.type,
         },
       };
-    });
-
-    // Handle JSON mode response
-    let responseText = result.text;
-    if (request.response_format?.type === 'json_object' && resultAny.output) {
-      responseText = JSON.stringify(resultAny.output);
     }
 
-    // Extract sources (Perplexity) - check multiple locations
-    // AI SDK may put them in result.sources or in providerMetadata.perplexity.sources
-    let sources = resultAny.sources as Source[] | undefined;
+    const data = await response.json();
+    const message = data.choices?.[0]?.message || {};
+    const usage = data.usage || {};
 
-    // Also check providerMetadata for sources (AI SDK format)
-    const providerMetadataRaw = responseBody?.providerMetadata ?? result.providerMetadata ?? {};
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const perplexityMeta = (providerMetadataRaw as any)?.perplexity;
-    if (!sources && perplexityMeta?.sources) {
-      sources = perplexityMeta.sources as Source[];
-    }
-
-    // Build provider metadata for pass-through, including sources for OpenAI-compatible consumers
-    // Include sources in perplexity metadata so consuming apps can access them
-    const providerMetadata = {
-      ...providerMetadataRaw,
-      // Ensure sources are also in provider metadata for compatibility
-      ...(sources && sources.length > 0 && {
-        perplexity: {
-          ...(perplexityMeta || {}),
-          sources,
+    return {
+      success: true,
+      data: {
+        id: data.id,
+        object: data.object,
+        created: data.created,
+        model: request.model,
+        text: message.content || '',
+        usage: {
+          prompt_tokens: usage.prompt_tokens || 0,
+          completion_tokens: usage.completion_tokens || 0,
+          total_tokens: usage.total_tokens || 0,
         },
-      }),
-    };
-
-    // Extract response ID from provider metadata when available
-    const providerResponseId =
-      providerMetadata?.openai?.responseId ??
-      providerMetadata?.anthropic?.messageId ??
-      resultAny.response?.id;
-    const responseId = providerResponseId ? String(providerResponseId) : `chatcmpl-${Date.now()}`;
-
-    const response: GatewayResponse = {
-      id: responseId,
-      object: 'chat.completion',
-      created: Math.floor(Date.now() / 1000),
-      model: request.model,
-      text: responseText,
-      usage: {
-        prompt_tokens: promptTokens,
-        completion_tokens: completionTokens,
-        total_tokens: promptTokens + completionTokens,
+        ...(message.tool_calls && { tool_calls: message.tool_calls }),
+        ...(data.reasoning && { reasoning: data.reasoning }),
+        ...(data.sources && { sources: data.sources }),
+        ...(data.experimental_providerMetadata && {
+          provider_metadata: data.experimental_providerMetadata,
+        }),
       },
-      ...(toolCalls && toolCalls.length > 0 && { tool_calls: toolCalls }),
-      ...(result.reasoning && { reasoning: result.reasoning }),
-      ...(sources && sources.length > 0 && { sources }),
-      ...(providerMetadata && { provider_metadata: providerMetadata }),
     };
-
-    return { success: true, data: response };
   } catch (err) {
-    console.error('[Gateway] Error details:', {
-      error: err,
-      message: err instanceof Error ? err.message : String(err),
-      stack: err instanceof Error ? err.stack : undefined,
-      model: request.model,
-      hasTools: !!request.tools && request.tools.length > 0,
-    });
-
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    let status = 500;
-
-    // Parse common error types
-    if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-      status = 401;
-    } else if (errorMessage.includes('404') || errorMessage.includes('not found')) {
-      status = 404;
-    } else if (errorMessage.includes('429') || errorMessage.includes('rate limit')) {
-      status = 429;
-    }
-
+    console.error('[Gateway] Error:', err);
     return {
       success: false,
       error: {
-        error: 'AI Gateway request failed',
-        status,
-        details: errorMessage,
+        error: 'Gateway request failed',
+        status: 500,
+        details: err instanceof Error ? err.message : String(err),
       },
     };
   }
 }
 
 /**
- * Send a streaming chat completion request using Vercel AI SDK Gateway
+ * Send a streaming chat completion request via HTTP passthrough to Vercel AI Gateway
  * Returns SSE-formatted stream compatible with OpenAI streaming format
  */
 export async function callGatewayStream(
@@ -469,125 +241,73 @@ export async function callGatewayStream(
       error: {
         error: 'AI Gateway not configured',
         status: 500,
-        details: 'Set VERCEL_AI_GATEWAY_KEY (vai_...) or AI_GATEWAY_API_KEY environment variable',
+        details: 'Set VERCEL_AI_GATEWAY_KEY or AI_GATEWAY_API_KEY',
       },
     };
   }
 
   try {
-    // Create gateway instance
-    const gateway = createGateway({ apiKey: gatewayKey });
-
-    // Build prompt from messages
-    const systemMessages = request.messages.filter(m => m.role === 'system');
-    const otherMessages = request.messages.filter(m => m.role !== 'system');
-
-    const systemPrompt = systemMessages.length > 0
-      ? systemMessages.map(m => typeof m.content === 'string' ? m.content : '').join('\n')
-      : undefined;
-
-    // Convert messages to AI SDK format, properly handling multimodal content
-    const convertedMessages = otherMessages.map(m => ({
-      role: m.role as 'user' | 'assistant' | 'tool',
-      content: convertContentParts(m.content),
-      ...(m.tool_call_id && { toolCallId: m.tool_call_id }),
-    }));
-
-    // Build streamText options
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const streamOptions: any = {
-      model: gateway(request.model),
-      system: systemPrompt,
-      messages: convertedMessages,
-      maxOutputTokens: request.max_tokens || 1024,
-      temperature: request.temperature,
+    const requestBody: Record<string, unknown> = {
+      model: request.model,
+      messages: request.messages,
+      stream: true,
     };
 
-    // Add tools if provided
-    if (request.tools && request.tools.length > 0) {
-      streamOptions.tools = convertTools(request.tools);
+    if (request.max_tokens) requestBody.max_tokens = request.max_tokens;
+    if (request.temperature !== undefined) requestBody.temperature = request.temperature;
+    if (request.tools) requestBody.tools = request.tools;
+    if (request.tool_choice) requestBody.tool_choice = request.tool_choice;
+    if (request.response_format) requestBody.response_format = request.response_format;
 
-      if (request.tool_choice) {
-        if (typeof request.tool_choice === 'string') {
-          streamOptions.toolChoice = request.tool_choice;
-        } else if (request.tool_choice.type === 'function') {
-          streamOptions.toolChoice = {
-            type: 'tool',
-            toolName: request.tool_choice.function.name,
-          };
-        }
-      }
-    }
+    // Web search (for Perplexity)
+    if (request.web_search) requestBody.web_search = request.web_search;
+    if (request.search_domains) requestBody.search_domains = request.search_domains;
 
-    // Add provider-specific options
-    const providerOptions: Record<string, unknown> = {};
-    if (request.anthropic) providerOptions.anthropic = request.anthropic;
-    if (request.openai) providerOptions.openai = request.openai;
-    if (request.google) providerOptions.google = request.google;
-    if (Object.keys(providerOptions).length > 0) {
-      streamOptions.providerOptions = providerOptions;
-    }
+    // Prompt caching
+    if (request.cache) requestBody.cache = request.cache;
 
-    // Use streamText for streaming
-    const result = streamText(streamOptions);
+    // Provider-specific options at top level (OpenAI-compatible format)
+    if (request.anthropic) requestBody.anthropic = request.anthropic;
+    if (request.openai) requestBody.openai = request.openai;
+    if (request.google) requestBody.google = request.google;
 
-    // Convert to SSE format compatible with OpenAI streaming
-    const responseId = `chatcmpl-${Date.now()}`;
-    const stream = new ReadableStream<Uint8Array>({
-      async start(controller) {
-        const encoder = new TextEncoder();
-        try {
-          for await (const chunk of result.textStream) {
-            // Format as SSE event in OpenAI format
-            const sseData = {
-              id: responseId,
-              object: 'chat.completion.chunk',
-              created: Math.floor(Date.now() / 1000),
-              model: request.model,
-              choices: [{
-                index: 0,
-                delta: { content: chunk },
-                finish_reason: null,
-              }],
-            };
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify(sseData)}\n\n`));
-          }
-          // Send final chunk with finish_reason
-          const finalData = {
-            id: responseId,
-            object: 'chat.completion.chunk',
-            created: Math.floor(Date.now() / 1000),
-            model: request.model,
-            choices: [{
-              index: 0,
-              delta: {},
-              finish_reason: 'stop',
-            }],
-          };
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(finalData)}\n\n`));
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-          controller.close();
-        } catch (err) {
-          controller.error(err);
-        }
+    const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${gatewayKey}`,
       },
+      body: JSON.stringify(requestBody),
     });
 
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: {
+          error: errorData.error?.message || 'Streaming failed',
+          status: response.status,
+        },
+      };
+    }
+
+    if (!response.body) {
+      throw new Error('Response body is null');
+    }
+
+    // Return stream directly (Vercel AI Gateway returns SSE format)
     return {
       success: true,
-      stream,
+      stream: response.body,
     };
   } catch (err) {
-    console.error('Gateway stream error:', err);
-
-    const errorMessage = err instanceof Error ? err.message : String(err);
-
+    console.error('[Gateway] Stream error:', err);
     return {
       success: false,
       error: {
-        error: 'AI Gateway streaming failed',
+        error: 'Streaming failed',
         status: 500,
-        details: errorMessage,
+        details: err instanceof Error ? err.message : String(err),
       },
     };
   }
