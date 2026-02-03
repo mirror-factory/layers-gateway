@@ -102,46 +102,48 @@ export interface GatewayError {
 }
 
 /**
- * Get the AI Gateway API key
- * Supports both vai_ (preferred) and vck_ formats
+ * Get the Hustle AI SDK base URL
  */
-function getGatewayKey(): string | null {
-  // Prefer the dedicated gateway key
-  return (
-    process.env.VERCEL_AI_GATEWAY_KEY ||
-    process.env.AI_GATEWAY_API_KEY ||
-    null
-  );
+function getHustleAIUrl(): string {
+  return process.env.HUSTLE_AI_SDK_URL || 'https://ai.hustletogether.com';
 }
 
 /**
- * Check if gateway is configured
+ * Get the Hustle AI SDK API key
+ */
+function getHustleAIKey(): string | null {
+  return process.env.HUSTLE_AI_SDK_KEY || null;
+}
+
+/**
+ * Check if Hustle AI SDK is configured
  */
 export function isGatewayConfigured(): boolean {
-  return !!getGatewayKey();
+  return !!getHustleAIKey();
 }
 
 /**
- * Send a chat completion request via HTTP passthrough to Vercel AI Gateway
+ * Send a chat completion request to Hustle AI SDK
  */
 export async function callGateway(
   request: GatewayRequest
 ): Promise<{ success: true; data: GatewayResponse } | { success: false; error: GatewayError }> {
-  const gatewayKey = getGatewayKey();
+  const apiKey = getHustleAIKey();
+  const baseUrl = getHustleAIUrl();
 
-  if (!gatewayKey) {
+  if (!apiKey) {
     return {
       success: false,
       error: {
-        error: 'AI Gateway not configured',
+        error: 'Hustle AI SDK not configured',
         status: 500,
-        details: 'Set VERCEL_AI_GATEWAY_KEY or AI_GATEWAY_API_KEY',
+        details: 'Set HUSTLE_AI_SDK_KEY environment variable',
       },
     };
   }
 
   try {
-    // Build request body - already OpenAI-compatible
+    // Build request body - OpenAI-compatible
     const requestBody: Record<string, unknown> = {
       model: request.model,
       messages: request.messages,
@@ -154,24 +156,20 @@ export async function callGateway(
     if (request.tool_choice) requestBody.tool_choice = request.tool_choice;
     if (request.response_format) requestBody.response_format = request.response_format;
 
-    // Web search (for Perplexity)
+    // Custom fields (pass-through)
     if (request.web_search) requestBody.web_search = request.web_search;
     if (request.search_domains) requestBody.search_domains = request.search_domains;
-
-    // Prompt caching
     if (request.cache) requestBody.cache = request.cache;
-
-    // Provider-specific options at top level (OpenAI-compatible format)
     if (request.anthropic) requestBody.anthropic = request.anthropic;
     if (request.openai) requestBody.openai = request.openai;
     if (request.google) requestBody.google = request.google;
 
-    // HTTP POST to Vercel AI Gateway
-    const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
+    // HTTP POST to Hustle AI SDK
+    const response = await fetch(`${baseUrl}/api/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${gatewayKey}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify(requestBody),
     });
@@ -181,7 +179,7 @@ export async function callGateway(
       return {
         success: false,
         error: {
-          error: errorData.error?.message || 'Gateway request failed',
+          error: errorData.error?.message || 'Request failed',
           status: response.status,
           details: errorData.error?.type,
         },
@@ -218,7 +216,7 @@ export async function callGateway(
     return {
       success: false,
       error: {
-        error: 'Gateway request failed',
+        error: 'Request failed',
         status: 500,
         details: err instanceof Error ? err.message : String(err),
       },
@@ -227,21 +225,22 @@ export async function callGateway(
 }
 
 /**
- * Send a streaming chat completion request via HTTP passthrough to Vercel AI Gateway
+ * Send a streaming chat completion request to Hustle AI SDK
  * Returns SSE-formatted stream compatible with OpenAI streaming format
  */
 export async function callGatewayStream(
   request: GatewayRequest
 ): Promise<{ success: true; stream: ReadableStream<Uint8Array> } | { success: false; error: GatewayError }> {
-  const gatewayKey = getGatewayKey();
+  const apiKey = getHustleAIKey();
+  const baseUrl = getHustleAIUrl();
 
-  if (!gatewayKey) {
+  if (!apiKey) {
     return {
       success: false,
       error: {
-        error: 'AI Gateway not configured',
+        error: 'Hustle AI SDK not configured',
         status: 500,
-        details: 'Set VERCEL_AI_GATEWAY_KEY or AI_GATEWAY_API_KEY',
+        details: 'Set HUSTLE_AI_SDK_KEY environment variable',
       },
     };
   }
@@ -259,23 +258,19 @@ export async function callGatewayStream(
     if (request.tool_choice) requestBody.tool_choice = request.tool_choice;
     if (request.response_format) requestBody.response_format = request.response_format;
 
-    // Web search (for Perplexity)
+    // Custom fields (pass-through)
     if (request.web_search) requestBody.web_search = request.web_search;
     if (request.search_domains) requestBody.search_domains = request.search_domains;
-
-    // Prompt caching
     if (request.cache) requestBody.cache = request.cache;
-
-    // Provider-specific options at top level (OpenAI-compatible format)
     if (request.anthropic) requestBody.anthropic = request.anthropic;
     if (request.openai) requestBody.openai = request.openai;
     if (request.google) requestBody.google = request.google;
 
-    const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', {
+    const response = await fetch(`${baseUrl}/api/v1/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${gatewayKey}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify(requestBody),
     });
@@ -295,7 +290,7 @@ export async function callGatewayStream(
       throw new Error('Response body is null');
     }
 
-    // Return stream directly (Vercel AI Gateway returns SSE format)
+    // Return stream directly (SSE format)
     return {
       success: true,
       stream: response.body,
