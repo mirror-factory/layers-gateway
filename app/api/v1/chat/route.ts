@@ -73,6 +73,9 @@ export async function POST(request: NextRequest) {
   let userId: string | null = null;
   let apiKeyId: string | null = null;
 
+  // Get request path for transparent proxying to Hustle AI SDK
+  const requestPath = request.nextUrl.pathname;
+
   try {
     // 1. Authenticate (pass headers for test mode detection)
     const authResult = await validateApiKey(request.headers.get('authorization'), request.headers);
@@ -234,7 +237,7 @@ export async function POST(request: NextRequest) {
 
     // 6. Handle streaming
     if (stream) {
-      const streamResult = await callGatewayStream(gatewayRequest);
+      const streamResult = await callGatewayStream(gatewayRequest, requestPath);
 
       if (!streamResult.success) {
         await logUsage({
@@ -272,8 +275,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 7. Call AI Gateway (non-streaming)
-    const gatewayResult = await callGateway(gatewayRequest);
+    // 7. Call Hustle AI SDK (non-streaming, transparent path forwarding)
+    const gatewayResult = await callGateway(gatewayRequest, requestPath);
 
     if (!gatewayResult.success) {
       // Log failed request

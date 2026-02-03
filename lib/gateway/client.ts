@@ -124,9 +124,12 @@ export function isGatewayConfigured(): boolean {
 
 /**
  * Send a chat completion request to Hustle AI SDK
+ * @param request - Gateway request payload
+ * @param path - API path to forward to (defaults to /api/v1/chat/completions)
  */
 export async function callGateway(
-  request: GatewayRequest
+  request: GatewayRequest,
+  path: string = '/api/v1/chat/completions'
 ): Promise<{ success: true; data: GatewayResponse } | { success: false; error: GatewayError }> {
   const apiKey = getHustleAIKey();
   const baseUrl = getHustleAIUrl();
@@ -164,8 +167,8 @@ export async function callGateway(
     if (request.openai) requestBody.openai = request.openai;
     if (request.google) requestBody.google = request.google;
 
-    // HTTP POST to Hustle AI SDK
-    const response = await fetch(`${baseUrl}/api/v1/chat/completions`, {
+    // HTTP POST to Hustle AI SDK (transparent path forwarding)
+    const response = await fetch(`${baseUrl}${path}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -227,9 +230,12 @@ export async function callGateway(
 /**
  * Send a streaming chat completion request to Hustle AI SDK
  * Returns SSE-formatted stream compatible with OpenAI streaming format
+ * @param request - Gateway request payload
+ * @param path - API path to forward to (defaults to /api/v1/chat/completions)
  */
 export async function callGatewayStream(
-  request: GatewayRequest
+  request: GatewayRequest,
+  path: string = '/api/v1/chat/completions'
 ): Promise<{ success: true; stream: ReadableStream<Uint8Array> } | { success: false; error: GatewayError }> {
   const apiKey = getHustleAIKey();
   const baseUrl = getHustleAIUrl();
@@ -266,7 +272,7 @@ export async function callGatewayStream(
     if (request.openai) requestBody.openai = request.openai;
     if (request.google) requestBody.google = request.google;
 
-    const response = await fetch(`${baseUrl}/api/v1/chat/completions`, {
+    const response = await fetch(`${baseUrl}${path}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
