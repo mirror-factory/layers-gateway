@@ -117,9 +117,10 @@ function getHustleAIKey(): string | null {
 
 /**
  * Check if Hustle AI SDK is configured
+ * Always returns true since no API key is required
  */
 export function isGatewayConfigured(): boolean {
-  return !!getHustleAIKey();
+  return true; // No auth required between Layers and Hustle AI SDK
 }
 
 /**
@@ -131,19 +132,8 @@ export async function callGateway(
   request: GatewayRequest,
   path: string = '/api/v1/chat/completions'
 ): Promise<{ success: true; data: GatewayResponse } | { success: false; error: GatewayError }> {
-  const apiKey = getHustleAIKey();
+  const apiKey = getHustleAIKey(); // Optional - for future auth if needed
   const baseUrl = getHustleAIUrl();
-
-  if (!apiKey) {
-    return {
-      success: false,
-      error: {
-        error: 'Hustle AI SDK not configured',
-        status: 500,
-        details: 'Set HUSTLE_AI_SDK_KEY environment variable',
-      },
-    };
-  }
 
   try {
     // Build request body - OpenAI-compatible
@@ -168,12 +158,18 @@ export async function callGateway(
     if (request.google) requestBody.google = request.google;
 
     // HTTP POST to Hustle AI SDK (transparent path forwarding)
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add Authorization header if API key is configured
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+
     const response = await fetch(`${baseUrl}${path}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
+      headers,
       body: JSON.stringify(requestBody),
     });
 
@@ -237,19 +233,8 @@ export async function callGatewayStream(
   request: GatewayRequest,
   path: string = '/api/v1/chat/completions'
 ): Promise<{ success: true; stream: ReadableStream<Uint8Array> } | { success: false; error: GatewayError }> {
-  const apiKey = getHustleAIKey();
+  const apiKey = getHustleAIKey(); // Optional - for future auth if needed
   const baseUrl = getHustleAIUrl();
-
-  if (!apiKey) {
-    return {
-      success: false,
-      error: {
-        error: 'Hustle AI SDK not configured',
-        status: 500,
-        details: 'Set HUSTLE_AI_SDK_KEY environment variable',
-      },
-    };
-  }
 
   try {
     const requestBody: Record<string, unknown> = {
@@ -272,12 +257,18 @@ export async function callGatewayStream(
     if (request.openai) requestBody.openai = request.openai;
     if (request.google) requestBody.google = request.google;
 
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add Authorization header if API key is configured
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+
     const response = await fetch(`${baseUrl}${path}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
+      headers,
       body: JSON.stringify(requestBody),
     });
 
